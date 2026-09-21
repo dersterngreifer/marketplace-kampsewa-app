@@ -53,10 +53,6 @@ class _CheckoutProdukCardState extends State<CheckoutProdukCard> {
                     width: 90,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      image: DecorationImage(
-                          image: NetworkImage(ApiEndpoints.baseUrl +
-                              ApiEndpoints.authendpoints.getImageProduk +
-                              widget.image!)),
                       boxShadow: [
                         BoxShadow(
                             color:
@@ -64,6 +60,20 @@ class _CheckoutProdukCardState extends State<CheckoutProdukCard> {
                             offset: const Offset(0, 0),
                             blurRadius: 3)
                       ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: widget.image == null
+                          ? Container(color: Colors.grey.shade200)
+                          : widget.image!.startsWith('assets/')
+                              ? Image.asset(widget.image!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image))
+                              : Image.network(
+                                  widget.image!.startsWith('http')
+                                      ? widget.image!
+                                      : ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getImageProduk + widget.image!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                                ),
                     ),
                   ),
                   Expanded(
@@ -160,3 +170,4 @@ class _CheckoutProdukCardState extends State<CheckoutProdukCard> {
     );
   }
 }
+

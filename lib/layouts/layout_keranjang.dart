@@ -1,13 +1,21 @@
-import 'package:project_camp_sewa/theme_colors.dart';
-// ignore_for_file: use_build_context_synchronously
+﻿// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import 'package:project_camp_sewa/theme_colors.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart'
+    as import_api_data_user;
+import 'package:project_camp_sewa/layouts/layout_instruksi_kyc.dart'
+    as import_instruksi_kyc;
 import 'package:project_camp_sewa/components/card/group_produk_keranjang.dart';
-import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
+import 'package:project_camp_sewa/components/card/keranjang_card.dart'
+    show AppCheck;
+import 'package:project_camp_sewa/components/dialog/snackbar.dart';
+import 'package:project_camp_sewa/components/dialog/alert_dialog2.dart';
 import 'package:project_camp_sewa/layouts/layout_checkout.dart';
 import 'package:project_camp_sewa/services/controller_keranjang.dart';
+
+const _green = Color(0xFF2C4E40);
 
 class LayoutKeranjang extends StatefulWidget {
   const LayoutKeranjang({super.key});
@@ -17,7 +25,7 @@ class LayoutKeranjang extends StatefulWidget {
 }
 
 class _LayoutKeranjangState extends State<LayoutKeranjang> {
-  KeranjangController keranjangController = Get.put(KeranjangController());
+  final KeranjangController c = Get.put(KeranjangController());
 
   @override
   void initState() {
@@ -26,216 +34,390 @@ class _LayoutKeranjangState extends State<LayoutKeranjang> {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
     ));
-    keranjangController.getUniqueStores(context);
-    keranjangController.updateTotalHargaKeranjang(context);
-    keranjangController.updateTotalItemKeranjang(context);
-    keranjangController.getSelectedTokoCheckout(context);
+    c.loadKeranjang(context);
   }
 
-  String formatCurrency(String numberString) {
-    final number = int.parse(numberString);
-    final formatter = NumberFormat.decimalPattern('id');
-    return formatter.format(number);
+  Future<void> _checkout() async {
+    final apiDataUser = Get.find<import_api_data_user.ApiDataUser>();
+    final user = apiDataUser.dataUser.value;
+    final needsKYC = user != null &&
+        user.type == 0 &&
+        (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty);
+
+    if (needsKYC) {
+      CustomSnackBar.show(context, sukses: false,
+            title: 'Perhatian',
+            teks:
+                'Harap lengkapi identitas (KTP) Anda sebelum melakukan penyewaan barang.',);
+      Get.to(() => const import_instruksi_kyc.LayoutInstruksiKYC());
+      return;
+    }
+
+    final stores = c.selectedStoreSummary;
+
+    if (stores.length == 1) {
+      await _goCheckout(stores.first['id_toko'] as int);
+    } else {
+      _showStorePicker(stores);
+    }
+  }
+
+  /// Set selected hanya untuk 1 toko -> checkout -> pulihkan pilihan lain.
+  Future<void> _goCheckout(int idToko) async {
+    final previous = await c.selectOnlyStore(idToko, context);
+    await Get.to(() => const LayoutCheckout());
+    if (!mounted) return;
+    await c.restoreSelection(previous, context);
+  }
+
+  void _showStorePicker(List<Map<String, dynamic>> stores) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Bayar per toko',
+                  style: AppColors.fontStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: _green)),
+              const SizedBox(height: 4),
+              Text(
+                'Kamu memilih produk dari ${stores.length} toko. '
+                'Pembayaran dilakukan satu toko per transaksi, pilih toko yang dibayar dulu. '
+                'Pilihan toko lainnya tetap tersimpan.',
+                style: AppColors.fontStyle(
+                    fontSize: 12.5, color: Colors.black54, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              for (final s in stores) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _green.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _green,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.storefront_rounded,
+                            size: 18, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(s['nama_toko'] as String,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppColors.fontStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF2F2828))),
+                            Text(
+                              '${s['jumlah']} item Ã¢â‚¬Â¢ Rp ${rupiah(s['subtotal'] as int)}',
+                              style: AppColors.fontStyle(
+                                  fontSize: 12, color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _goCheckout(s['id_toko'] as int);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _green,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text('Bayar',
+                              style: AppColors.fontStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFFF6F7F6),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──
-            Container(
-              color: Colors.white,
-              padding:
-                  const EdgeInsets.only(top: 8, bottom: 14, left: 4, right: 16),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Color(0xFF2C4E40),
-                      size: 24,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Keranjang',
-                      textAlign: TextAlign.center,
-                      style: AppColors.fontStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF2C4E40),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ),
-                  // Placeholder to center title
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-
-            // ── Cart items list ──
+            _buildHeader(),
             Expanded(
               child: Obx(() {
-                final stores = keranjangController.uniqueStores;
-                if (stores.isEmpty) {
-                  return _buildEmptyState();
+                if (c.isLoading.value && c.items.isEmpty) {
+                  return const Center(
+                      child: CircularProgressIndicator(color: _green));
                 }
-                return ListView.separated(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  scrollDirection: Axis.vertical,
-                  itemBuilder: (context, index) {
-                    final store = stores[index];
-                    return GroupProdukKeranjang(
-                      namaToko: store['nama_toko'],
-                      idToko: store['id_toko'],
-                    );
-                  },
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemCount: stores.length,
+                final stores = c.uniqueStores;
+                if (stores.isEmpty) return _buildEmptyState();
+
+                return RefreshIndicator(
+                  color: _green,
+                  onRefresh: () => c.loadKeranjang(context),
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                    itemCount: stores.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                    itemBuilder: (_, i) => GroupProdukKeranjang(
+                      key: ValueKey(stores[i]['id_toko']),
+                      namaToko: stores[i]['nama_toko'],
+                      idToko: stores[i]['id_toko'],
+                    ),
+                  ),
                 );
               }),
             ),
-
-            // ── Summary & Checkout footer ──
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  topRight: Radius.circular(28),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Total Item row
-                  Row(
-                    children: [
-                      Text(
-                        'Total Item',
-                        style: AppColors.fontStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const Spacer(),
-                      Obx(() => Text(
-                            '${keranjangController.totalItemKeranjang.value} Item',
-                            style: AppColors.fontStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF2C4E40),
-                            ),
-                          )),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Total harga row
-                  Row(
-                    children: [
-                      Text(
-                        'Total Harga',
-                        style: AppColors.fontStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const Spacer(),
-                      Obx(() => Text(
-                            'Rp ${formatCurrency(keranjangController.totalHargaKeranjang.value.toString())}',
-                            style: AppColors.fontStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF2C4E40),
-                            ),
-                          )),
-                      Text(
-                        '/hari',
-                        style: AppColors.fontStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black45,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  // Checkout button
-                  GestureDetector(
-                    onTap: () async {
-                      await keranjangController
-                          .getSelectedTokoCheckout(context);
-                      final int totalToko =
-                          keranjangController.totalSelectedTokoCheckout.value;
-                      if (totalToko == 1) {
-                        Get.to(const LayoutCheckout());
-                      } else {
-                        showDialog(
-                          context: context,
-                          builder: (context) => const AlertDialog(
-                            backgroundColor: Colors.transparent,
-                            content: CustomAlertDialog(
-                              sukses: false,
-                              title: 'Maaf Atas Ketidaknyamanannya',
-                              teks:
-                                  'Anda Hanya Bisa Checkout Produk Pada 1 Toko Yang Sama',
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    child: Container(
-                      height: 56,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: const Color(0xFF2C4E40),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                const Color(0xFF2C4E40).withValues(alpha: 0.35),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Checkout',
-                          style: AppColors.fontStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildFooter(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(4, 8, 16, 12),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Get.back(),
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: _green, size: 18),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Keranjang',
+                  style: AppColors.fontStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: _green,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Obx(() => Text(
+                      '${c.items.length} produk dari ${c.uniqueStores.length} toko',
+                      style: AppColors.fontStyle(
+                          fontSize: 12, color: Colors.black45),
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Obx(() {
+      final totalItem = c.totalItemKeranjang.value;
+      final totalHarga = c.totalHargaKeranjang.value;
+      final canCheckout = totalItem > 0;
+
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Pilih semua
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppCheck(
+                  value: c.allSelected,
+                  onTap: () => c.toggleAll(!c.allSelected),
+                ),
+                Text('Semua',
+                    style: AppColors.fontStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54)),
+              ],
+            ),
+            const SizedBox(width: 10),
+            // Total
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Total ($totalItem item)',
+                    style: AppColors.fontStyle(
+                        fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 2),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, anim) => FadeTransition(
+                      opacity: anim,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                                begin: const Offset(0, 0.3), end: Offset.zero)
+                            .animate(anim),
+                        child: child,
+                      ),
+                    ),
+                    child: Text.rich(
+                      key: ValueKey(totalHarga),
+                      TextSpan(children: [
+                        TextSpan(
+                          text: 'Rp ${rupiah(totalHarga)}',
+                          style: AppColors.fontStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: _green,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' /hari',
+                          style: AppColors.fontStyle(
+                              fontSize: 11, color: Colors.black45),
+                        ),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Tombol checkout
+            GestureDetector(
+              onTap: canCheckout ? _checkout : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 26),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: canCheckout ? _green : Colors.grey.shade300,
+                  boxShadow: canCheckout
+                      ? [
+                          BoxShadow(
+                            color: _green.withValues(alpha: 0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: Text(
+                    canCheckout ? 'Checkout ($totalItem)' : 'Checkout',
+                    style: AppColors.fontStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: canCheckout ? Colors.white : Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Obx(() {
+              if (c.items.isEmpty) return const SizedBox();
+              return IconButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return CustomAlertDialog2(
+                        title: "Hapus Semua",
+                        teks: "Apakah Anda yakin ingin mengosongkan keranjang belanja?",
+                        hapus: () => c.deleteAllKeranjang(context),
+                      );
+                    },
+                  );
+                },
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEE2737).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.delete_sweep_rounded,
+                      color: Color(0xFFEE2737), size: 20),
+                ),
+              );
+            }),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildEmptyState() {
@@ -247,33 +429,24 @@ class _LayoutKeranjangState extends State<LayoutKeranjang> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: const Color(0xFF2C4E40).withValues(alpha: 0.08),
+              color: _green.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.shopping_cart_outlined,
-              size: 50,
-              color: Color(0xFF2C4E40),
-            ),
+            child: const Icon(Icons.shopping_cart_outlined,
+                size: 50, color: _green),
           ),
           const SizedBox(height: 20),
-          Text(
-            'Keranjang Masih Kosong',
-            style: AppColors.fontStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-            ),
-          ),
+          Text('Keranjang Masih Kosong',
+              style: AppColors.fontStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87)),
           const SizedBox(height: 8),
           Text(
             'Tambahkan produk ke keranjang\nuntuk mulai berbelanja',
             textAlign: TextAlign.center,
             style: AppColors.fontStyle(
-              fontSize: 13,
-              color: Colors.black45,
-              height: 1.5,
-            ),
+                fontSize: 13, color: Colors.black45, height: 1.5),
           ),
           const SizedBox(height: 28),
           GestureDetector(
@@ -282,16 +455,13 @@ class _LayoutKeranjangState extends State<LayoutKeranjang> {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: const Color(0xFF2C4E40),
+                color: _green,
               ),
-              child: Text(
-                'Cari Produk',
-                style: AppColors.fontStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
+              child: Text('Cari Produk',
+                  style: AppColors.fontStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)),
             ),
           ),
         ],
@@ -299,3 +469,8 @@ class _LayoutKeranjangState extends State<LayoutKeranjang> {
     );
   }
 }
+
+
+
+
+

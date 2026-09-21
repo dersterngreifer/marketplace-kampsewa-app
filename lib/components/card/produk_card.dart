@@ -3,8 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 
-class ProdukTerlarisDashboard extends StatefulWidget {
-  final List<String> images; // Diubah menjadi List agar bisa di-slide
+class ProdukCard extends StatefulWidget {
+  final List<String> images;
   final String namaProduk;
   final String harga;
   final String rating;
@@ -14,8 +14,9 @@ class ProdukTerlarisDashboard extends StatefulWidget {
   final Function() aksi;
   final Function() aksiKeranjang;
   final Function()? aksiFavorite;
+  final String? badgeLabel;
 
-  const ProdukTerlarisDashboard({
+  const ProdukCard({
     super.key,
     required this.images,
     required this.namaProduk,
@@ -27,14 +28,14 @@ class ProdukTerlarisDashboard extends StatefulWidget {
     required this.aksi,
     required this.aksiKeranjang,
     this.aksiFavorite,
+    this.badgeLabel,
   });
 
   @override
-  State<ProdukTerlarisDashboard> createState() =>
-      _ProdukTerlarisDashboardState();
+  State<ProdukCard> createState() => _ProdukCardState();
 }
 
-class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
+class _ProdukCardState extends State<ProdukCard>
     with SingleTickerProviderStateMixin {
   static const Color _dark = Color(0xFF2F2828);
   static const Color _grey = Color(0xFF8E8E8E);
@@ -42,7 +43,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
 
   late AnimationController _pressController;
   late Animation<double> _scaleAnim;
-  int _currentImageIndex = 0; // State untuk indikator dot slider
+  int _currentImageIndex = 0;
 
   String formatCurrency(String numberString) {
     final number = (double.tryParse(numberString) ?? 0).round();
@@ -84,9 +85,9 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
       child: ScaleTransition(
         scale: _scaleAnim,
         child: Container(
-          padding: const EdgeInsets.all(10), // Memberikan inset ala referensi
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24), // Melengkung lebih halus
+            borderRadius: BorderRadius.circular(24),
             color: Colors.white,
             boxShadow: [
               BoxShadow(
@@ -108,22 +109,17 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
     );
   }
 
-  // â”€â”€ Image Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   Widget _buildImageSection() {
     final habis = widget.stok <= 0;
-    
-    // Duplikasi gambar untuk keperluan demo UI agar bisa di-slide
-    final List<String> displayImages = widget.images.length == 1 
-        ? [widget.images[0], widget.images[0], widget.images[0]] 
+    final List<String> displayImages = widget.images.length == 1
+        ? [widget.images[0], widget.images[0], widget.images[0]]
         : widget.images;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16), // Sisi gambar membulat
+      borderRadius: BorderRadius.circular(16),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Slider Gambar
           PageView.builder(
             itemCount: displayImages.isEmpty ? 1 : displayImages.length,
             onPageChanged: (index) {
@@ -136,8 +132,6 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               return _buildSingleImage(displayImages[index]);
             },
           ),
-
-          // Overlay saat stok habis
           if (habis)
             Container(
               color: Colors.black.withValues(alpha: 0.45),
@@ -150,18 +144,16 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  "Stok Habis",
+                  "Habis Disewa",
                   style: AppColors.fontStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFFEE2737),
+                    color: Colors.black,
                   ),
                 ),
               ),
             ),
-
-          // Badge Kiri Atas (Terlaris atau Sisa Stok)
-          if (!habis)
+          if (!habis && (widget.stok <= 5 || widget.badgeLabel != null))
             Positioned(
               top: 10,
               left: 10,
@@ -171,12 +163,11 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                 decoration: BoxDecoration(
                   color: widget.stok <= 5
                       ? const Color(0xFFED6723)
-                      : Colors.black.withValues(
-                          alpha: 0.3), // Style glassmorphism ala referensi
+                      : Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  widget.stok <= 5 ? "Sisa ${widget.stok}" : "Terlaris",
+                  widget.stok <= 5 ? "Sisa ${widget.stok}" : widget.badgeLabel!,
                   style: AppColors.fontStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -185,8 +176,6 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                 ),
               ),
             ),
-
-          // Tombol favorit (Kanan Atas, menggantikan logo Nike)
           Positioned(
             top: 10,
             right: 10,
@@ -211,8 +200,6 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ),
             ),
           ),
-
-          // Dots Indicator (Tengah Bawah Gambar)
           if (displayImages.isNotEmpty)
             Positioned(
               bottom: 10,
@@ -266,7 +253,6 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
         errorBuilder: (_, __, ___) => _placeholder(),
       );
     }
-
     return Image.network(
       imagePath.startsWith('http')
           ? imagePath
@@ -282,18 +268,14 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
     );
   }
 
-  // â”€â”€ Info Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   Widget _buildInfoSection() {
     final bisaDitambah = widget.stok > 0;
-
     return Padding(
       padding: const EdgeInsets.only(top: 12, left: 4, right: 4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nama Produk
           Text(
             widget.namaProduk,
             maxLines: 1,
@@ -305,8 +287,6 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             ),
           ),
           const SizedBox(height: 4),
-
-          // Rating & Subtitle area
           Row(
             children: [
               const Icon(Icons.star_rounded,
@@ -323,34 +303,28 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             ],
           ),
           const SizedBox(height: 14),
-
-          // Area Harga dan Tombol Beli
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Pill Harga
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _lightGrey,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    "Rp ${formatCurrency(widget.harga)}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppColors.fontStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: _dark,
-                    ),
+              Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _lightGrey,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "Rp ${formatCurrency(widget.harga)}",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppColors.fontStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: _dark,
                   ),
                 ),
               ),
-              const SizedBox(width: 4),
-
-              // Pill Tombol Beli (Ala "Buy Now" di referensi)
+              const SizedBox(height: 6),
               Material(
                 color: bisaDitambah ? const Color(0xFF2C4E40) : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(24),
@@ -358,9 +332,9 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                   borderRadius: BorderRadius.circular(24),
                   onTap: bisaDitambah ? widget.aksiKeranjang : null,
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           "Sewa",
@@ -395,5 +369,8 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
     );
   }
 }
+
+
+
 
 

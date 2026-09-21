@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:project_camp_sewa/components/card/metode_pembayaran_card.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/layouts/layout_tambah_metode_transfer.dart';
@@ -24,6 +27,7 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
   TextEditingController alamatController = TextEditingController();
   String? latitude;
   String? longitude;
+  XFile? pickedBanner;
 
   @override
   void initState() {
@@ -66,19 +70,30 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
       alamatController.text =
           "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
     } else {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",
-          ));
+      if (mounted) {
+        CustomSnackBar.show(context, sukses: false,
+              teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+      }
+    }
+  }
 
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+  Future<void> _pickBanner() async {
+    final status = await Permission.photos.request();
+
+    if (!status.isGranted) {
+      return;
+    }
+
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (image != null) {
+      setState(() {
+        pickedBanner = image;
+      });
     }
   }
 
@@ -129,7 +144,6 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
             ),
             Expanded(
               child: ListView(
-                //crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(
@@ -165,6 +179,138 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                         ),
                       ),
                     ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        top: 25, left: 20, right: 20, bottom: 8),
+                    child: Text(
+                      "Deskripsi Toko",
+                      style: AppColors.fontStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Container(
+                      decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black, width: 1.3),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        child: TextField(
+                          controller: apiDataUser.deskripsiTokoController,
+                          keyboardType: TextInputType.text,
+                          maxLines: 4,
+                          decoration: InputDecoration(
+                              hintText: "Deskripsikan toko Anda...",
+                              hintStyle: AppColors.fontStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500),
+                              border: InputBorder.none),
+                          style: AppColors.fontStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        top: 25, left: 20, right: 20, bottom: 8),
+                    child: Text(
+                      "Banner Toko",
+                      style: AppColors.fontStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: pickedBanner != null
+                        ? Container(
+                            width: double.infinity,
+                            height: 160,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: Colors.black, width: 1.3),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.file(
+                                  File(pickedBanner!.path),
+                                  fit: BoxFit.cover,
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        pickedBanner = null;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.black.withValues(alpha: 0.6),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : GestureDetector(
+                            onTap: _pickBanner,
+                            child: Container(
+                              width: double.infinity,
+                              height: 140,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: Colors.black, width: 1.3),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    size: 36,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Pilih Banner Toko",
+                                    style: AppColors.fontStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade500),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Rasio 3:1 direkomendasikan",
+                                    style: AppColors.fontStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.shade400),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(
@@ -212,7 +358,6 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                           padding: const EdgeInsets.only(left: 5),
                           child: InkWell(
                             onTap: () {
-                              //get location
                               getLocation();
                             },
                             child: Container(
@@ -281,7 +426,6 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                         ),
                         InkWell(
                           onTap: () {
-                            //ke tambah metode pembayaran
                             Get.to(const LayoutTambahMetodeTransfer());
                           },
                           child: Container(
@@ -357,40 +501,23 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                     padding: const EdgeInsets.only(top: 15, bottom: 25),
                     child: InkWell(
                       onTap: () {
-                        //direct ke website
                         if (apiDataUser.namaTokoController.text.isNotEmpty) {
                           if (latitude != null && longitude != null) {
                             apiDataUser.isiDataToko(
-                                context, latitude!, longitude!);
+                              context,
+                              latitude!,
+                              longitude!,
+                              bannerPath: pickedBanner?.path,
+                            );
                           } else {
-                            const snackBar = SnackBar(
-                                elevation: 0,
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: Colors.transparent,
-                                content: CustomSnackBar(
-                                  sukses: false,
+                            CustomSnackBar.show(context, sukses: false,
                                   title: "Gagal Menyimpan Data",
-                                  teks: "Masukkan Alamat Anda Terlebih Dahulu",
-                                ));
-
-                            ScaffoldMessenger.of(context)
-                              ..hideCurrentSnackBar()
-                              ..showSnackBar(snackBar);
+                                  teks: "Masukkan Alamat Anda Terlebih Dahulu",);
                           }
                         } else {
-                          const snackBar = SnackBar(
-                              elevation: 0,
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: Colors.transparent,
-                              content: CustomSnackBar(
-                                sukses: false,
+                          CustomSnackBar.show(context, sukses: false,
                                 title: "Gagal Menyimpan Data",
-                                teks: "Masukkan Nama Toko Terlebih Dahulu",
-                              ));
-
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(snackBar);
+                                teks: "Masukkan Nama Toko Terlebih Dahulu",);
                         }
                       },
                       child: Container(

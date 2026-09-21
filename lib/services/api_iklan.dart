@@ -41,18 +41,8 @@ class ApiIklan extends GetxController {
         listIklan.assignAll(iklanList);
       } else {
         String errorMessage = data['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {

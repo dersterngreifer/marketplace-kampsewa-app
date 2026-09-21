@@ -95,18 +95,8 @@ class ApiRiwayatCari extends GetxController {
 
       if (response.statusCode == 200) {
       } else {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: "Gagal Menambahkan Pencarian",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: "Gagal Menambahkan Pencarian",);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -165,18 +155,8 @@ class ApiRiwayatCari extends GetxController {
 
       if (response.statusCode == 200) {
       } else {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: "Gagal Menghapus Pencarian",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: "Gagal Menghapus Pencarian",);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {

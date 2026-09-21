@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:get/get.dart';
+import 'package:project_camp_sewa/layouts/layout_keranjang.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -53,38 +55,68 @@ class DatabaseHelper {
     db.close();
   }
 
+  static void _navigateToKeranjang() {
+    Get.to(() => const LayoutKeranjang());
+  }
+
   Future<void> insertKeranjang(
       Map<String, dynamic> row, BuildContext context) async {
     final db = await instance.database;
 
     try {
-      await db.insert('keranjang', row);
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: true,
-            teks: "Berhasil Memasukkan Produk Ke Keranjang",
-          ));
+      final existing = await db.query(
+        'keranjang',
+        where: 'id_produk = ? AND variant_warna = ? AND variant_ukuran = ?',
+        whereArgs: [
+          row['id_produk'],
+          row['variant_warna'],
+          row['variant_ukuran']
+        ],
+      );
 
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      if (existing.isNotEmpty) {
+        final existingQty = existing.first['qty'] as int;
+        final newQty = row['qty'] as int;
+        final updatedQty = existingQty + newQty;
+
+        await db.update(
+          'keranjang',
+          {'qty': updatedQty},
+          where: 'id = ?',
+          whereArgs: [existing.first['id']],
+        );
+      } else {
+        await db.insert('keranjang', row);
+      }
+
+      CustomSnackBar.show(
+        context,
+        sukses: true,
+        teks: "Berhasil Memasukkan Produk Ke Keranjang",
+        actionLabel: "Lihat",
+        onAction: _navigateToKeranjang,
+      );
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Memasukkan Produk ke Keranjang",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(
+        context,
+        sukses: false,
+        teks: "Gagal Memasukkan Produk",
+      );
     }
+  }
+
+  Future<int> getVariantQtyInCart(
+      int idProduk, String warna, String ukuran) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'keranjang',
+      where: 'id_produk = ? AND variant_warna = ? AND variant_ukuran = ?',
+      whereArgs: [idProduk, warna, ukuran],
+    );
+    if (result.isNotEmpty) {
+      return (result.first['qty'] as int?) ?? 0;
+    }
+    return 0;
   }
 
   Future<int> updateKeranjang(
@@ -99,18 +131,8 @@ class DatabaseHelper {
         whereArgs: [id],
       );
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal mengupdate data produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal mengupdate data produk",);
       return -1;
     }
   }
@@ -124,32 +146,12 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [id],
       );
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: true,
-            teks: "Berhasil Menghapus Produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: true,
+            teks: "Berhasil Menghapus Produk",);
       return result;
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Menghapus Produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Menghapus Produk",);
       return -1;
     }
   }
@@ -164,18 +166,8 @@ class DatabaseHelper {
       );
       return result;
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Menghapus Produk Chekout",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Menghapus Produk Chekout",);
       return -1;
     }
   }
@@ -186,34 +178,13 @@ class DatabaseHelper {
     try {
       int result = await db.delete('keranjang');
 
-      const snackBar = SnackBar(
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        content: CustomSnackBar(
-          sukses: true,
-          teks: "Berhasil Menghapus Semua Produk",
-        ),
-      );
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: true,
+          teks: "Berhasil Menghapus Semua Produk",);
 
       return result;
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Menghapus Produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Menghapus Produk",);
       return -1;
     }
   }
@@ -227,18 +198,8 @@ class DatabaseHelper {
           .rawQuery('SELECT DISTINCT id_toko, nama_toko FROM keranjang');
       return result;
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Mengambil Nama Toko",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Mengambil Nama Toko",);
       return [];
     }
   }
@@ -255,18 +216,8 @@ class DatabaseHelper {
       );
       return result;
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Menghapus Produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Menghapus Produk",);
       return [];
     }
   }
@@ -283,18 +234,8 @@ class DatabaseHelper {
         return 0;
       }
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Mendapatkan Total Harga",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Mendapatkan Total Harga",);
       return -1;
     }
   }
@@ -304,25 +245,15 @@ class DatabaseHelper {
 
     try {
       final result = await db.rawQuery(
-          'SELECT COUNT(id_produk) as total_item FROM keranjang Where selected = 1');
+          'SELECT SUM(qty) as total_item FROM keranjang Where selected = 1');
       if (result.isNotEmpty && result.first['total_item'] != null) {
         return (result.first['total_item'] as num).toInt();
       } else {
         return 0;
       }
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Mendapatkan Selected Produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Mendapatkan Selected Produk",);
       return -1;
     }
   }
@@ -339,18 +270,8 @@ class DatabaseHelper {
         return 0;
       }
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Mendapatkan Total Toko yang Dipilih",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Mendapatkan Total Toko yang Dipilih",);
       return -1;
     }
   }
@@ -364,18 +285,8 @@ class DatabaseHelper {
           await db.rawQuery('SELECT * FROM keranjang Where selected = 1');
       return result;
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Mengambil Nama Toko",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Mengambil Nama Toko",);
       return [];
     }
   }
@@ -390,19 +301,14 @@ class DatabaseHelper {
           'SELECT id_produk, variant_warna as warna, variant_ukuran as ukuran, qty, harga*qty as subtotal FROM keranjang Where selected = 1');
       return result;
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Mengambil List Produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Mengambil List Produk",);
       return [];
     }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllKeranjang(BuildContext context) async {
+    final db = await instance.database;
+    return await db.query('keranjang', orderBy: 'nama_toko ASC, id DESC');
   }
 }

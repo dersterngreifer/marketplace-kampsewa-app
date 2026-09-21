@@ -41,18 +41,8 @@ class _AlamatCardState extends State<AlamatCard> {
       String alamat = "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
       return alamat;
     } else {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
       return "";
     }
   }

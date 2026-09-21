@@ -44,18 +44,8 @@ class ApiLupaPassword extends GetxController {
       loading.hideLoadingDialog();
 
       if (response.statusCode == 200) {
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: json['message'],
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: json['message'],);
         if (context.mounted) {
           var kirimData = {'nomor_telephone': telephoneController.text.trim()};
           Get.to(const LayoutLupaPasswordOTP(), arguments: kirimData);
@@ -63,18 +53,8 @@ class ApiLupaPassword extends GetxController {
         telephoneController.clear();
       } else {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
@@ -122,18 +102,8 @@ class ApiLupaPassword extends GetxController {
       loading.hideLoadingDialog();
 
       if (response.statusCode == 200) {
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: json['message'],
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: json['message'],);
 
         if (context.mounted) {
           var kirimData = {
@@ -144,18 +114,8 @@ class ApiLupaPassword extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
@@ -204,18 +164,8 @@ class ApiLupaPassword extends GetxController {
       loading.hideLoadingDialog();
 
       if (response.statusCode == 200) {
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: json['message'],
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: json['message'],);
 
         newPassController.clear();
         confirmPassController.clear();
@@ -228,18 +178,8 @@ class ApiLupaPassword extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();

@@ -1,4 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
+import 'package:project_camp_sewa/components/dialog/snackbar.dart';
+import 'package:project_camp_sewa/layouts/layout_instruksi_kyc.dart';
+import 'package:project_camp_sewa/layouts/layout_input_kyc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -42,6 +46,10 @@ class _LayoutProfileState extends State<LayoutProfile> {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarDividerColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFFFF),
@@ -50,8 +58,16 @@ class _LayoutProfileState extends State<LayoutProfile> {
           if (user == null) {
             return _buildShimmerLoading();
           }
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+          return RefreshIndicator(
+            color: const Color(0xFF2C4E40),
+            backgroundColor: Colors.white, displacement: 30, strokeWidth: 3,
+            onRefresh: () async {
+              await apiDataUser.getDataUser(context);
+              await Future.delayed(const Duration(milliseconds: 600));
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics()),
           child: Stack(
             children: [
               // Hero Background
@@ -107,7 +123,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
                   const SizedBox(height: 70),
                   _buildHeaderInfo(user),
                   const SizedBox(height: 25),
-                  _buildStatsCard(),
+                  _buildStatsCard(user),
                   const SizedBox(height: 25),
                   _buildMenuSection(user),
                   const SizedBox(height: 40),
@@ -115,6 +131,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
               ),
             ],
           ),
+        ),
         );
         }),
       ),
@@ -257,16 +274,33 @@ class _LayoutProfileState extends State<LayoutProfile> {
               const SizedBox(height: 25),
               // Stats Card Shimmer
               Container(
+                width: double.infinity,
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 35,
+                      spreadRadius: 5,
+                      offset: const Offset(0, 15),
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFF2C4E40).withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceEvenly,
+                  spacing: 15,
+                  runSpacing: 20,
                   children: List.generate(
-                    3,
+                    4,
                     (index) => Shimmer.fromColors(
                       baseColor: Colors.grey.shade300,
                       highlightColor: Colors.grey.shade100,
@@ -295,7 +329,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
                         ],
                       ),
                     ),
-                  )..insert(1, _buildStatDivider())..insert(3, _buildStatDivider()),
+                  ),
                 ),
               ),
               const SizedBox(height: 25),
@@ -396,11 +430,52 @@ class _LayoutProfileState extends State<LayoutProfile> {
     String phone = user.nomorTelephone ?? '';
     String avatarUrl = user.image ?? '';
 
-    ImageProvider imageProvider;
-    if (avatarUrl.isNotEmpty && avatarUrl.startsWith('http')) {
-      imageProvider = NetworkImage(avatarUrl);
-    } else {
-      imageProvider = const AssetImage('assets/images/man.png');
+    String getInitials(String str) {
+      if (str.trim().isEmpty) return "US";
+      List<String> words = str.trim().split(RegExp(r'\s+'));
+      String initials = "";
+      for (var i = 0; i < words.length && i < 3; i++) {
+        if (words[i].isNotEmpty) {
+          initials += words[i][0].toUpperCase();
+        }
+      }
+      return initials.isNotEmpty ? initials : "US";
+    }
+
+    Widget fallbackAvatar() {
+      return Container(
+        width: 80,
+        height: 80,
+        color: AppColors.mainColor,
+        alignment: Alignment.center,
+        child: Text(
+          getInitials(name),
+          style: AppColors.fontStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+
+    Widget buildAvatarImage() {
+      if (avatarUrl.isEmpty) {
+        return fallbackAvatar();
+      }
+      final fullUrl = avatarUrl.startsWith('http')
+          ? avatarUrl
+          : ApiEndpoints.baseUrl +
+              ApiEndpoints.authendpoints.getFotoProfile +
+              avatarUrl;
+
+      return Image.network(
+        fullUrl,
+        fit: BoxFit.cover,
+        width: 80,
+        height: 80,
+        errorBuilder: (_, __, ___) => fallbackAvatar(),
+      );
     }
 
     return Padding(
@@ -417,12 +492,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
               border: Border.all(
                   color: Colors.white.withValues(alpha: 0.5), width: 1.5),
             ),
-            child: CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              backgroundImage: imageProvider,
-              onBackgroundImageError: (_, __) {},
-            ),
+            child: ClipOval(child: buildAvatarImage()),
           ),
           const SizedBox(width: 16),
           // User Details
@@ -482,8 +552,11 @@ class _LayoutProfileState extends State<LayoutProfile> {
     );
   }
 
-  Widget _buildStatsCard() {
+  Widget _buildStatsCard(dynamic user) {
+    bool isMitra = user != null && user.isToko == true;
+
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
@@ -491,23 +564,35 @@ class _LayoutProfileState extends State<LayoutProfile> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 35,
+            spreadRadius: 5,
+            offset: const Offset(0, 15),
+          ),
+          BoxShadow(
             color: const Color(0xFF2C4E40).withValues(alpha: 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Wrap(
+        alignment: WrapAlignment.spaceEvenly,
+        spacing: 15,
+        runSpacing: 20,
         children: [
-          _buildStatItem('12', 'Pesanan', Icons.shopping_bag_rounded,
-              const Color(0xFFFFFFFF)),
-          _buildStatDivider(),
-          _buildStatItem('3', 'Aktif', Icons.local_shipping_rounded,
+          _buildStatItem(apiDataUser.totalSemuaPesanan.value.toString(), 'Total\nPesanan', Icons.shopping_bag_rounded,
+              const Color(0xFF3B82F6)),
+          _buildStatItem(apiDataUser.totalBelumDikonfirmasi.value.toString(), 'Pesanan\nPending', Icons.pending_actions_rounded,
+              const Color(0xFFF59E0B)), // Amber
+          _buildStatItem(apiDataUser.totalSedangDisewa.value.toString(), 'Sedang\nDisewa', Icons.local_shipping_rounded,
               const Color(0xFF10B981)),
-          _buildStatDivider(),
-          _buildStatItem(
-              '4.8', 'Rating', Icons.star_rounded, const Color(0xFFED6723)),
+          _buildStatItem(apiDataUser.totalProdukBelumDikonfirmasi.value.toString(), 'Produk\nPending', Icons.inventory_2_rounded,
+              const Color(0xFF8B5CF6)), // Purple
+          if (isMitra) ...[
+            _buildStatItem('4.8', 'Rating\nToko', Icons.star_rounded, const Color(0xFFED6723)),
+          ],
         ],
       ),
     );
@@ -537,30 +622,67 @@ class _LayoutProfileState extends State<LayoutProfile> {
         const SizedBox(height: 2),
         Text(
           label,
+          textAlign: TextAlign.center,
           style: AppColors.fontStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: const Color(0xFFBDBDBD),
+            height: 1.2,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatDivider() {
+  Widget _buildKYCBanner() {
     return Container(
-      height: 40,
-      width: 1,
-      color: const Color(0xFFBDBDBD),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFFCC80)),
+      ),
+      child: Row(
+        children: [
+          const Icon(MdiIcons.alertCircleOutline, color: Color(0xFFF57C00), size: 30),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Identitas Belum Dilengkapi",
+                  style: AppColors.fontStyle(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFFF57C00))),
+                const SizedBox(height: 4),
+                Text("Lengkapi NIK KTP untuk membuka akses transaksi.",
+                  style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFFE65100))),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.to(() => const LayoutInstruksiKYC()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF57C00),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Isi"),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildMenuSection(dynamic user) {
+    bool needsKYC = user.type == 0 && (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (needsKYC) _buildKYCBanner(),
           Padding(
             padding: const EdgeInsets.only(left: 8, bottom: 12),
             child: Text(
@@ -586,6 +708,19 @@ class _LayoutProfileState extends State<LayoutProfile> {
             ),
             child: Column(
               children: [
+                if (needsKYC) ...[
+                  _buildMenuItem(
+                    icon: MdiIcons.shieldLockOutline,
+                    title: 'Lengkapi Identitas',
+                    subtitle: 'Verifikasi NIK KTP Anda',
+                    onTap: () {
+                      Get.to(() => const LayoutInputKYC())?.then((_) {
+                        if (mounted) apiDataUser.getDataUser(context);
+                      });
+                    },
+                  ),
+                  _buildDivider(),
+                ],
                 _buildMenuItem(
                   icon: MdiIcons.shoppingOutline,
                   title: 'Pesanan Saya',
@@ -601,7 +736,13 @@ class _LayoutProfileState extends State<LayoutProfile> {
                   title: 'Produk Saya',
                   subtitle: 'Lihat daftar produk Anda',
                   onTap: () {
-                    Get.to(() => const LayoutUserProducts());
+                    if (user.isToko == true) {
+                      Get.to(() => const LayoutUserProducts());
+                    } else {
+                      CustomSnackBar.show(context, sukses: false,
+                            title: "Perhatian",
+                            teks: "Lengkapi data di menu 'Mulai Menyewakan', lalu upload produk di website melalui tombol 'Dashboard Web'.",);
+                    }
                   },
                 ),
                 _buildDivider(),
@@ -631,9 +772,9 @@ class _LayoutProfileState extends State<LayoutProfile> {
                 _buildDivider(),
                 if (user.isToko == true)
                   _buildMenuItem(
-                    icon: MdiIcons.storefrontOutline,
-                    title: 'Manajemen Toko',
-                    subtitle: user.namaStore ?? 'Toko Anda',
+                    icon: MdiIcons.openInNew,
+                    title: 'Dashboard Web',
+                    subtitle: user.namaStore ?? 'Manajemen Toko Anda',
                     onTap: () async {
                       final Uri url = Uri.parse(ApiEndpoints.baseUrl);
                       if (!await launchUrl(url)) {
@@ -647,9 +788,18 @@ class _LayoutProfileState extends State<LayoutProfile> {
                     title: 'Mulai Menyewakan',
                     subtitle: 'Pengguna Biasa (Belum membuka penyewaan)',
                     onTap: () {
-                      Get.to(() => const LayoutTambahDataToko())?.then((_) {
-                        apiDataUser.getDataUser(context);
-                      });
+                      if (needsKYC) {
+                        CustomSnackBar.show(context, sukses: false,
+                              title: "Perhatian",
+                              teks: "Harap lengkapi identitas (KTP) Anda sebelum membuka layanan penyewaan.",);
+                        Get.to(() => const LayoutInstruksiKYC());
+                      } else {
+                        Get.to(() => const LayoutTambahDataToko())?.then((_) {
+                          if (mounted) {
+                            apiDataUser.getDataUser(context);
+                          }
+                        });
+                      }
                     },
                   ),
               ],
@@ -686,11 +836,137 @@ class _LayoutProfileState extends State<LayoutProfile> {
               textColor: const Color(0xFFEE2737),
               iconColor: const Color(0xFFEE2737),
               iconBgColor: const Color(0xFFFEF2F2),
-              onTap: () {
-                Authorization auth = Authorization();
-                auth.deleteId();
-                auth.deleteToken();
-                Get.off(() => const LoginScreen());
+              onTap: () async {
+                final bool? confirm = await showDialog<bool>(
+                  context: context,
+                  barrierDismissible: true,
+                  barrierColor: Colors.black.withValues(alpha: 0.5),
+                  builder: (_) => Dialog(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28)),
+                    backgroundColor: Colors.white,
+                    elevation: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFEF2F2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              MdiIcons.logout,
+                              color: Color(0xFFEE2737),
+                              size: 34,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Keluar dari Akun?",
+                            textAlign: TextAlign.center,
+                            style: AppColors.fontStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF2F2828),
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            "Anda akan mengakhiri sesi saat ini.",
+                            textAlign: TextAlign.center,
+                            style: AppColors.fontStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF8A8A8E),
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Material(
+                                  color: const Color(0xFFF0F1F3),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 15),
+                                      child: Text(
+                                        "Batal",
+                                        textAlign: TextAlign.center,
+                                        style: AppColors.fontStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF2F2828),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Material(
+                                  color: const Color(0xFFEE2737),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () =>
+                                        Navigator.of(context).pop(true),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 15),
+                                      child: Text(
+                                        "Keluar",
+                                        textAlign: TextAlign.center,
+                                        style: AppColors.fontStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+
+                if (confirm == true) {
+                  try {
+                    Authorization auth = Authorization();
+                    String? token = await auth.getToken();
+                    if (token != null) {
+                      final dio = Dio();
+                      var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.logout;
+                      await dio.post(url,
+                          options: Options(
+                            headers: {
+                              'Accept': 'application/json',
+                              'Authorization': 'Bearer $token',
+                            },
+                            validateStatus: (_) => true,
+                          ));
+                    }
+                  } catch (_) {}
+                  Authorization auth = Authorization();
+                  await auth.clearAll();
+                  Get.offAll(() => const LoginScreen());
+                }
               },
             ),
           ),
@@ -774,3 +1050,9 @@ class _LayoutProfileState extends State<LayoutProfile> {
     );
   }
 }
+
+
+
+
+
+

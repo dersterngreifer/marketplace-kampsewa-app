@@ -1,5 +1,7 @@
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart' as import_api_data_user;
+import 'package:project_camp_sewa/layouts/layout_instruksi_kyc.dart' as import_instruksi_kyc;
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -87,19 +89,10 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
       String alamat = "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
       return alamat;
     } else {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",
-          ));
-
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      if (mounted) {
+        CustomSnackBar.show(context, sukses: false,
+              teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+      }
       return "";
     }
   }
@@ -760,6 +753,20 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
               padding: const EdgeInsets.only(bottom: 15),
               child: InkWell(
                 onTap: () {
+                  // Cek KYC sebelum checkout
+                  final apiDataUser = Get.find<import_api_data_user.ApiDataUser>();
+                  final user = apiDataUser.dataUser.value;
+                  bool needsKYC = user != null && user.type == 0 && (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty);
+
+                  if (needsKYC) {
+                    CustomSnackBar.show(context, sukses: false,
+                          title: "Perhatian",
+                          teks: "Harap lengkapi identitas (KTP) Anda sebelum menyewa barang.",);
+                    
+                    Get.to(() => const import_instruksi_kyc.LayoutInstruksiKYC());
+                    return;
+                  }
+
                   //button checkout
                   //jangan lupa ngecek apakah udah menginputkan tanggal sewanya
                   if (tanggalAwal != null && tanggalAkhir != null) {
@@ -775,19 +782,9 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                         rekeningBank!,
                         idToko);
                   } else {
-                    const snackBar = SnackBar(
-                        elevation: 0,
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Colors.transparent,
-                        content: CustomSnackBar(
-                          sukses: false,
+                    CustomSnackBar.show(context, sukses: false,
                           title: "Notifikasi",
-                          teks: "Masukkan Tanggal Sewa Terlebih Dahulu",
-                        ));
-
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(snackBar);
+                          teks: "Masukkan Tanggal Sewa Terlebih Dahulu",);
                   }
                 },
                 child: Container(

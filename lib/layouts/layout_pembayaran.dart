@@ -483,20 +483,10 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
                         buktiPembayaran!,
                         jaminanSewa!);
                   } else {
-                    const snackBar = SnackBar(
-                        elevation: 0,
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Colors.transparent,
-                        content: CustomSnackBar(
-                          sukses: false,
+                    CustomSnackBar.show(context, sukses: false,
                           title: "Pembayaran Gagal",
                           teks:
-                              "Upload Bukti Pembayaran dan Jaminan Sewa Terlebih Dahulu!",
-                        ));
-
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(snackBar);
+                              "Upload Bukti Pembayaran dan Jaminan Sewa Terlebih Dahulu!",);
                   }
                 },
                 child: Container(

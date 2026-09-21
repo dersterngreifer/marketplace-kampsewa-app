@@ -1,7 +1,7 @@
+﻿import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart' hide CarouselController;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:project_camp_sewa/components/bottomsheet/bottom_sheet_produk.dart';
 import 'package:project_camp_sewa/components/card/berita_dash_card.dart';
 import 'package:project_camp_sewa/components/card/produk_terlaris_card.dart';
@@ -29,6 +29,16 @@ class LayoutDashboard extends StatefulWidget {
 }
 
 class _LayoutDashboardState extends State<LayoutDashboard> {
+  static const Color _green = Color(0xFF2C4E40);
+  static const Color _greenDark = Color(0xFF1E352B);
+  static const Color _dark = Color(0xFF2F2828);
+  static const Color _yellow = Color(0xFFFFC107);
+
+  // Tinggi area carousel. Banner sendiri = _bannerAreaHeight - 2 * _bannerVMargin.
+  // Margin vertikal WAJIB ada supaya shadow banner tidak terpotong viewport carousel.
+  static const double _bannerAreaHeight = 212;
+  static const double _bannerVMargin = 22;
+
   DashboardController pageController = Get.put(DashboardController());
   ApiDataUser apiDataUser = Get.put(ApiDataUser());
   ApiIklan apiIklan = Get.put(ApiIklan());
@@ -53,13 +63,13 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   late List<BeritaModel> beritaList;
 
   final List<Map<String, dynamic>> kategori = [
-    {"title": "Semua Produk", "icon": Icons.category_rounded, "param": ""},
-    {"title": "Tenda", "icon": Icons.house_rounded, "param": "tenda"},
+    {"title": "Semua", "icon": Icons.grid_view_rounded, "param": ""},
+    {"title": "Tenda", "icon": Icons.holiday_village_rounded, "param": "tenda"},
     {"title": "Pakaian", "icon": Icons.checkroom_rounded, "param": "pakaian"},
-    {"title": "Tas & Sepatu", "icon": Icons.backpack_outlined, "param": "tas"},
+    {"title": "Tas & Sepatu", "icon": Icons.backpack_rounded, "param": "tas"},
     {
       "title": "Peralatan",
-      "icon": Icons.build_outlined,
+      "icon": Icons.construction_rounded,
       "param": "peralatan"
     },
   ];
@@ -78,17 +88,21 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       apiDataUser.getDataUser(context);
       apiIklan.getIklan(context);
-      // Use getFeaturedProduk (rekomendasi endpoint) so products always
-      // appear on Home — getProduk excludes the logged-in user's own products.
+      // getFeaturedProduk (rekomendasi endpoint) supaya produk selalu tampil di Home.
       apiProduk.getFeaturedProduk(context);
       keranjangController.updateTotalItemKeranjang(context);
     });
   }
 
-  void _filterByKategori(int index) {
-    setState(() => selectedCategoryIndex = index);
-    // Re-fetch home products with category filter
-    apiProduk.getFeaturedProduk(context);
+  /// Filter kategori dilakukan lokal berdasarkan nama produk,
+  /// karena getFeaturedProduk tidak menerima parameter kategori.
+  List<dynamic> _applyCategoryFilter(Iterable<dynamic> source) {
+    final param = kategori[selectedCategoryIndex]['param'] as String;
+    if (param.isEmpty) return source.toList();
+    final q = param.toLowerCase();
+    return source
+        .where((p) => (p.namaProduk as String).toLowerCase().contains(q))
+        .toList();
   }
 
   @override
@@ -98,72 +112,90 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarDividerColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: const Color(0xFFF7F8F7),
         body: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                _buildHeader(),
-                const SizedBox(height: 20),
-                _buildSearchBar(),
-                const SizedBox(height: 20),
-                _buildCategories(),
-                const SizedBox(height: 20),
-                _buildPromoBanner(),
-                const SizedBox(height: 24),
-                _buildFeaturedProducts(),
-                const SizedBox(height: 24),
-                _buildSectionLabel("Rekomendasi Wisata"),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 185,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
+          child: RefreshIndicator(
+            color: _green,
+            backgroundColor: Colors.white,
+            displacement: 30,
+            strokeWidth: 3,
+            onRefresh: () async {
+              apiIklan.getIklan(context);
+              await apiProduk.getFeaturedProduk(context);
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics()),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  _buildHeader(),
+                  const SizedBox(height: 20),
+                  _buildSearchBar(),
+                  const SizedBox(height: 20),
+                  _buildCategories(),
+                  const SizedBox(height: 8),
+                  _buildPromoBanner(),
+                  const SizedBox(height: 12),
+                  _buildFeaturedProducts(),
+                  const SizedBox(height: 28),
+                  _buildSectionHeader("Rekomendasi Wisata"),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 210,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                      clipBehavior: Clip.none,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        WisataModel list = wisataList[index];
+                        return WisataCard(
+                          image: list.image,
+                          title: list.wisata,
+                          deskripsi: list.deskripsi,
+                          lokasi: list.lokasi,
+                          url: list.source,
+                        );
+                      },
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 14),
+                      itemCount: wisataList.length,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  _buildSectionHeader("Berita Terkini"),
+                  const SizedBox(height: 14),
+                  ListView.separated(
+                    padding: const EdgeInsets.only(
+                        left: 20, right: 20, bottom: 20, top: 4),
+                    clipBehavior: Clip.none,
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
                     itemBuilder: (context, index) {
-                      WisataModel list = wisataList[index];
-                      return WisataCard(
+                      BeritaModel list = beritaList[index];
+                      return BeritaCard(
                         image: list.image,
-                        title: list.wisata,
-                        deskripsi: list.deskripsi,
-                        lokasi: list.lokasi,
-                        url: list.source,
+                        title: list.judul,
+                        source: list.source,
+                        url: list.link,
                       );
                     },
                     separatorBuilder: (context, index) =>
-                        const SizedBox(width: 15),
-                    itemCount: wisataList.length,
+                        const SizedBox(height: 12),
+                    itemCount: beritaList.length,
                   ),
-                ),
-                const SizedBox(height: 24),
-                _buildSectionLabel("Berita Terkini"),
-                const SizedBox(height: 12),
-                ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 5),
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemBuilder: (context, index) {
-                    BeritaModel list = beritaList[index];
-                    return BeritaCard(
-                      image: list.image,
-                      title: list.judul,
-                      source: list.source,
-                      url: list.link,
-                    );
-                  },
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemCount: beritaList.length,
-                ),
-                const SizedBox(height: 40),
-              ],
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ),
@@ -171,33 +203,33 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Header Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          // Profile photo (dynamic)
+          // Foto profil
           Obx(() {
             final user = apiDataUser.dataUser.value;
             final imageUrl = user?.image ?? '';
+            final name = user?.name ?? '---';
             return Container(
-              width: 48,
-              height: 48,
+              width: 50,
+              height: 50,
+              padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF2C4E40).withValues(alpha: 0.3),
-                  width: 2,
-                ),
+                border:
+                    Border.all(color: _green.withValues(alpha: 0.35), width: 2),
               ),
-              child: ClipOval(child: _buildProfileImage(imageUrl)),
+              child: ClipOval(child: _buildProfileImage(imageUrl, name)),
             );
           }),
           const SizedBox(width: 12),
 
-          // Greeting text (dynamic)
+          // Sapaan
           Expanded(
             child: Obx(() {
               final user = apiDataUser.dataUser.value;
@@ -206,19 +238,20 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Welcome Back 👋",
+                    "Selamat datang kembali Ã°Å¸â€˜â€¹",
                     style: AppColors.fontStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: const Color(0xFF8E8E8E),
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     name,
                     style: AppColors.fontStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF2F2828),
+                      color: _dark,
                       letterSpacing: -0.3,
                     ),
                     maxLines: 1,
@@ -229,46 +262,54 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             }),
           ),
 
-          // Cart icon with red dot badge
+          // Ikon keranjang + badge jumlah
           Obx(() {
             final itemCount = keranjangController.totalItemKeranjang.value;
             return InkWell(
               onTap: () => Get.to(const LayoutKeranjang()),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(16),
               child: Container(
-                width: 46,
-                height: 46,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(16),
                   color: Colors.white,
-                  border:
-                      Border.all(color: Colors.grey.shade200, width: 1.5),
+                  border: Border.all(color: Colors.grey.shade200),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Stack(
+                  clipBehavior: Clip.none,
                   alignment: Alignment.center,
                   children: [
-                    const Icon(
-                      Icons.shopping_cart_outlined,
-                      color: Color(0xFF2F2828),
-                      size: 22,
-                    ),
+                    const Icon(Icons.shopping_bag_outlined,
+                        color: _dark, size: 23),
                     if (itemCount > 0)
                       Positioned(
-                        top: 10,
-                        right: 10,
+                        top: -5,
+                        right: -5,
                         child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEE2737),
-                            shape: BoxShape.circle,
+                          constraints:
+                              const BoxConstraints(minWidth: 18, minHeight: 18),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEE2737),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: Text(
+                            itemCount > 9 ? "9+" : "$itemCount",
+                            style: AppColors.fontStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -282,35 +323,54 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     );
   }
 
-  Widget _buildProfileImage(String imageUrl) {
-    if (imageUrl.isEmpty) {
-      return Image.asset(
-        'assets/images/error-pp.jpg',
-        fit: BoxFit.cover,
-        width: 48,
-        height: 48,
+  Widget _buildProfileImage(String imageUrl, String name) {
+    String getInitials(String str) {
+      if (str.trim().isEmpty) return "US";
+      List<String> words = str.trim().split(RegExp(r'\s+'));
+      String initials = "";
+      for (var i = 0; i < words.length && i < 3; i++) {
+        if (words[i].isNotEmpty) {
+          initials += words[i][0].toUpperCase();
+        }
+      }
+      return initials.isNotEmpty ? initials : "US";
+    }
+
+    Widget fallbackAvatar() {
+      return Container(
+        width: 42,
+        height: 42,
+        color: _green,
+        alignment: Alignment.center,
+        child: Text(
+          getInitials(name),
+          style: AppColors.fontStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       );
     }
+
+    if (imageUrl.isEmpty) return fallbackAvatar();
+
     final fullUrl = imageUrl.startsWith('http')
         ? imageUrl
         : ApiEndpoints.baseUrl +
             ApiEndpoints.authendpoints.getFotoProfile +
             imageUrl;
+
     return Image.network(
       fullUrl,
       fit: BoxFit.cover,
-      width: 48,
-      height: 48,
-      errorBuilder: (_, __, ___) => Image.asset(
-        'assets/images/error-pp.jpg',
-        fit: BoxFit.cover,
-        width: 48,
-        height: 48,
-      ),
+      width: 42,
+      height: 42,
+      errorBuilder: (_, __, ___) => fallbackAvatar(),
     );
   }
 
-  // ── Search Bar ───────────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Search Bar Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildSearchBar() {
     return Padding(
@@ -320,29 +380,25 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
           Expanded(
             child: InkWell(
               onTap: () => Get.to(const LayoutSearchScreen()),
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(18),
               child: Container(
                 height: 52,
-                padding: const EdgeInsets.symmetric(horizontal: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: Colors.grey.shade200),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
+                      blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF2C4E40),
-                      size: 22,
-                    ),
+                    const Icon(Icons.search_rounded, color: _green, size: 22),
                     const SizedBox(width: 12),
                     Text(
                       "Cari alat camping...",
@@ -362,19 +418,19 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFF2C4E40),
-              borderRadius: BorderRadius.circular(16),
+              color: _green,
+              borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2C4E40).withValues(alpha: 0.35),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: _green.withValues(alpha: 0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.tune_rounded,
-                  color: Colors.white, size: 22),
+              icon:
+                  const Icon(Icons.tune_rounded, color: Colors.white, size: 22),
               onPressed: () {},
             ),
           ),
@@ -383,13 +439,14 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     );
   }
 
-  // ── Category Chips ───────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Category Chips Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildCategories() {
     return SizedBox(
-      height: 40,
+      height: 56,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        clipBehavior: Clip.none,
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: kategori.length,
@@ -398,56 +455,44 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
           final isSelected = index == selectedCategoryIndex;
           final cat = kategori[index];
           return GestureDetector(
-            onTap: () => _filterByKategori(index),
+            onTap: () => setState(() => selectedCategoryIndex = index),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF2C4E40) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                color: isSelected ? _green : Colors.white,
+                borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF2C4E40)
-                      : Colors.grey.shade300,
-                  width: 1,
+                  color: isSelected ? _green : Colors.grey.shade200,
                 ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF2C4E40)
-                              .withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? _green.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.03),
+                    blurRadius: isSelected ? 10 : 4,
+                    offset: Offset(0, isSelected ? 4 : 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     cat['icon'] as IconData,
-                    size: 14,
-                    color:
-                        isSelected ? Colors.white : const Color(0xFF8E8E8E),
+                    size: 16,
+                    color: isSelected ? Colors.white : const Color(0xFF8E8E8E),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 7),
                   Text(
                     cat['title'] as String,
                     style: AppColors.fontStyle(
                       fontSize: 13,
                       fontWeight:
                           isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF8E8E8E),
+                      color:
+                          isSelected ? Colors.white : const Color(0xFF6B6B6B),
                     ),
                   ),
                 ],
@@ -459,7 +504,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     );
   }
 
-  // ── Promo Banner Carousel ────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Promo Banner Carousel Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildPromoBanner() {
     return Obx(() {
@@ -473,10 +518,10 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
           CarouselSlider(
             carouselController: carouselController,
             options: CarouselOptions(
+              height: _bannerAreaHeight,
               scrollPhysics: const BouncingScrollPhysics(),
-              autoPlay: true,
+              autoPlay: bannerCount > 1,
               autoPlayInterval: const Duration(seconds: 4),
-              aspectRatio: 2.1,
               viewportFraction: 1,
               onPageChanged: (index, reason) {
                 setState(() => currentBannerIndex = index);
@@ -485,59 +530,82 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             items: List.generate(bannerCount, (index) {
               if (useApi) {
                 return _buildApiBannerItem(iklanList[index]);
-              } else {
-                return _buildFallbackBannerItem(_fallbackBanners[index]);
               }
+              return _buildFallbackBannerItem(_fallbackBanners[index]);
             }),
           ),
-          if (bannerCount > 1) ...[
-            const SizedBox(height: 12),
+          if (bannerCount > 1)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(bannerCount, (i) {
+                final active = currentBannerIndex == i;
                 return GestureDetector(
                   onTap: () => carouselController.animateToPage(i),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    width: currentBannerIndex == i ? 20 : 7,
+                    width: active ? 22 : 7,
                     height: 7,
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: currentBannerIndex == i
-                          ? const Color(0xFF2C4E40)
-                          : Colors.grey.shade300,
+                      color: active ? _green : Colors.grey.shade300,
                     ),
                   ),
                 );
               }),
             ),
-          ],
         ],
       );
     });
   }
 
-  /// Banner dari API iklan (full poster image + title overlay)
-  Widget _buildApiBannerItem(IklanModel iklan) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+  BoxDecoration get _bannerShadowDecoration => BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2C4E40).withValues(alpha: 0.25),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: _green.withValues(alpha: 0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
           ),
         ],
-      ),
-      child: ClipRRect(
+      );
+
+  Widget _buildCtaButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: _yellow,
         borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "Belanja Sekarang",
+            style: AppColors.fontStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: _dark,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.arrow_forward_rounded, size: 14, color: _dark),
+        ],
+      ),
+    );
+  }
+
+  /// Banner dari API iklan (poster full + judul & CTA di bawah)
+  Widget _buildApiBannerItem(IklanModel iklan) {
+    return Container(
+      margin:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: _bannerVMargin),
+      decoration: _bannerShadowDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Poster image
             Image.network(
               iklan.poster.startsWith('http')
                   ? iklan.poster
@@ -548,31 +616,32 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
               errorBuilder: (_, __, ___) => Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF2C4E40), Color(0xFF1E352B)],
+                    colors: [_green, _greenDark],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
               ),
             ),
-            // Left gradient for legibility
+            // Gradient bawah agar teks terbaca
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.centerRight,
-                  end: Alignment.centerLeft,
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  stops: const [0.0, 0.6, 1.0],
                   colors: [
+                    Colors.black.withValues(alpha: 0.75),
+                    Colors.black.withValues(alpha: 0.1),
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.55),
                   ],
                 ),
               ),
             ),
-            // Title + CTA
             Positioned(
               left: 20,
-              bottom: 20,
-              right: 60,
+              right: 20,
+              bottom: 18,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -589,22 +658,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFC107),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "Belanja Sekarang",
-                      style: AppColors.fontStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF2F2828),
-                      ),
-                    ),
-                  ),
+                  _buildCtaButton(),
                 ],
               ),
             ),
@@ -614,221 +668,154 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     );
   }
 
-  /// Fallback banner with brand gradient + local asset image
+  /// Banner fallback: gradient brand + gambar asset lokal
   Widget _buildFallbackBannerItem(Map<String, dynamic> banner) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+      margin:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: _bannerVMargin),
+      decoration: _bannerShadowDecoration.copyWith(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2C4E40), Color(0xFF1E352B)],
+          colors: [_green, _greenDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2C4E40).withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 40,
-            top: -30,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        banner['title'] as String,
-                        style: AppColors.fontStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          height: 1.25,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        banner['subtitle'] as String,
-                        style: AppColors.fontStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.75),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFC107),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "Belanja Sekarang",
-                          style: AppColors.fontStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF2F2828),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -30,
+              bottom: -40,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.07),
+                  shape: BoxShape.circle,
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                  child: ShaderMask(
-                    shaderCallback: (rect) {
-                      return const LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [Colors.transparent, Colors.black],
-                        stops: [0.0, 0.4],
-                      ).createShader(rect);
-                    },
-                    blendMode: BlendMode.dstIn,
-                    child: Image.asset(
-                      banner['image'] as String,
-                      fit: BoxFit.cover,
-                      height: double.infinity,
+            ),
+            Positioned(
+              right: 60,
+              top: -35,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          banner['title'] as String,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppColors.fontStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          banner['subtitle'] as String,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppColors.fontStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildCtaButton(),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                Expanded(
+                  flex: 2,
+                  child: SizedBox.expand(
+                    child: ShaderMask(
+                      shaderCallback: (rect) {
+                        return const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Colors.transparent, Colors.black],
+                          stops: [0.0, 0.45],
+                        ).createShader(rect);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: Image.asset(
+                        banner['image'] as String,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Featured Products ────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Featured Products Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildFeaturedProducts() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Featured Products",
-                style: AppColors.fontStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF2F2828),
-                  letterSpacing: -0.3,
-                ),
-              ),
-              InkWell(
-                onTap: () => pageController.setPageIndex(1),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
-                  child: Text(
-                    "Lihat Semua",
-                    style: AppColors.fontStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2C4E40),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+        _buildSectionHeader(
+          "Produk Pilihan",
+          actionLabel: "Lihat Semua",
+          onAction: () => pageController.setPageIndex(1),
         ),
-        const SizedBox(height: 16),
-
-        // Reactive grid — uses listProdukHome (rekomendasi endpoint)
+        const SizedBox(height: 14),
         Obx(() {
           if (apiProduk.isLoadingHome.value) {
             return _buildProductShimmer();
           }
 
-          final listProduk = apiProduk.listProdukHome;
+          final listProduk = _applyCategoryFilter(apiProduk.listProdukHome);
 
           if (listProduk.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.inventory_2_outlined,
-                        size: 56, color: Colors.grey.shade300),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Belum ada produk tersedia",
-                      style: AppColors.fontStyle(
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return _buildEmptyProduct();
           }
 
           final displayCount = listProduk.length > 6 ? 6 : listProduk.length;
 
           return GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding:
+                const EdgeInsets.only(left: 10, right: 10, bottom: 20, top: 4),
+            clipBehavior: Clip.none,
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.70,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
+              childAspectRatio: 0.53,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 12,
             ),
             itemCount: displayCount,
             itemBuilder: (context, index) {
               final p = listProduk[index];
               return ProdukTerlarisDashboard(
-                image: p.image,
+                images: [p.image],
                 namaProduk: p.namaProduk,
                 harga: p.harga.toString(),
                 rating: p.rating.toString(),
@@ -848,6 +835,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
                     builder: (BuildContext context) {
                       return BottomSheetProduk(
                         image: p.image,
@@ -868,43 +856,129 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     );
   }
 
+  Widget _buildEmptyProduct() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+      child: Center(
+        child: Column(
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: _green.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.inventory_2_outlined,
+                  size: 40, color: _green),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              "Belum ada produk tersedia",
+              style: AppColors.fontStyle(
+                color: const Color(0xFF6B6B6B),
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Coba pilih kategori lain",
+              style: AppColors.fontStyle(
+                color: const Color(0xFF8E8E8E),
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Skeleton shimmer untuk grid produk saat loading
   Widget _buildProductShimmer() {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.only(left: 10, right: 10, bottom: 20, top: 4),
+      clipBehavior: Clip.none,
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.70,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
+        childAspectRatio: 0.53,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 12,
       ),
       itemCount: 4,
       itemBuilder: (context, index) =>
-          _ShimmerBox(borderRadius: BorderRadius.circular(16)),
+          _ShimmerBox(borderRadius: BorderRadius.circular(20)),
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-  Widget _buildSectionLabel(String title) {
+  Widget _buildSectionHeader(
+    String title, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(
-        title,
-        style: AppColors.fontStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          color: const Color(0xFF2F2828),
-          letterSpacing: -0.3,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: _yellow,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: AppColors.fontStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: _dark,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+          if (actionLabel != null)
+            InkWell(
+              onTap: onAction,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    Text(
+                      actionLabel,
+                      style: AppColors.fontStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _green,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded,
+                        size: 18, color: _green),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
-// ── Shimmer placeholder ────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Shimmer placeholder Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 class _ShimmerBox extends StatefulWidget {
   final BorderRadius borderRadius;
@@ -954,3 +1028,6 @@ class _ShimmerBoxState extends State<_ShimmerBox>
     );
   }
 }
+
+
+

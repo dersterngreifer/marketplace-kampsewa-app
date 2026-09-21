@@ -13,7 +13,6 @@ import 'package:project_camp_sewa/models/user.dart';
 import 'package:project_camp_sewa/services/api_transaksi.dart';
 import 'package:project_camp_sewa/services/authorization_token.dart';
 import 'package:project_camp_sewa/services/controller_dashboard.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ApiDataUser extends GetxController {
   ApiTransaksi apiTransaksi = Get.put(ApiTransaksi());
@@ -24,6 +23,7 @@ class ApiDataUser extends GetxController {
   TextEditingController detailAlamatController = TextEditingController();
   TextEditingController namaTokoController = TextEditingController();
   TextEditingController detailAlamatTokoController = TextEditingController();
+  TextEditingController deskripsiTokoController = TextEditingController();
   TextEditingController noRekController = TextEditingController();
   TextEditingController jenisBankController = TextEditingController();
   Dio dio = Dio();
@@ -31,6 +31,44 @@ class ApiDataUser extends GetxController {
   DashboardController pageController = Get.put(DashboardController());
   final Rx<User?> dataUser = Rx<User?>(null);
   final RxList<AlamatUserModel> listAlamatUser = <AlamatUserModel>[].obs;
+  
+  // Statistik
+  final RxInt totalSemuaPesanan = 0.obs;
+  final RxInt totalSedangDisewa = 0.obs;
+  final RxInt totalBelumDikonfirmasi = 0.obs;
+  final RxInt totalProdukBelumDikonfirmasi = 0.obs;
+
+  Future<void> getStatistikPesanan(BuildContext context) async {
+    try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      int? id = await auth.getId();
+      if (id == null) return;
+      
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getStatistikPesanan + id.toString();
+
+      final response = await dio.get(url, options: Options(
+        headers: header,
+        validateStatus: (status) => status! < 500,
+      ));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = response.data is String ? jsonDecode(response.data) : response.data;
+        if (responseData['message'] == 'success' && responseData['data'] != null) {
+          totalSemuaPesanan.value = responseData['data']['total_semua_pesanan'] ?? 0;
+          totalSedangDisewa.value = responseData['data']['total_sedang_disewa'] ?? 0;
+          totalBelumDikonfirmasi.value = responseData['data']['total_belum_dikonfirmasi'] ?? 0;
+          totalProdukBelumDikonfirmasi.value = responseData['data']['total_produk_belum_dikonfirmasi'] ?? 0;
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching statistik: $e");
+    }
+  }
 
   Future<void> getDataUser(BuildContext context) async {
     try {
@@ -65,21 +103,14 @@ class ApiDataUser extends GetxController {
         emailController.text = attachData.email!;
         phoneNumberController.text = attachData.nomorTelephone!;
         tanggalLahirController.text = attachData.tanggalLahir!;
+        
+        // Ambil statistik setelah berhasil dapat data user
+        await getStatistikPesanan(context);
       } else {
         String errorMessage = data['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
+        CustomSnackBar.show(context, sukses: false,
               title: "Error",
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -134,18 +165,8 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: "Profile Berhasil di Update",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Profile Berhasil di Update",);
 
         namaController.clear();
         emailController.clear();
@@ -158,18 +179,8 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -225,18 +236,8 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: "Berhasil Menambahkan Alamat",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Berhasil Menambahkan Alamat",);
 
         if (context.mounted) {
           //get data alamat supaya memperbarui data di layout alamat
@@ -245,18 +246,8 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['error'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -308,18 +299,8 @@ class ApiDataUser extends GetxController {
                 .toList());
         listAlamatUser.assignAll(alamatList);
       } else {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: "Data Produk Gagal Dimuat",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: "Data Produk Gagal Dimuat",);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -372,18 +353,8 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: "Profile Berhasil di Update",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Profile Berhasil di Update",);
 
         if (context.mounted) {
           getListAlamatUser(context);
@@ -391,18 +362,8 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -447,18 +408,8 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: "Alamat Berhasil Dihapus",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Alamat Berhasil Dihapus",);
 
         if (context.mounted) {
           getListAlamatUser(context);
@@ -466,18 +417,8 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -530,18 +471,8 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: "Berhasil Menambahkan Metode Transfer",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Berhasil Menambahkan Metode Transfer",);
 
         if (context.mounted) {
           apiTransaksi.getBankOpsiPembayaran(context, idStr);
@@ -549,18 +480,8 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -582,7 +503,8 @@ class ApiDataUser extends GetxController {
   }
 
   Future<void> isiDataToko(
-      BuildContext context, String latitude, String longitude) async {
+      BuildContext context, String latitude, String longitude,
+      {String? bannerPath}) async {
     try {
       Authorization auth = Authorization();
       String? token = await auth.getToken();
@@ -594,19 +516,29 @@ class ApiDataUser extends GetxController {
       };
       var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.isiDataToko + idStr;
 
-      Map body = {
+      Map<String, dynamic> body = {
         'name_store': namaTokoController.text,
         'longitude': longitude,
         'latitude': latitude,
         'detail_lainnya': detailAlamatTokoController.text,
+        'deskripsi_toko': deskripsiTokoController.text,
       };
 
+      if (bannerPath != null && bannerPath.isNotEmpty) {
+        body['banner_toko'] = await MultipartFile.fromFile(
+          bannerPath,
+          filename: bannerPath.split('/').last,
+        );
+      }
+
+      FormData formData = FormData.fromMap(body);
+
       final response = await dio.post(url,
-          data: body,
+          data: formData,
           options: Options(
             headers: header,
             validateStatus: (status) {
-              return status! < 500; // Accept status codes less than 500
+              return status! < 500;
             },
           ));
 
@@ -614,38 +546,19 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        final Uri url = Uri.parse(ApiEndpoints.baseUrl);
-          await launchUrl(url);
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: "Berhasil Menambahkan Data Toko",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Berhasil Menambahkan Data Toko",);
 
         if (context.mounted) {
+          namaTokoController.clear();
+          detailAlamatTokoController.clear();
+          deskripsiTokoController.clear();
           Get.back();
         }
       } else {
-        String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        String errorMessage = json['message'] ?? 'Terjadi kesalahan';
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -662,6 +575,81 @@ class ApiDataUser extends GetxController {
                 );
               });
         }
+      }
+    }
+  }
+
+  Future<void> inputKYC(BuildContext context, String nomorIdentitas,
+      XFile? fotoIdentitas) async {
+    try {
+      loading.showLoadingDialog();
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      int? id = await auth.getId();
+      String idStr = id.toString();
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      var url = ApiEndpoints.baseUrl +
+          ApiEndpoints.authendpoints.inputKYC +
+          idStr;
+
+      Map<String, dynamic> body = {
+        'nomor_identitas': nomorIdentitas,
+      };
+
+      if (fotoIdentitas != null) {
+        body['foto_identitas'] = await MultipartFile.fromFile(
+          fotoIdentitas.path,
+          filename: fotoIdentitas.path.split('/').last,
+        );
+      }
+
+      FormData formData = FormData.fromMap(body);
+
+      final response = await dio.post(url,
+          data: formData,
+          options: Options(
+            headers: header,
+            validateStatus: (status) {
+              return status! < 500;
+            },
+          ));
+
+      loading.hideLoadingDialog();
+
+      final Map<String, dynamic> json =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200) {
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Identitas Berhasil Diverifikasi",);
+
+        if (context.mounted) {
+          await getDataUser(context);
+          pageController.setPageIndex(3);
+          Get.back();
+        }
+      } else {
+        String errorMessage = json['message'] ?? 'Terjadi kesalahan';
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
+      }
+    } on DioException catch (dioError) {
+      loading.hideLoadingDialog();
+      if (context.mounted) {
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                backgroundColor: Colors.transparent,
+                content: CustomAlertDialog(
+                  sukses: false,
+                  teks: dioError.message ?? "An unknown error occurred",
+                ),
+              );
+            });
       }
     }
   }

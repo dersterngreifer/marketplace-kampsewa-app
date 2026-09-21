@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:project_camp_sewa/components/card/produk_terlaris_card.dart';
+import 'package:project_camp_sewa/components/card/produk_card.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_product.dart';
 import 'package:project_camp_sewa/models/produk_model.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
@@ -139,13 +139,13 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
 
   Widget _buildShimmerLoading() {
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 24),
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.70,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
+        childAspectRatio: 0.53,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 12,
       ),
       itemCount: 4,
       itemBuilder: (context, index) {
@@ -191,19 +191,19 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
       }
 
       return GridView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 24),
         physics: const BouncingScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.70,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
+          childAspectRatio: 0.53,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 12,
         ),
         itemCount: listProduk.length,
         itemBuilder: (context, index) {
           final ProdukModel p = listProduk[index];
-          return ProdukTerlarisDashboard(
-            image: p.image,
+          return ProdukCard(
+            images: [p.image],
             namaProduk: p.namaProduk,
             harga: p.harga.toString(),
             rating: p.rating.toString(),
@@ -235,3 +235,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
     });
   }
 }
+
+
+
+

@@ -58,6 +58,18 @@ class _OnboardLayoutState extends State<OnboardLayout>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarDividerColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarContrastEnforced: false,
+      systemStatusBarContrastEnforced: false,
+    ));
+
     _textAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -79,6 +91,10 @@ class _OnboardLayoutState extends State<OnboardLayout>
   @override
   void dispose() {
     _textAnimController.dispose();
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     super.dispose();
   }
 
@@ -92,22 +108,18 @@ class _OnboardLayoutState extends State<OnboardLayout>
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.black,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ));
     return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       backgroundColor: Colors.white,
-      bottomSheet: _buildBottomSheet(),
-      body: PageView.builder(
-          onPageChanged: _onPageChanged,
-          itemCount: controller.items.length,
-          controller: pageController,
-          itemBuilder: (context, index) {
-            return Container(
+      body: Stack(
+        children: [
+          PageView.builder(
+              onPageChanged: _onPageChanged,
+              itemCount: controller.items.length,
+              controller: pageController,
+              itemBuilder: (context, index) {
+                return Container(
               decoration: const BoxDecoration(color: Colors.white),
               width: MediaQuery.of(context).size.width,
               height: MediaQuery.of(context).size.height,
@@ -256,6 +268,14 @@ class _OnboardLayoutState extends State<OnboardLayout>
               ),
             );
           }),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _buildBottomSheet(),
+          ),
+        ],
+      ),
     );
   }
 

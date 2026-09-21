@@ -1,97 +1,129 @@
-import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class BeritaCard extends StatefulWidget {
+class BeritaCard extends StatelessWidget {
   final String image;
   final String title;
   final String source;
   final String url;
-  const BeritaCard(
-      {super.key,
-      required this.image,
-      required this.title,
-      required this.source,
-      required this.url});
 
-  @override
-  State<BeritaCard> createState() => _BeritaCardState();
-}
+  const BeritaCard({
+    super.key,
+    required this.image,
+    required this.title,
+    required this.source,
+    required this.url,
+  });
 
-class _BeritaCardState extends State<BeritaCard> {
+  Future<void> _open() async {
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      child: InkWell(
-        onTap: () async {
-          final Uri url = Uri.parse(widget.url);
-          await launchUrl(url);
-        },
-        child: Container(
-          height: 100,
-          width: 370,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-              border: Border.all(color: Colors.black.withValues(alpha: 0.2)),
-              borderRadius: BorderRadius.circular(15),
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                    color: const Color(0xFF646363).withValues(alpha: 0.3),
-                    offset: const Offset(3.0, 3.0),
-                    blurRadius: 5.0)
-              ]),
-          child: Row(
-            children: [
-              Container(
-                height: 85,
-                width: 100,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    image: DecorationImage(
-                        image: NetworkImage(widget.image), fit: BoxFit.fill)),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 60,
-                    width: MediaQuery.of(context).size.width / 1.8,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 5, top: 6),
-                      child: Text(
-                        widget.title,
-                        style: AppColors.fontStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black),
-                        softWrap: true,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
-                        textAlign: TextAlign.left,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 4),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: _open,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    width: 92,
+                    height: 92,
+                    child: Image.network(
+                      image,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: const Color(0xFFF0F2F1),
+                        child: const Icon(Icons.image_rounded,
+                            color: Color(0xFFBDBDBD)),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 92,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          widget.source,
+                          title,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                           style: AppColors.fontStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF646363)),
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF2F2828),
+                            height: 1.3,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2C4E40)
+                                    .withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.newspaper_rounded,
+                                      size: 12, color: Color(0xFF2C4E40)),
+                                  const SizedBox(width: 4),
+                                  ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 120),
+                                    child: Text(
+                                      source,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppColors.fontStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF2C4E40),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.arrow_outward_rounded,
+                                size: 18, color: Color(0xFF8E8E8E)),
+                          ],
                         ),
                       ],
                     ),
-                  )
-                ],
-              )
-            ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

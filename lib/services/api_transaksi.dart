@@ -74,18 +74,8 @@ class ApiTransaksi extends GetxController {
 
       if (response.statusCode == 200) {
         int idPenyewaan = json['penyewaan']['id'];
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: "Transaksi Berhasil Dibuat",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: true,
+              teks: "Transaksi Berhasil Dibuat",);
 
         if (metodeBayar == "Transfer") {
           Get.to(const LayoutPembayaran(), arguments: {
@@ -102,18 +92,8 @@ class ApiTransaksi extends GetxController {
         DatabaseHelper.instance.deleteKeranjangCheckout(context);
       } else {
         String errorMessage = json['error'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -140,18 +120,8 @@ class ApiTransaksi extends GetxController {
           await DatabaseHelper.instance.listInputProdukCheckout(context);
       listProdukCheckout.assignAll(produkCheckout);
     } catch (e) {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Gagal Mengambil List Produk",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Gagal Mengambil List Produk",);
     }
   }
 
@@ -196,19 +166,9 @@ class ApiTransaksi extends GetxController {
         }
       } else {
         String errorMessage = data['error'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
+        CustomSnackBar.show(context, sukses: false,
               title: "Error",
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -258,19 +218,9 @@ class ApiTransaksi extends GetxController {
             data['bank'].map((e) => BankModel.fromJson(e)).toList());
         listBankMetodeBayar.assignAll(bankList);
       } else {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
+        CustomSnackBar.show(context, sukses: false,
               title: "Error",
-              teks: "Gagal Mendapatkan List Bank",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+              teks: "Gagal Mendapatkan List Bank",);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -330,33 +280,13 @@ class ApiTransaksi extends GetxController {
       if (response.statusCode == 201) {
         pageController.setPageIndex(2);
           Get.to(const ScreenDashboard());
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
+        CustomSnackBar.show(context, sukses: true,
               title: "Pembayaran Berhasil",
-              teks: "Tunggu Pembayaran Anda Dikonfirmasi Pihak Toko",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+              teks: "Tunggu Pembayaran Anda Dikonfirmasi Pihak Toko",);
       } else {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
+        CustomSnackBar.show(context, sukses: false,
               title: "Error",
-              teks: "Gagal Mendapatkan List Bank",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+              teks: "Gagal Mendapatkan List Bank",);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {

@@ -1,4 +1,5 @@
 import 'package:project_camp_sewa/theme_colors.dart';
+import 'package:flutter/cupertino.dart' as import_cupertino;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -265,15 +266,75 @@ class _LayoutRegisterState extends State<LayoutRegister> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    DateTime? pickedDate = await showDatePicker(
-        context: context, firstDate: DateTime(2000), lastDate: DateTime(2100));
-
-    if (pickedDate != null) {
-      String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
-      setState(() {
-        apiRegistrasi.tanggalLahirController.text = formattedDate;
-      });
+    DateTime initialDate = DateTime(2000, 1, 1);
+    if (apiRegistrasi.tanggalLahirController.text.isNotEmpty) {
+      try {
+        initialDate = DateFormat('yyyy-MM-dd')
+            .parse(apiRegistrasi.tanggalLahirController.text);
+      } catch (_) {}
     }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          height: 300,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Batal',
+                          style: AppColors.fontStyle(
+                              color: Colors.grey, fontWeight: FontWeight.w600)),
+                    ),
+                    Text('Pilih Tanggal Lahir',
+                        style: AppColors.fontStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Selesai',
+                          style: AppColors.fontStyle(
+                              color: AppColors.mainColor,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: import_cupertino.CupertinoDatePicker(
+                  initialDateTime: initialDate,
+                  minimumYear: 1950,
+                  maximumYear: DateTime.now().year,
+                  mode: import_cupertino.CupertinoDatePickerMode.date,
+                  onDateTimeChanged: (DateTime pickedDate) {
+                    String formattedDate =
+                        DateFormat('yyyy-MM-dd').format(pickedDate);
+                    setState(() {
+                      apiRegistrasi.tanggalLahirController.text = formattedDate;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 

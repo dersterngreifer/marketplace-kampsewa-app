@@ -15,6 +15,7 @@ class BottomSheetProduk extends StatefulWidget {
   final int? idProduk;
   final int? idToko;
   final String? namaToko;
+
   const BottomSheetProduk({
     super.key,
     this.image,
@@ -38,269 +39,306 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
   String? stok;
   int qty = 1;
 
+  int _qtyInCart = 0;
+  int get _sisaStokTersedia => (int.tryParse(stok ?? '0') ?? 0) - _qtyInCart;
+
+  Future<void> _updateState() async {
+    if (selectedWarna != null && selectedUkuran != null) {
+      var result = apiProduk.getStockAndPrice(selectedWarna!, selectedUkuran!);
+      if (result != null) {
+        final cartQty = await DatabaseHelper.instance.getVariantQtyInCart(
+            widget.idProduk ?? 0, selectedWarna!, selectedUkuran!);
+            
+        if (!mounted) return;
+        setState(() {
+          _qtyInCart = cartQty;
+          harga = result['harga'].toString();
+          int stokInt = result['stok'];
+          stok = stokInt.toString();
+          pemberitahuan = "";
+          
+          if (stokInt < 1) {
+            qty = 1;
+            pemberitahuan = "*Stok varian ini habis";
+          } else if (_sisaStokTersedia < 1) {
+            qty = 1;
+            pemberitahuan = "*Sisa stok telah mencapai batas maksimal alokasi keranjang";
+          } else if (qty > _sisaStokTersedia) {
+            qty = _sisaStokTersedia;
+          }
+        });
+      }
+    }
+  }
+
   String formatCurrency(String numberString) {
     final number = int.parse(numberString);
-    final formatter =
-        NumberFormat.decimalPattern('id'); // Use 'id' for Indonesian locale
+    final formatter = NumberFormat.decimalPattern('id');
     return formatter.format(number);
+  }
+
+  Widget _buildImage() {
+    final img = widget.image ?? '';
+    if (img.isEmpty) {
+      return Container(color: Colors.grey.shade200, child: Icon(Icons.image_not_supported_rounded, color: Colors.grey.shade400));
+    }
+    if (img.startsWith('assets/')) {
+      return Image.asset(img, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey));
+    }
+    final url = img.startsWith('http') ? img : ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getImageProduk + img;
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          height: MediaQuery.of(context).size.height / 2,
-          decoration: BoxDecoration(
-              border: Border(
-                  top: BorderSide(
-                      color: Colors.black.withValues(alpha: 0.2), width: 1)),
-              borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(15), topRight: Radius.circular(15)),
-              color: Colors.white),
-          child: Padding(
-            padding:
-                const EdgeInsets.only(left: 15, right: 15, top: 30, bottom: 15),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 120,
-                      width: 120,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          image: DecorationImage(
-                              image: NetworkImage(ApiEndpoints.baseUrl +
-                                  ApiEndpoints.authendpoints.getImageProduk +
-                                  widget.image!))),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag Handle
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 100,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 5, top: 5),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width / 1.85,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: _buildImage(),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.namaProduk ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppColors.fontStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF2F2828),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Rp ${harga != null ? formatCurrency(harga!) : formatCurrency(widget.harga ?? '0')}/hari",
+                          style: AppColors.fontStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF2C4E40),
+                          ),
+                        ),
+                        if (stok != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2C4E40).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                             child: Text(
-                              widget.namaProduk!,
-                              maxLines: null,
+                              "Sisa Stok: $stok",
                               style: AppColors.fontStyle(
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF2C4E40),
+                              ),
                             ),
                           ),
-                          Row(
-                            children: [
-                              Text(
-                                "IDR. ",
-                                style: AppColors.fontStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black),
+                        ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: Icon(Icons.close_rounded, color: Colors.grey.shade600),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                "Warna",
+                style: AppColors.fontStyle(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF2F2828)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 36,
+              child: Obx(() {
+                List<String> listWarna = apiProduk.colors;
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) {
+                    return ItemVariant(
+                      item: listWarna[index],
+                      selected: selectedWarna == listWarna[index],
+                      aksi: () {
+                        apiProduk.updateAllUniqueSizes(color: listWarna[index]);
+                        setState(() {
+                          selectedWarna = listWarna[index];
+                        });
+                        _updateState();
+                      },
+                    );
+                  },
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                  itemCount: listWarna.length,
+                );
+              }),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                "Ukuran",
+                style: AppColors.fontStyle(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF2F2828)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 36,
+              child: Obx(() {
+                List<String> listUkuran = apiProduk.uniqueSizes;
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) => ItemVariant(
+                    item: listUkuran[index],
+                    selected: selectedUkuran == listUkuran[index],
+                    aksi: () {
+                      setState(() {
+                        selectedUkuran = listUkuran[index];
+                      });
+                      _updateState();
+                    },
+                  ),
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                  itemCount: listUkuran.length,
+                );
+              }),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  if (_qtyInCart > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFED6723).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFED6723).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.shopping_cart_checkout_rounded, size: 16, color: Color(0xFFED6723)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Varian ini sudah ada $_qtyInCart item di keranjang",
+                              style: AppColors.fontStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFED6723),
                               ),
-                              Text(
-                                harga != null
-                                    ? formatCurrency(harga!)
-                                    : formatCurrency(widget.harga!),
-                                style: AppColors.fontStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black),
-                              ),
-                              Text(
-                                ",00/hari",
-                                style: AppColors.fontStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black),
-                              ),
-                            ],
-                          ),
-                          Visibility(
-                            visible: stok != null,
-                            child: Row(
-                              children: [
-                                Text(
-                                  "Stok : ",
-                                  style: AppColors.fontStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black),
-                                ),
-                                Text(
-                                  stok != null ? stok! : "",
-                                  style: AppColors.fontStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black),
-                                ),
-                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                Text(
-                  "Warna",
-                  style: AppColors.fontStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black),
-                ),
-                SizedBox(
-                  height: 30,
-                  child: Obx(() {
-                    List<String> listWarna = apiProduk.colors;
-                    return ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (context, index) {
-                          return ItemVariant(
-                            item: listWarna[index],
-                            selected: selectedWarna == listWarna[index],
-                            aksi: () {
-                              apiProduk.updateAllUniqueSizes(
-                                  color: listWarna[index]);
-                              setState(() {
-                                selectedWarna = listWarna[index];
-                              });
-                            },
-                          );
-                        },
-                        separatorBuilder: (context, index) => const SizedBox(
-                              width: 5,
-                            ),
-                        itemCount: listWarna.length);
-                  }),
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                Text(
-                  "Ukuran",
-                  style: AppColors.fontStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black),
-                ),
-                SizedBox(
-                    height: 30,
-                    child: Obx(() {
-                      List<String> listUkuran = apiProduk.uniqueSizes;
-                      return ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemBuilder: (context, index) => ItemVariant(
-                                item: listUkuran[index],
-                                selected: selectedUkuran == listUkuran[index],
-                                aksi: () {
-                                  setState(() {
-                                    selectedUkuran = listUkuran[index];
-                                  });
-
-                                  if (selectedWarna != null &&
-                                      selectedUkuran != null) {
-                                    var result = apiProduk.getStockAndPrice(
-                                        selectedWarna!, selectedUkuran!);
-                                    if (result != null) {
-                                      setState(() {
-                                        harga = result['harga'].toString();
-                                        int stokInt = result['stok'];
-                                        stok = stokInt.toString();
-                                        pemberitahuan = "";
-                                        if (qty > stokInt) {
-                                          qty = stokInt;
-                                        }
-                                      });
-                                    }
-                                  }
-                                },
-                              ),
-                          separatorBuilder: (context, index) => const SizedBox(
-                                width: 5,
-                              ),
-                          itemCount: listUkuran.length);
-                    })),
-                const Spacer(),
-                Visibility(
-                  visible: pemberitahuan != null,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 3.5),
-                        child: Text(
-                          pemberitahuan!,
-                          style: AppColors.fontStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.red.withValues(alpha: 0.8)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Jumlah",
-                      style: AppColors.fontStyle(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black),
-                    ),
+                    
+                  if (pemberitahuan != null && pemberitahuan!.isNotEmpty)
                     Container(
-                      width: 100,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1.2),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 2.5, vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            InkWell(
-                              onTap: () {
-                                setState(() {
-                                  if (stok != null) {
-                                    if (qty < int.parse(stok!)) {
-                                      qty++;
-                                      pemberitahuan = "";
-                                    } else {
-                                      pemberitahuan =
-                                          "*Quantity Telah Mencapai Batas Stok";
-                                    }
-                                  } else {
-                                    pemberitahuan =
-                                        "*Pilih Warna dan Ukuran Terlebih Dahulu";
-                                  }
-                                });
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.only(left: 3),
-                                child: Icon(
-                                  Icons.add,
-                                  size: 20,
-                                  color: Colors.black,
-                                ),
+                        color: const Color(0xFFEE2737).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFEE2737)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              pemberitahuan!,
+                              style: AppColors.fontStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFEE2737),
                               ),
                             ),
-                            Text(
-                              qty.toString(),
-                              style: AppColors.fontStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w700),
-                            ),
-                            InkWell(
-                              onTap: () {
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Jumlah",
+                        style: AppColors.fontStyle(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF2F2828)),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: Icon(MdiIcons.minus, size: 18, color: qty > 1 ? const Color(0xFF2F2828) : Colors.grey.shade400),
+                              onPressed: () {
                                 setState(() {
                                   if (qty > 1) {
                                     qty--;
@@ -308,31 +346,61 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
                                   }
                                 });
                               },
-                              child: const Padding(
-                                padding: EdgeInsets.only(right: 3),
-                                child: Icon(
-                                  MdiIcons.minus,
-                                  size: 21,
-                                  color: Colors.black,
+                            ),
+                            SizedBox(
+                              width: 32,
+                              child: Center(
+                                child: Text(
+                                  qty.toString(),
+                                  style: AppColors.fontStyle(fontSize: 14, fontWeight: FontWeight.w700),
                                 ),
                               ),
-                            )
+                            ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(Icons.add, size: 18, color: Color(0xFF2F2828)),
+                              onPressed: () {
+                                setState(() {
+                                  if (stok != null) {
+                                    if (qty < _sisaStokTersedia) {
+                                      qty++;
+                                      pemberitahuan = "";
+                                    } else {
+                                      pemberitahuan = "*Sisa stok telah mencapai batas maksimal alokasi keranjang";
+                                    }
+                                  } else {
+                                    pemberitahuan = "*Pilih Warna dan Ukuran Terlebih Dahulu";
+                                  }
+                                });
+                              },
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 15),
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    height: 1.2,
+                    ],
                   ),
-                ),
-                InkWell(
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Material(
+                color: const Color(0xFF2C4E40),
+                borderRadius: BorderRadius.circular(100),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(100),
                   onTap: () async {
                     if (selectedWarna != null && selectedUkuran != null) {
+                      if (_sisaStokTersedia < 1) {
+                        setState(() {
+                          pemberitahuan = "*Sisa stok telah mencapai batas maksimal alokasi keranjang";
+                        });
+                        return;
+                      }
+
                       Map<String, dynamic> newRow = {
                         'id_toko': widget.idToko,
                         'id_produk': widget.idProduk,
@@ -345,55 +413,33 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
                         'qty': qty,
                         'selected': 0
                       };
-                      await DatabaseHelper.instance
-                          .insertKeranjang(newRow, context);
+                      await DatabaseHelper.instance.insertKeranjang(newRow, context);
                       Get.back();
                     } else {
                       setState(() {
-                        pemberitahuan =
-                            "*Pilih Warna dan Ukuran Terebih Dahulu";
+                        pemberitahuan = "*Pilih Warna dan Ukuran Terlebih Dahulu";
                       });
                     }
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: const Color(0xFF2F2828)),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 15),
-                          child: Text(
-                            "Tambahkan ke Keranjang",
-                            style: AppColors.fontStyle(
-                                fontSize: 17.5,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white),
-                          ),
-                        ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "Tambahkan ke Keranjang",
+                      style: AppColors.fontStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-                )
-              ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-        Positioned(
-            top: 10,
-            right: 10,
-            child: IconButton(
-                onPressed: () {
-                  Get.back();
-                },
-                icon: const Icon(
-                  Icons.close_rounded,
-                  color: Colors.black,
-                  size: 25,
-                )))
-      ],
+      ),
     );
   }
 }

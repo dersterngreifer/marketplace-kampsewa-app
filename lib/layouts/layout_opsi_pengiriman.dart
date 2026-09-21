@@ -76,18 +76,8 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
       String alamat = "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
       return alamat;
     } else {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
       return "";
     }
   }
@@ -249,19 +239,9 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
               child: InkWell(
                 onTap: () {
                   if (selectedOption == "antar") {
-                    const snackBar = SnackBar(
-                        elevation: 0,
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Colors.transparent,
-                        content: CustomSnackBar(
-                          sukses: false,
+                    CustomSnackBar.show(context, sukses: false,
                           title: "Fitur Segera Tersedia",
-                          teks: "Maaf Fitur Pengantaran Belum Tersedia",
-                        ));
-
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(snackBar);
+                          teks: "Maaf Fitur Pengantaran Belum Tersedia",);
                   } else {
                     Get.back(
                         result: selectedOption ==

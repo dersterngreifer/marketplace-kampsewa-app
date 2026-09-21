@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_camp_sewa/layouts/layout_onboarding.dart';
 import 'package:project_camp_sewa/screens/screen_dashboard.dart';
+import 'package:project_camp_sewa/screens/screen_login.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,9 +17,9 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreen();
 }
 
-class _SplashScreen extends State<SplashScreen>
-    with TickerProviderStateMixin {
+class _SplashScreen extends State<SplashScreen> with TickerProviderStateMixin {
   String? token;
+  bool onboardingComplete = false;
 
   // Animation controllers
   late AnimationController _bgController;
@@ -45,8 +46,13 @@ class _SplashScreen extends State<SplashScreen>
   Future<void> loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     String? ambilToken = prefs.getString('token');
+    bool? isOnboardingComplete = prefs.getBool('onboarding');
+
     if (ambilToken != null) {
       token = ambilToken;
+    }
+    if (isOnboardingComplete != null) {
+      onboardingComplete = isOnboardingComplete;
     }
   }
 
@@ -54,10 +60,27 @@ class _SplashScreen extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Hide system UI for full immersive experience
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // Edge-to-edge:
+    // Background aplikasi akan berada di belakang status bar
+    // dan navigation bar.
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+    );
+
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
+      const SystemUiOverlayStyle(
+        // Transparan agar background splash terlihat sampai ke system bar.
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+
+        // Background splash saat ini gelap -> icon putih.
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.light,
+
+        // Untuk Android/iOS.
+        statusBarBrightness: Brightness.dark,
+      ),
     );
 
     _initAnimations();
@@ -67,9 +90,15 @@ class _SplashScreen extends State<SplashScreen>
       Future.delayed(const Duration(milliseconds: 3200), () {
         if (mounted) {
           Get.off(
-            () => token != null
-                ? const ScreenDashboard()
-                : const OnboardLayout(),
+            () {
+              if (token != null) {
+                return const ScreenDashboard();
+              } else if (onboardingComplete) {
+                return const LoginScreen();
+              } else {
+                return const OnboardLayout();
+              }
+            },
             transition: Transition.fadeIn,
             duration: const Duration(milliseconds: 800),
           );
@@ -217,27 +246,43 @@ class _SplashScreen extends State<SplashScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D1F17),
+
+      // Membuat body bisa berada di belakang system navigation bar.
+      extendBody: true,
+
+      // Tidak memakai AppBar, tetapi tetap aman jika nanti ada
+      // konfigurasi AppBar di parent.
+      extendBodyBehindAppBar: true,
+
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Background image with parallax zoom ──
+          // ==========================================================
+          // BACKGROUND IMAGE
+          // Full screen, termasuk area status bar & navigation bar
+          // ==========================================================
           AnimatedBuilder(
             animation: _bgController,
-            builder: (_, __) => Opacity(
-              opacity: _bgOpacity.value,
-              child: Transform.scale(
-                scale: _bgScale.value,
-                child: Image.asset(
-                  'assets/images/background-splash-screen.png',
-                  fit: BoxFit.cover,
-                  width: size.width,
-                  height: size.height,
+            builder: (_, __) {
+              return Opacity(
+                opacity: _bgOpacity.value,
+                child: Transform.scale(
+                  scale: _bgScale.value,
+                  child: Image.asset(
+                    'assets/images/background-splash-screen.png',
+                    fit: BoxFit.cover,
+                    width: size.width,
+                    height: size.height,
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
 
-          // ── Multi-layer gradient overlay ──
+          // ==========================================================
+          // GRADIENT OVERLAY
+          // Full screen juga
+          // ==========================================================
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -250,89 +295,138 @@ class _SplashScreen extends State<SplashScreen>
                   Color(0xBB0D1F17),
                   Color(0xEE0A1910),
                 ],
-                stops: [0.0, 0.2, 0.5, 0.75, 1.0],
+                stops: [
+                  0.0,
+                  0.2,
+                  0.5,
+                  0.75,
+                  1.0,
+                ],
               ),
             ),
           ),
 
-          // ── Floating particles ──
+          // ==========================================================
+          // FLOATING PARTICLES
+          // Full screen
+          // ==========================================================
           AnimatedBuilder(
             animation: _particleController,
-            builder: (_, __) => CustomPaint(
-              painter: _ParticlePainter(_particleController.value),
-              size: Size(size.width, size.height),
-            ),
+            builder: (_, __) {
+              return CustomPaint(
+                painter: _ParticlePainter(
+                  _particleController.value,
+                ),
+                size: Size(
+                  size.width,
+                  size.height,
+                ),
+              );
+            },
           ),
 
-          // ── Main content ──
+          // ==========================================================
+          // MAIN CONTENT
+          //
+          // SafeArea hanya membungkus CONTENT.
+          // Background tidak dibungkus SafeArea.
+          // ==========================================================
           SafeArea(
+            top: true,
+            bottom: true,
             child: Column(
               children: [
+                // ======================================================
+                // SPACER ATAS
+                // ======================================================
                 const Spacer(flex: 3),
 
-                // ── Logo section ──
+                // ======================================================
+                // LOGO
+                // ======================================================
                 AnimatedBuilder(
                   animation: _logoController,
-                  builder: (_, __) => SlideTransition(
-                    position: _logoSlide,
-                    child: FadeTransition(
-                      opacity: _logoOpacity,
-                      child: ScaleTransition(
-                        scale: _logoScale,
-                        child: _buildLogoSection(),
+                  builder: (_, __) {
+                    return SlideTransition(
+                      position: _logoSlide,
+                      child: FadeTransition(
+                        opacity: _logoOpacity,
+                        child: ScaleTransition(
+                          scale: _logoScale,
+                          child: _buildLogoSection(),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 28),
 
-                // ── App name ──
+                // ======================================================
+                // APP NAME
+                // ======================================================
                 AnimatedBuilder(
                   animation: _textController,
-                  builder: (_, __) => SlideTransition(
-                    position: _textSlide,
-                    child: FadeTransition(
-                      opacity: _textOpacity,
-                      child: _buildAppName(),
-                    ),
-                  ),
+                  builder: (_, __) {
+                    return SlideTransition(
+                      position: _textSlide,
+                      child: FadeTransition(
+                        opacity: _textOpacity,
+                        child: _buildAppName(),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 12),
 
-                // ── Tagline ──
+                // ======================================================
+                // TAGLINE
+                // ======================================================
                 AnimatedBuilder(
                   animation: _taglineController,
-                  builder: (_, __) => SlideTransition(
-                    position: _taglineSlide,
-                    child: FadeTransition(
-                      opacity: _taglineOpacity,
-                      child: _buildTagline(),
-                    ),
-                  ),
+                  builder: (_, __) {
+                    return SlideTransition(
+                      position: _taglineSlide,
+                      child: FadeTransition(
+                        opacity: _taglineOpacity,
+                        child: _buildTagline(),
+                      ),
+                    );
+                  },
                 ),
 
+                // ======================================================
+                // SPACER TENGAH
+                // ======================================================
                 const Spacer(flex: 4),
 
-                // ── Loading bar ──
+                // ======================================================
+                // LOADING BAR
+                // ======================================================
                 AnimatedBuilder(
                   animation: _loadingController,
-                  builder: (_, __) => FadeTransition(
-                    opacity: _taglineOpacity,
-                    child: _buildLoadingBar(size),
-                  ),
+                  builder: (_, __) {
+                    return FadeTransition(
+                      opacity: _taglineOpacity,
+                      child: _buildLoadingBar(size),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 16),
 
-                // ── Developer credit ──
+                // ======================================================
+                // DEVELOPER CREDIT
+                // ======================================================
                 AnimatedBuilder(
                   animation: _taglineController,
-                  builder: (_, __) => FadeTransition(
-                    opacity: _taglineOpacity,
-                    child: _buildDeveloperCredit(),
-                  ),
+                  builder: (_, __) {
+                    return FadeTransition(
+                      opacity: _taglineOpacity,
+                      child: _buildDeveloperCredit(),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 32),
@@ -356,8 +450,7 @@ class _SplashScreen extends State<SplashScreen>
               animation: _particleController,
               builder: (_, __) {
                 final pulse =
-                    (math.sin(_particleController.value * 2 * math.pi) + 1) /
-                        2;
+                    (math.sin(_particleController.value * 2 * math.pi) + 1) / 2;
                 return Container(
                   width: 140 + pulse * 12,
                   height: 140 + pulse * 12,
@@ -365,7 +458,8 @@ class _SplashScreen extends State<SplashScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.mainColor.withValues(alpha: 0.25 + pulse * 0.1),
+                        AppColors.mainColor
+                            .withValues(alpha: 0.25 + pulse * 0.1),
                         AppColors.mainColor.withValues(alpha: 0.05),
                         Colors.transparent,
                       ],
@@ -419,16 +513,13 @@ class _SplashScreen extends State<SplashScreen>
                       ),
                     ),
                     // Shimmer sweep
-                    if (_shimmerPos.value > -1.5 &&
-                        _shimmerPos.value < 2.5)
+                    if (_shimmerPos.value > -1.5 && _shimmerPos.value < 2.5)
                       Positioned.fill(
                         child: ShaderMask(
                           shaderCallback: (bounds) {
                             return LinearGradient(
-                              begin: Alignment(
-                                  _shimmerPos.value - 0.5, -0.5),
-                              end: Alignment(
-                                  _shimmerPos.value + 0.5, 0.5),
+                              begin: Alignment(_shimmerPos.value - 0.5, -0.5),
+                              end: Alignment(_shimmerPos.value + 0.5, 0.5),
                               colors: [
                                 Colors.white.withValues(alpha: 0.0),
                                 Colors.white.withValues(alpha: 0.4),
@@ -659,12 +750,12 @@ class _ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (final p in _particles) {
       final dy = (p.y - progress * p.speed) % 1.0;
-      final dx = p.x +
-          math.sin(progress * 2 * math.pi + p.phase) * 0.015;
+      final dx = p.x + math.sin(progress * 2 * math.pi + p.phase) * 0.015;
 
       final paint = Paint()
         ..color = Colors.white.withValues(
-          alpha: p.opacity * (0.5 + 0.5 * math.sin(progress * 4 * math.pi + p.phase)),
+          alpha: p.opacity *
+              (0.5 + 0.5 * math.sin(progress * 4 * math.pi + p.phase)),
         )
         ..style = PaintingStyle.fill;
 

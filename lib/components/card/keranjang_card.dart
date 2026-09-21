@@ -1,270 +1,287 @@
-import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
+import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
-import 'package:project_camp_sewa/constants/database_helper.dart';
+import 'package:project_camp_sewa/components/dialog/alert_dialog2.dart';
+import 'package:project_camp_sewa/models/keranjang_model.dart'; // sesuaikan path
 import 'package:project_camp_sewa/services/controller_keranjang.dart';
 
-class ItemKeranjangCard extends StatefulWidget {
-  final String image;
-  final String namaProduk;
-  final String variantWarna;
-  final String variantUkuran;
-  final int harga;
-  final int qty;
-  final int idKeranjang;
-  final int selected;
-  final Function() hapus;
-  const ItemKeranjangCard(
-      {super.key,
-      required this.image,
-      required this.namaProduk,
-      required this.variantWarna,
-      required this.variantUkuran,
-      required this.harga,
-      required this.qty,
-      required this.hapus,
-      required this.idKeranjang,
-      required this.selected});
+const _green = Color(0xFF2C4E40);
+const _dark = Color(0xFF2F2828);
 
-  @override
-  State<ItemKeranjangCard> createState() => _ItemKeranjangCardState();
-}
-
-class _ItemKeranjangCardState extends State<ItemKeranjangCard> {
-  KeranjangController keranjangController = Get.put(KeranjangController());
-  bool dipilih = false;
-  int qty = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    qty = widget.qty;
-    int checkbox = widget.selected;
-    if (checkbox == 0) {
-      dipilih = false;
-    } else {
-      dipilih = true;
-    }
-  }
-
-  String formatCurrency(String numberString) {
-    final number = int.parse(numberString);
-    final formatter = NumberFormat.decimalPattern('id');
-    return formatter.format(number);
-  }
+/// Checkbox bulat modern, dipakai di card item, header toko, dan footer.
+class AppCheck extends StatelessWidget {
+  final bool value;
+  final VoidCallback onTap;
+  const AppCheck({super.key, required this.value, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 133,
-      width: MediaQuery.of(context).size.width,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.symmetric(
-            horizontal: BorderSide(
-                color: Colors.black.withValues(alpha: 0.3), width: 0.8)),
-      ),
-      child: Row(
-        children: [
-          Checkbox(
-            activeColor: Colors.orange,
-            checkColor: Colors.white,
-            value: dipilih,
-            onChanged: (bool? value) {
-              setState(() {
-                dipilih = value!;
-                if (dipilih) {
-                  Map<String, dynamic> updatedRow = {
-                    'selected': 1,
-                  };
-                  DatabaseHelper.instance
-                      .updateKeranjang(widget.idKeranjang, updatedRow, context);
-                } else {
-                  Map<String, dynamic> updatedRow = {
-                    'selected': 0,
-                  };
-                  DatabaseHelper.instance
-                      .updateKeranjang(widget.idKeranjang, updatedRow, context);
-                }
-                keranjangController.updateTotalHargaKeranjang(context);
-                keranjangController.updateTotalItemKeranjang(context);
-              });
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8, top: 12, bottom: 12),
-            child: Container(
-              height: 90,
-              width: 90,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(7),
-                  image: DecorationImage(
-                      image: NetworkImage(ApiEndpoints.baseUrl +
-                          ApiEndpoints.authendpoints.getImageProduk +
-                          widget.image), //image Produk
-                      fit: BoxFit.fill)),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: value ? _green : Colors.transparent,
+            border: Border.all(
+              color: value ? _green : Colors.grey.shade400,
+              width: 1.6,
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 15),
+          child: value
+              ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog konfirmasi hapus (memakai CustomAlertDialog2 milikmu).
+/// Mengembalikan true jika pengguna menekan tombol hapus.
+Future<bool> konfirmasiHapusProduk(
+    BuildContext context, KeranjangModel item) async {
+  bool confirmed = false;
+  await showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      backgroundColor: Colors.transparent,
+      content: CustomAlertDialog2(
+        teks: 'Yakin Ingin Menghapus Produk ${item.namaProduk} ?',
+        hapus: () {
+          confirmed = true;
+          Get.back();
+        },
+      ),
+    ),
+  );
+  return confirmed;
+}
+
+class ItemKeranjangCard extends StatelessWidget {
+  final KeranjangModel item;
+  const ItemKeranjangCard({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Get.find<KeranjangController>();
+
+    return Dismissible(
+      key: ValueKey('keranjang_${item.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => konfirmasiHapusProduk(context, item),
+      onDismissed: (_) => c.hapusItem(item.id!),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        color: const Color(0xFFEE2737),
+        child: const Icon(MdiIcons.trashCanOutline, color: Colors.white),
+      ),
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(8, 14, 14, 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AppCheck(
+              value: item.isSelected,
+              onTap: () => c.toggleItem(item.id!, !item.isSelected),
+            ),
+            const SizedBox(width: 4),
+            // Foto
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                width: 84,
+                height: 84,
+                color: Colors.grey.shade100,
+                child: item.fotoProduk.startsWith('assets/')
+                  ? Image.asset(
+                      item.fotoProduk,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400),
+                    )
+                  : Image.network(
+                      item.fotoProduk.startsWith('http')
+                          ? item.fotoProduk
+                          : ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getImageProduk + item.fotoProduk,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400),
+                    ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Konten
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.namaProduk, //Nama Produk
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppColors.fontStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 5),
-                    child: Row(
-                      children: [
-                        Text(
-                          widget.variantWarna, //variasi warna
-                          style: AppColors.fontStyle(
-                              fontSize: 10, fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          " , ",
-                          style: AppColors.fontStyle(
-                              fontSize: 8, fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          widget.variantUkuran, //variasi ukuran
-                          style: AppColors.fontStyle(
-                              fontSize: 10, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      children: [
-                        Text(
-                          "IDR. ",
-                          style: AppColors.fontStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700),
-                        ),
-                        Text(
-                          formatCurrency(
-                              widget.harga.toString()), //harga produk
-                          style: AppColors.fontStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700),
-                        ),
-                        Text(
-                          ",00/hari",
-                          style: AppColors.fontStyle(
-                              fontSize: 12, fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ),
-                  ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(
-                            right: 20, bottom: 10, top: 5),
-                        child: Container(
-                          width: 80,
-                          decoration: BoxDecoration(
-                              border:
-                                  Border.all(color: Colors.black, width: 1.2),
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 2.5, vertical: 3),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      if (qty >= 0) {
-                                        qty++;
-                                        Map<String, dynamic> updatedRow = {
-                                          'qty': qty,
-                                        };
-                                        DatabaseHelper.instance.updateKeranjang(
-                                            widget.idKeranjang,
-                                            updatedRow,
-                                            context);
-                                      }
-                                      keranjangController
-                                          .updateTotalHargaKeranjang(context);
-                                      keranjangController
-                                          .updateTotalItemKeranjang(context);
-                                    });
-                                  },
-                                  child: const Icon(
-                                    Icons.add,
-                                    size: 20,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                Text(
-                                  qty.toString(),
-                                  style: AppColors.fontStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      if (qty > 1) {
-                                        qty--;
-                                        Map<String, dynamic> updatedRow = {
-                                          'qty': qty,
-                                        };
-                                        DatabaseHelper.instance.updateKeranjang(
-                                            widget.idKeranjang,
-                                            updatedRow,
-                                            context);
-                                      }
-                                      keranjangController
-                                          .updateTotalHargaKeranjang(context);
-                                      keranjangController
-                                          .updateTotalItemKeranjang(context);
-                                    });
-                                  },
-                                  child: const Icon(
-                                    MdiIcons.minus,
-                                    size: 21,
-                                    color: Colors.black,
-                                  ),
-                                )
-                              ],
-                            ),
+                      Expanded(
+                        child: Text(
+                          item.namaProduk,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppColors.fontStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: _dark,
                           ),
                         ),
-                      )
+                      ),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () async {
+                          final ok = await konfirmasiHapusProduk(context, item);
+                          if (ok) c.hapusItem(item.id!);
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 6, bottom: 4),
+                          child: Icon(MdiIcons.trashCanOutline,
+                              color: Color(0xFFEE2737), size: 19),
+                        ),
+                      ),
                     ],
-                  )
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _green.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${item.variantWarna} • ${item.variantUkuran}',
+                      style: AppColors.fontStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _green,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Rp ${rupiah(item.subtotal)}',
+                              style: AppColors.fontStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: _green,
+                              ),
+                            ),
+                            Text(
+                              'Rp ${rupiah(item.harga)} /hari',
+                              style: AppColors.fontStyle(
+                                fontSize: 10.5,
+                                color: Colors.black45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _QtyStepper(
+                        qty: item.qty,
+                        onMinus: () => c.changeQty(item.id!, -1),
+                        onPlus: () => c.changeQty(item.id!, 1),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QtyStepper extends StatelessWidget {
+  final int qty;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+  const _QtyStepper(
+      {required this.qty, required this.onMinus, required this.onPlus});
+
+  @override
+  Widget build(BuildContext context) {
+    final canMinus = qty > 1;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _RoundBtn(
+            icon: Icons.remove_rounded,
+            onTap: canMinus ? onMinus : null,
+            filled: false,
           ),
-          InkWell(
-            onTap: widget.hapus,
-            child: Container(
-              width: 30,
-              decoration: const BoxDecoration(color: Color(0xFFEE2737)),
-              child: Center(
-                  child: Image.asset(
-                "assets/icons/trash.png",
-                scale: 2.1,
-              )),
+          SizedBox(
+            width: 30,
+            child: Center(
+              child: Text(
+                '$qty',
+                style: AppColors.fontStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: _dark,
+                ),
+              ),
             ),
-          )
+          ),
+          _RoundBtn(icon: Icons.add_rounded, onTap: onPlus, filled: true),
         ],
       ),
     );
   }
 }
+
+class _RoundBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool filled;
+  const _RoundBtn(
+      {required this.icon, required this.onTap, required this.filled});
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: filled ? _green : Colors.white,
+        ),
+        child: Icon(
+          icon,
+          size: 17,
+          color:
+              filled ? Colors.white : (enabled ? _dark : Colors.grey.shade400),
+        ),
+      ),
+    );
+  }
+}
+

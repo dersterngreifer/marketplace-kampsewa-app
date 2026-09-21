@@ -1,4 +1,4 @@
-import 'package:project_camp_sewa/constants/constant_api.dart';
+import 'package:project_camp_sewa/constants/api_endpoint.dart';
 
 class BeritaModel {
   final int id;

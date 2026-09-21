@@ -95,18 +95,8 @@ class _LayoutEditAlamatState extends State<LayoutEditAlamat> {
       alamatController.text =
           "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
     } else {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
     }
   }
 
@@ -126,18 +116,8 @@ class _LayoutEditAlamatState extends State<LayoutEditAlamat> {
       String alamat = "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
       alamatController.text = alamat;
     } else {
-      const snackBar = SnackBar(
-          elevation: 0,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          content: CustomSnackBar(
-            sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",
-          ));
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(snackBar);
+      CustomSnackBar.show(context, sukses: false,
+            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
     }
   }
 
@@ -457,36 +437,16 @@ class _LayoutEditAlamatState extends State<LayoutEditAlamat> {
                               longitude!,
                               ditandaiSebagai);
                         } else {
-                          const snackBar = SnackBar(
-                              elevation: 0,
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: Colors.transparent,
-                              content: CustomSnackBar(
-                                sukses: false,
-                                teks: "Latitude dan Longitude Kosong!",
-                              ));
-
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(snackBar);
+                          CustomSnackBar.show(context, sukses: false,
+                                teks: "Latitude dan Longitude Kosong!",);
                         }
                       } else {
                         if (latitude != null && longitude != null) {
                           apiDataUser.tambahAlamatUser(
                               context, latitude!, longitude!, ditandaiSebagai);
                         } else {
-                          const snackBar = SnackBar(
-                              elevation: 0,
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: Colors.transparent,
-                              content: CustomSnackBar(
-                                sukses: false,
-                                teks: "Latitude dan Longitude Kosong!",
-                              ));
-
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(snackBar);
+                          CustomSnackBar.show(context, sukses: false,
+                                teks: "Latitude dan Longitude Kosong!",);
                         }
                       }
                     },

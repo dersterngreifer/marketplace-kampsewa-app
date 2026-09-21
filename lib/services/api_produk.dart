@@ -305,18 +305,8 @@ class ApiProduk extends GetxController {
         updateAllUniqueSizes();
         updateColors();
       } else {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: "Data Produk Gagal Dimuat",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: "Data Produk Gagal Dimuat",);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -397,29 +387,32 @@ class ApiProduk extends GetxController {
         detailProduk.value = DetailProdukModel.fromJson(data['detail_produk'][0]);
 
         if(data['detail_produk'] != null){
-        imageDetailProduk.assignAll([
+          List<String> rawImages = [
             detailProduk.value!.fotoDepan,
             detailProduk.value!.fotoBelakang,
             detailProduk.value!.fotoKiri,
             detailProduk.value!.fotoKanan,
-          ]);
+          ];
+
+          if (data['detail_produk'][0]['foto_array'] != null) {
+            var additional = (data['detail_produk'][0]['foto_array'] as List)
+                .map((e) => e['url'].toString())
+                .toList();
+            rawImages.addAll(additional);
+          }
+
+          imageDetailProduk.assignAll(rawImages.where((url) => 
+              url.isNotEmpty && 
+              !url.contains('ui-avatars.com') && 
+              url != 'Belum di isi'
+          ).toList());
         } else {
           detailProduk.value = null;
           imageDetailProduk.clear();
         }
       } else {
-        const snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: "Data Produk Gagal Dimuat",
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(context, sukses: false,
+              teks: "Data Produk Gagal Dimuat",);
       }
     } on DioException catch (dioError) {
       if (context.mounted) {

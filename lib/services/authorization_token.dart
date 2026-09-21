@@ -30,4 +30,26 @@ class Authorization {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('id', id);
   }
+
+  Future<void> saveType(int type) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('type', type);
+  }
+
+  Future<int?> getType() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('type');
+  }
+
+  Future<bool> deleteType() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.remove('type');
+  }
+
+  Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('id');
+    await prefs.remove('type');
+  }
 }

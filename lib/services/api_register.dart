@@ -1,10 +1,10 @@
-﻿// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
+
 import 'package:project_camp_sewa/components/dialog/loading_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
@@ -20,9 +20,26 @@ class ApiRegistrasi extends GetxController {
   final LoadingDialog loading = Get.put(LoadingDialog());
 
   Future<void> registrasi(BuildContext context) async {
+    if (namaController.text.trim().isEmpty ||
+        emailController.text.trim().isEmpty ||
+        phoneNumberController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty ||
+        tanggalLahirController.text.trim().isEmpty) {
+      CustomSnackBar.show(
+        context,
+        sukses: false,
+        title: "Perhatian",
+        teks: "Harap isi semua kolom pendaftaran.",
+      );
+      return;
+    }
+
     try {
       loading.showLoadingDialog();
-      var header = {'Content-Type': 'application/json'};
+      var header = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
       var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.register;
       Map body = {
         'name': namaController.text,
@@ -41,24 +58,25 @@ class ApiRegistrasi extends GetxController {
             },
           ));
 
-      final Map<String, dynamic> json =
-          response.data is String ? jsonDecode(response.data) : response.data;
+      Map<String, dynamic> json = {};
+      if (response.data is String) {
+        try {
+          json = jsonDecode(response.data);
+        } catch (e) {
+          json = {'status': false, 'message': 'Terjadi kesalahan pada server (Bukan JSON)'};
+        }
+      } else {
+        json = response.data;
+      }
 
       loading.hideLoadingDialog();
 
       if (response.statusCode == 201) {
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: true,
-              teks: json['message'],
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: json['message'],
+        );
 
         namaController.clear();
         emailController.clear();
@@ -70,37 +88,22 @@ class ApiRegistrasi extends GetxController {
         }
       } else{
         String errorMessage = json['error'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
-      if (context.mounted) {
-        loading.hideLoadingDialog();
         if (context.mounted) {
-          showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  backgroundColor: Colors.transparent,
-                  content: CustomAlertDialog(
-                    sukses: false,
-                    teks: dioError.message ?? "An unknown error occurred",
-                  ),
-                );
-              });
+          loading.hideLoadingDialog();
+          CustomSnackBar.show(
+            context,
+            sukses: false,
+            title: "Koneksi Bermasalah",
+            teks: dioError.message ?? "Terjadi kesalahan yang tidak diketahui",
+          );
         }
-      }
     }
   }
 }
-

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -32,10 +33,18 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
-      bottomNavigationBar: _buildBottomNav(),
-      body: Obx(() => pages[pageController.pageIndex.value]),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarDividerColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFFFFF),
+        bottomNavigationBar: _buildBottomNav(),
+        body: Obx(() => pages[pageController.pageIndex.value]),
+      ),
     );
   }
 
@@ -93,7 +102,7 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
                         color: isSelected
                             ? const Color(0xFF2C4E40)
                             : const Color(0xFFBDBDBD),
-                        size: 24,
+                        size: 26,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -102,9 +111,9 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
                           color: isSelected
                               ? const Color(0xFF2C4E40)
                               : const Color(0xFFBDBDBD),
-                          fontSize: 10,
+                          fontSize: 11.5,
                           fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                              isSelected ? FontWeight.w800 : FontWeight.w600,
                         ),
                       ),
                     ],
@@ -124,3 +133,4 @@ class _NavItem {
   final String label;
   const _NavItem({required this.icon, required this.label});
 }
+

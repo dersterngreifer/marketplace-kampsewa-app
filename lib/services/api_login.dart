@@ -1,10 +1,10 @@
-﻿// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print
 // ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
+
 import 'package:project_camp_sewa/components/dialog/loading_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
@@ -19,9 +19,19 @@ class ApiLogin extends GetxController {
   Authorization auth = Authorization();
 
   Future<void> login(BuildContext context) async {
+    if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
+      CustomSnackBar.show(context, sukses: false,
+            title: "Perhatian",
+            teks: "Harap isi email dan password Anda.",);
+      return;
+    }
+
     try {
       loading.showLoadingDialog();
-      var header = {'Content-Type': 'application/json'};
+      var header = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
       var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.login;
 
       Map body = {
@@ -38,8 +48,17 @@ class ApiLogin extends GetxController {
             },
           ));
 
-      final Map<String, dynamic> json =
-          response.data is String ? jsonDecode(response.data) : response.data;
+        Map<String, dynamic> json = {};
+        if (response.data is String) {
+          try {
+            json = jsonDecode(response.data);
+          } catch (e) {
+            // Jika backend membalas HTML/Error, maka buat json fallback
+            json = {'status': false, 'message': 'Terjadi kesalahan pada server (Bukan JSON)'};
+          }
+        } else {
+          json = response.data;
+        }
 
       loading.hideLoadingDialog();
 
@@ -47,78 +66,42 @@ class ApiLogin extends GetxController {
         if (json['access_token'] != null) {
           var token = json['access_token'];
           var idUser = json['user']['id'];
-          // final prefs = await SharedPreferences.getInstance();
-          // await prefs.setString('token', token);
-          // await prefs.setInt('idUser', idUser);
           auth.saveToken(token);
           auth.saveId(idUser);
+
+          int userType = json['user']['type'] ?? 1;
+          auth.saveType(userType);
+
           emailController.clear();
           passwordController.clear();
 
-          final snackBar = SnackBar(
-              elevation: 0,
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.transparent,
-              content: CustomSnackBar(
-                sukses: true,
-                teks: "Login Berhasil Sebagai ${json['user']['name']}",
-              ));
-
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(snackBar);
+          CustomSnackBar.show(context, sukses: true,
+                teks: "Login Berhasil Sebagai ${json['user']['name']}",);
 
           if (context.mounted) {
-
-            Get.off(const ScreenDashboard());
+            Get.offAll(() => const ScreenDashboard());
           }
         } else {
-          const snackBar = SnackBar(
-              elevation: 0,
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.transparent,
-              content: CustomSnackBar(
-                sukses: false,
-                teks: "Anda tidak memiliki akses untuk Login",
-              ));
-
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(snackBar);
+          CustomSnackBar.show(context, sukses: false,
+                teks: "Anda tidak memiliki akses untuk Login",);
         }
       } else if (response.statusCode == 401) {
         String errorMessage = json['message'];
-        final snackBar = SnackBar(
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            content: CustomSnackBar(
-              sukses: false,
+        CustomSnackBar.show(context, sukses: false,
               title: "Error",
-              teks: errorMessage,
-            ));
-
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(snackBar);
+              teks: errorMessage,);
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
       print(dioError.message);
       if (context.mounted) {
-        showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                backgroundColor: Colors.transparent,
-                content: CustomAlertDialog(
-                  sukses: false,
-                  teks: dioError.message ?? "An unknown error occurred",
-                ),
-              );
-            });
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          title: "Koneksi Bermasalah",
+          teks: dioError.message ?? "Terjadi kesalahan yang tidak diketahui",
+        );
       }
     }
   }
 }
-

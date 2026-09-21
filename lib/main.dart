@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/screens/splash_screen.dart';
 
 void main() => runApp(const Main());
@@ -14,12 +15,22 @@ class Main extends StatelessWidget {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF2F2828),
-      systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarDividerColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarContrastEnforced: false,
     ));
-    return const GetMaterialApp(
+    return GetMaterialApp(
         debugShowCheckedModeBanner: false,
         title: "Marketplace KampSewa Indonesia",
-        home: SplashScreen());
+        theme: ThemeData(
+          primaryColor: AppColors.mainColor,
+          textSelectionTheme: TextSelectionThemeData(
+            cursorColor: AppColors.mainColor,
+            selectionColor: AppColors.mainColor.withValues(alpha: 0.3),
+            selectionHandleColor: AppColors.mainColor,
+          ),
+        ),
+        home: const SplashScreen());
   }
 }
