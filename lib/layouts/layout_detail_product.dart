@@ -10,6 +10,7 @@ import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/constants/database_helper.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart';
 
 class LayoutDetailProduct extends StatefulWidget {
   const LayoutDetailProduct({super.key});
@@ -33,6 +34,8 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   int? idProduk;
   String? namaProduk;
   String? namaToko;
+  String? fotoToko;
+  double? ratingToko;
   String? fotoProduk;
 
   bool isLoading = true;
@@ -46,6 +49,8 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
     namaProduk = arguments['namaProduk'];
     fotoProduk = arguments['fotoProduk'];
     namaToko = arguments['namaToko'];
+    fotoToko = arguments['fotoToko'];
+    ratingToko = arguments['ratingToko'];
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (idProduk != null) {
@@ -359,7 +364,80 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
               );
             }),
             const SizedBox(height: 12),
-            
+
+            // Store Info Container
+            if (namaToko != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    ClipOval(
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        color: Colors.grey.shade200,
+                        child: fotoToko != null 
+                          ? Image.network(
+                              fotoToko!.startsWith('http') 
+                                ? fotoToko! 
+                                : '${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getFotoProfile}${fotoToko!}',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.store, color: Colors.grey),
+                            )
+                          : const Icon(Icons.store, color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            namaToko!,
+                            style: AppColors.fontStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF2F2828),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          if (ratingToko != null && ratingToko! > 0)
+                            Row(
+                              children: [
+                                const Icon(Icons.star_rounded, size: 14, color: Color(0xFFED6723)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  ratingToko!.toStringAsFixed(1),
+                                  style: AppColors.fontStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF616161),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              "Belum ada rating",
+                              style: AppColors.fontStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Description
             Obx(() {
               final list = apiProduk.detailProduk.value;
@@ -582,6 +660,9 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   }
 
   Widget _buildBottomBar() {
+    final currentUserId = Get.find<ApiDataUser>().dataUser.value?.id;
+    final isOwner = (currentUserId != null && idToko == currentUserId);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
@@ -651,8 +732,27 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
               ),
             ),
             const SizedBox(width: 16),
-            InkWell(
-              onTap: () async {
+            if (isOwner)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    "Milik Anda",
+                    style: AppColors.fontStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1976D2),
+                    ),
+                  ),
+                ),
+              )
+            else
+              InkWell(
+                onTap: () async {
                 if (selectedWarna != null && selectedUkuran != null) {
                   Map<String, dynamic> newRow = {
                     'id_toko': idToko,

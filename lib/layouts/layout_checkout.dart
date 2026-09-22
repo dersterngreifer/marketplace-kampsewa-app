@@ -756,7 +756,9 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                   // Cek KYC sebelum checkout
                   final apiDataUser = Get.find<import_api_data_user.ApiDataUser>();
                   final user = apiDataUser.dataUser.value;
-                  bool needsKYC = user != null && user.type == 0 && (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty);
+                  bool needsKYC = user != null && user.type == 0 && 
+                      (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty || 
+                       user.fotoIdentitas == null || user.fotoIdentitas.toString().isEmpty);
 
                   if (needsKYC) {
                     CustomSnackBar.show(context, sukses: false,

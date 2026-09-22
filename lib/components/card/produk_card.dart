@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
@@ -6,6 +6,9 @@ import 'package:project_camp_sewa/theme_colors.dart';
 class ProdukCard extends StatefulWidget {
   final List<String> images;
   final String namaProduk;
+  final String? namaToko;
+  final String? fotoToko;
+  final double? ratingToko;
   final String harga;
   final String rating;
   final int stok;
@@ -20,6 +23,9 @@ class ProdukCard extends StatefulWidget {
     super.key,
     required this.images,
     required this.namaProduk,
+    this.namaToko,
+    this.fotoToko,
+    this.ratingToko,
     required this.harga,
     required this.rating,
     this.stok = 0,
@@ -153,7 +159,7 @@ class _ProdukCardState extends State<ProdukCard>
                 ),
               ),
             ),
-          if (!habis && (widget.stok <= 5 || widget.badgeLabel != null))
+          if (!habis && (widget.badgeLabel != null || widget.stok <= 5))
             Positioned(
               top: 10,
               left: 10,
@@ -161,13 +167,13 @@ class _ProdukCardState extends State<ProdukCard>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: widget.stok <= 5
-                      ? const Color(0xFFED6723)
-                      : Colors.black.withValues(alpha: 0.3),
+                  color: widget.badgeLabel != null 
+                      ? const Color(0xFF407BFF) // Biru untuk "Milik Anda"
+                      : const Color(0xFFED6723), // Orange untuk "Sisa Stok"
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  widget.stok <= 5 ? "Sisa ${widget.stok}" : widget.badgeLabel!,
+                  widget.badgeLabel ?? "Sisa ${widget.stok}",
                   style: AppColors.fontStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -269,7 +275,7 @@ class _ProdukCardState extends State<ProdukCard>
   }
 
   Widget _buildInfoSection() {
-    final bisaDitambah = widget.stok > 0;
+    final bisaDitambah = widget.stok > 0 && widget.badgeLabel != "Milik Anda";
     return Padding(
       padding: const EdgeInsets.only(top: 12, left: 4, right: 4),
       child: Column(
@@ -302,6 +308,57 @@ class _ProdukCardState extends State<ProdukCard>
               ),
             ],
           ),
+                    const SizedBox(height: 8),
+          if (widget.namaToko != null)
+            Row(
+              children: [
+                ClipOval(
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    color: Colors.grey.shade300,
+                    child: widget.fotoToko != null 
+                      ? Image.network(
+                          widget.fotoToko!.startsWith('http') 
+                            ? widget.fotoToko! 
+                            : '${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getFotoProfile}${widget.fotoToko!}',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.store, size: 10),
+                        )
+                      : const Icon(Icons.store, size: 10, color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    widget.namaToko!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppColors.fontStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _grey,
+                    ),
+                  ),
+                ),
+                if (widget.ratingToko != null && widget.ratingToko! > 0)
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 12, color: Color(0xFFED6723)),
+                      const SizedBox(width: 2),
+                      Text(
+                        widget.ratingToko!.toStringAsFixed(1),
+                        style: AppColors.fontStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _dark,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+
           const SizedBox(height: 14),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

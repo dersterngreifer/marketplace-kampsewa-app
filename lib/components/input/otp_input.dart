@@ -20,34 +20,36 @@ class OtpInput extends StatefulWidget {
 class _OtpInputState extends State<OtpInput> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 60,
-      width: 60,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black, width: 1),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Center(
-        child: TextField(
-          keyboardType: TextInputType.number,
-          controller: widget.controller,
-          textAlign: TextAlign.center,
-          maxLength: 1,
-          focusNode: widget.focusNode,
-          style: AppColors.fontStyle(
-              fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black),
-          decoration:
-              const InputDecoration(counterText: '', border: InputBorder.none),
-          onChanged: (value) {
-            if (value.length == 1) {
-              widget.focusNode.unfocus();
-              if (widget.nextFocusNode != null) {
-                FocusScope.of(context).requestFocus(widget.nextFocusNode);
+    return AspectRatio(
+      aspectRatio: 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F6F4),
+          border: Border.all(color: Colors.transparent, width: 0),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Center(
+          child: TextField(
+            keyboardType: TextInputType.number,
+            controller: widget.controller,
+            textAlign: TextAlign.center,
+            maxLength: 1,
+            focusNode: widget.focusNode,
+            style: AppColors.fontStyle(
+                fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF2F2828)),
+            decoration:
+                const InputDecoration(counterText: '', border: InputBorder.none),
+            onChanged: (value) {
+              if (value.length == 1) {
+                widget.focusNode.unfocus();
+                if (widget.nextFocusNode != null) {
+                  FocusScope.of(context).requestFocus(widget.nextFocusNode);
+                }
+              } else if (value.isEmpty && widget.previousFocusNode != null) {
+                widget.previousFocusNode!.requestFocus();
               }
-            } else if (value.isEmpty && widget.previousFocusNode != null) {
-              widget.previousFocusNode!.requestFocus();
-            }
-          },
+            },
+          ),
         ),
       ),
     );

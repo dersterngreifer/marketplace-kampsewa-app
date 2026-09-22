@@ -6,6 +6,9 @@ import 'package:project_camp_sewa/theme_colors.dart';
 class ProdukTerlarisDashboard extends StatefulWidget {
   final List<String> images; // Diubah menjadi List agar bisa di-slide
   final String namaProduk;
+  final String? namaToko;
+  final String? fotoToko;
+  final double? ratingToko;
   final String harga;
   final String rating;
   final int stok;
@@ -13,12 +16,16 @@ class ProdukTerlarisDashboard extends StatefulWidget {
   final bool isFavorite;
   final Function() aksi;
   final Function() aksiKeranjang;
+  final String? badgeLabel;
   final Function()? aksiFavorite;
 
   const ProdukTerlarisDashboard({
     super.key,
     required this.images,
     required this.namaProduk,
+    this.namaToko,
+    this.fotoToko,
+    this.ratingToko,
     required this.harga,
     required this.rating,
     this.stok = 0,
@@ -26,6 +33,7 @@ class ProdukTerlarisDashboard extends StatefulWidget {
     this.isFavorite = false,
     required this.aksi,
     required this.aksiKeranjang,
+    this.badgeLabel,
     this.aksiFavorite,
   });
 
@@ -136,6 +144,32 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               return _buildSingleImage(displayImages[index]);
             },
           ),
+
+
+          // Badge "Milik Anda" atau "Sisa Stok"
+          if (!habis && (widget.badgeLabel != null || widget.stok <= 5))
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: widget.badgeLabel != null 
+                      ? const Color(0xFF407BFF) // Biru untuk "Milik Anda"
+                      : const Color(0xFFED6723), // Orange untuk "Sisa Stok"
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  widget.badgeLabel ?? "Sisa ",
+                  style: AppColors.fontStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
 
           // Overlay saat stok habis
           if (habis)
@@ -285,7 +319,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
   // â”€â”€ Info Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildInfoSection() {
-    final bisaDitambah = widget.stok > 0;
+    final bisaDitambah = widget.stok > 0 && widget.badgeLabel != "Milik Anda";
 
     return Padding(
       padding: const EdgeInsets.only(top: 12, left: 4, right: 4),
@@ -322,8 +356,58 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ),
             ],
           ),
-          const SizedBox(height: 14),
+                    const SizedBox(height: 8),
+          if (widget.namaToko != null)
+            Row(
+              children: [
+                ClipOval(
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    color: Colors.grey.shade300,
+                    child: widget.fotoToko != null 
+                      ? Image.network(
+                          widget.fotoToko!.startsWith('http') 
+                            ? widget.fotoToko! 
+                            : '${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getFotoProfile}${widget.fotoToko!}',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.store, size: 10),
+                        )
+                      : const Icon(Icons.store, size: 10, color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    widget.namaToko!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppColors.fontStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF8E8E8E),
+                    ),
+                  ),
+                ),
+                if (widget.ratingToko != null && widget.ratingToko! > 0)
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, size: 12, color: Color(0xFFED6723)),
+                      const SizedBox(width: 2),
+                      Text(
+                        widget.ratingToko!.toStringAsFixed(1),
+                        style: AppColors.fontStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF2F2828),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
 
+          const SizedBox(height: 14),
           // Area Harga dan Tombol Beli
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

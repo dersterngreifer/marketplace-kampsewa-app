@@ -143,7 +143,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.53,
+        childAspectRatio: 0.48,
         crossAxisSpacing: 10,
         mainAxisSpacing: 12,
       ),
@@ -195,7 +195,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
         physics: const BouncingScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.53,
+          childAspectRatio: 0.48,
           crossAxisSpacing: 10,
           mainAxisSpacing: 12,
         ),

@@ -121,10 +121,10 @@ class _LayoutLoginState extends State<LayoutLogin> {
               child: InputVersiSatu(
                 warnaBgInput: const Color(0xFFF3F4F6),
                 controller: apiLoginController.emailController,
-                tipeInput: TextInputType.text,
+                tipeInput: TextInputType.emailAddress, // Added email type for better UX
                 showEyes: false,
-                iconInput: const Icon(Icons.person_outline),
-                placeHolder: "Masukkan Username",
+                iconInput: const Icon(Icons.email_outlined), // Changed icon to email
+                placeHolder: "Masukkan Email",
               ),
             ),
             Padding(

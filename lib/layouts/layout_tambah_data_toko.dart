@@ -5,7 +5,6 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:project_camp_sewa/components/card/metode_pembayaran_card.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/layouts/layout_tambah_metode_transfer.dart';
@@ -28,6 +27,26 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
   String? latitude;
   String? longitude;
   XFile? pickedBanner;
+
+  static const Color _forest = Color(0xFF2C4E40);
+  static const Color _dark = Color(0xFF2F2828);
+  static const Color _bg = Color(0xFFFAFAF8);
+
+  // box-shadow: rgba(0,0,0,0.05) 0px 6px 24px 0px, rgba(0,0,0,0.08) 0px 0px 0px 1px
+  static final List<BoxShadow> _cardShadow = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.05),
+      offset: const Offset(0, 6),
+      blurRadius: 24,
+      spreadRadius: 0,
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.08),
+      offset: const Offset(0, 0),
+      blurRadius: 0,
+      spreadRadius: 1,
+    ),
+  ];
 
   @override
   void initState() {
@@ -53,12 +72,13 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
     }
 
     Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high));
     latitude = position.latitude.toString();
     longitude = position.longitude.toString();
 
-    List<Placemark> placemarks =
-        await Geocoding().placemarkFromCoordinates(position.latitude, position.longitude);
+    List<Placemark> placemarks = await Geocoding()
+        .placemarkFromCoordinates(position.latitude, position.longitude);
 
     if (placemarks.isNotEmpty) {
       Placemark placemark = placemarks.first;
@@ -69,21 +89,19 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
       String provinsi = placemark.administrativeArea ?? '';
       alamatController.text =
           "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
+      setState(() {});
     } else {
       if (mounted) {
-        CustomSnackBar.show(context, sukses: false,
-              teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: "Tidak bisa Mengkonversi koordinat alamat anda",
+        );
       }
     }
   }
 
   Future<void> _pickBanner() async {
-    final status = await Permission.photos.request();
-
-    if (!status.isGranted) {
-      return;
-    }
-
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
@@ -97,146 +115,152 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
     }
   }
 
+  // ---- Reusable style helpers ----
+
+  /// White card wrapper that gives every input its visible soft-shadow +
+  /// hairline outline, instead of a flat/soft fill that disappears into
+  /// the page background.
+  Widget _inputCard({required Widget child, EdgeInsets? padding}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: _cardShadow,
+      ),
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 4),
+      child: child,
+    );
+  }
+
+  InputDecoration _fieldDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: AppColors.fontStyle(
+          fontSize: 13.5,
+          fontWeight: FontWeight.w500,
+          color: Colors.grey.shade400),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      disabledBorder: InputBorder.none,
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 26, left: 20, right: 20, bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 15,
+            decoration: BoxDecoration(
+              color: _forest,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: AppColors.fontStyle(
+                fontSize: 15, fontWeight: FontWeight.w700, color: _dark),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _bg,
       body: SafeArea(
-          child: Container(
-        color: Colors.white,
         child: Column(
           children: [
+            // Header
             Padding(
-              padding: const EdgeInsets.only(top: 5, bottom: 15),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
               child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 5),
-                    child: IconButton(
-                        onPressed: () {
-                          Get.back();
-                        },
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.black,
-                          size: 28,
-                        )),
+                  InkWell(
+                    onTap: () => Get.back(),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: _cardShadow,
+                      ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: _dark, size: 16),
+                    ),
                   ),
                   Expanded(
                     child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 50),
-                        child: Text(
-                          "Store Saya",
-                          style: AppColors.fontStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black),
-                        ),
+                      child: Text(
+                        "Store Saya",
+                        style: AppColors.fontStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: _dark),
                       ),
                     ),
                   ),
+                  const SizedBox(width: 38),
                 ],
               ),
             ),
-            Container(
-              color: Colors.black.withValues(alpha: 0.25),
-              height: 2,
-            ),
+
             Expanded(
               child: ListView(
+                padding: EdgeInsets.zero,
                 children: [
+                  _sectionLabel("Nama Toko"),
                   Padding(
-                    padding: const EdgeInsets.only(
-                        top: 15, left: 20, right: 20, bottom: 8),
-                    child: Text(
-                      "Nama Toko",
-                      style: AppColors.fontStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1.3),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        child: TextField(
-                          controller: apiDataUser.namaTokoController,
-                          decoration: InputDecoration(
-                              hintText: "Nama Tokomu",
-                              hintStyle: AppColors.fontStyle(
-                                  fontSize: 14.5, fontWeight: FontWeight.w500),
-                              border: InputBorder.none),
-                          style: AppColors.fontStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _inputCard(
+                      child: TextField(
+                        controller: apiDataUser.namaTokoController,
+                        decoration: _fieldDecoration("Nama Tokomu"),
+                        style: AppColors.fontStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: _dark),
                       ),
                     ),
                   ),
+                  _sectionLabel("Deskripsi Toko"),
                   Padding(
-                    padding: const EdgeInsets.only(
-                        top: 25, left: 20, right: 20, bottom: 8),
-                    child: Text(
-                      "Deskripsi Toko",
-                      style: AppColors.fontStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1.3),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        child: TextField(
-                          controller: apiDataUser.deskripsiTokoController,
-                          keyboardType: TextInputType.text,
-                          maxLines: 4,
-                          decoration: InputDecoration(
-                              hintText: "Deskripsikan toko Anda...",
-                              hintStyle: AppColors.fontStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w500),
-                              border: InputBorder.none),
-                          style: AppColors.fontStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500),
-                        ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _inputCard(
+                      child: TextField(
+                        controller: apiDataUser.deskripsiTokoController,
+                        keyboardType: TextInputType.text,
+                        maxLines: 4,
+                        decoration:
+                            _fieldDecoration("Deskripsikan toko Anda..."),
+                        style: AppColors.fontStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w500,
+                            color: _dark),
                       ),
                     ),
                   ),
+                  _sectionLabel("Banner Toko"),
                   Padding(
-                    padding: const EdgeInsets.only(
-                        top: 25, left: 20, right: 20, bottom: 8),
-                    child: Text(
-                      "Banner Toko",
-                      style: AppColors.fontStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: pickedBanner != null
                         ? Container(
                             width: double.infinity,
                             height: 160,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color: Colors.black, width: 1.3),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: _cardShadow,
                             ),
                             clipBehavior: Clip.antiAlias,
                             child: Stack(
@@ -247,8 +271,8 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                                   fit: BoxFit.cover,
                                 ),
                                 Positioned(
-                                  top: 8,
-                                  right: 8,
+                                  top: 10,
+                                  right: 10,
                                   child: GestureDetector(
                                     onTap: () {
                                       setState(() {
@@ -256,10 +280,10 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                                       });
                                     },
                                     child: Container(
-                                      padding: const EdgeInsets.all(4),
+                                      padding: const EdgeInsets.all(5),
                                       decoration: BoxDecoration(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.6),
+                                        color: Colors.black
+                                            .withValues(alpha: 0.55),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
@@ -279,271 +303,274 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                               width: double.infinity,
                               height: 140,
                               decoration: BoxDecoration(
-                                border: Border.all(
-                                    color: Colors.black, width: 1.3),
-                                borderRadius: BorderRadius.circular(20),
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: _cardShadow,
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.add_photo_alternate_outlined,
-                                    size: 36,
-                                    color: Colors.grey.shade500,
+                                  Container(
+                                    width: 46,
+                                    height: 46,
+                                    decoration: BoxDecoration(
+                                      color: _forest.withValues(alpha: 0.09),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.add_photo_alternate_outlined,
+                                      size: 22,
+                                      color: _forest,
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 10),
                                   Text(
                                     "Pilih Banner Toko",
                                     style: AppColors.fontStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade500),
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: _dark),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 3),
                                   Text(
                                     "Rasio 3:1 direkomendasikan",
                                     style: AppColors.fontStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500,
-                                        color: Colors.grey.shade400),
+                                        color: Colors.grey.shade500),
                                   ),
                                 ],
                               ),
                             ),
                           ),
                   ),
+                  _sectionLabel("Alamat"),
                   Padding(
-                    padding: const EdgeInsets.only(
-                        top: 25, left: 20, right: 20, bottom: 8),
-                    child: Text(
-                      "Alamat",
-                      style: AppColors.fontStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                                border:
-                                    Border.all(color: Colors.black, width: 1.3),
-                                borderRadius: BorderRadius.circular(20)),
-                            child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                child: TextField(
-                                  controller: alamatController,
-                                  enabled: false,
-                                  maxLines: null,
-                                  decoration: InputDecoration(
-                                      hintText:
-                                          "Provinsi, Kota, Kecamatan, Kode Pos",
-                                      hintStyle: AppColors.fontStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500),
-                                      border: InputBorder.none),
-                                  style: AppColors.fontStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black),
-                                )),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 5),
-                          child: InkWell(
-                            onTap: () {
-                              getLocation();
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  color: const Color(0xFF2F2828),
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 5, vertical: 8),
-                                  child: Text(
-                                    "Ambil\nLokasimu",
-                                    maxLines: 2,
-                                    textAlign: TextAlign.center,
-                                    style: AppColors.fontStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white),
-                                  ),
-                                ),
-                              ),
+                          child: _inputCard(
+                            child: TextField(
+                              controller: alamatController,
+                              enabled: false,
+                              maxLines: null,
+                              decoration: _fieldDecoration(
+                                  "Provinsi, Kota, Kecamatan, Kode Pos"),
+                              style: AppColors.fontStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: _dark),
                             ),
                           ),
-                        )
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: getLocation,
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: _forest,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _forest.withValues(alpha: 0.28),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 12,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.my_location_rounded,
+                                    size: 15, color: Colors.white),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "Lokasiku",
+                                  style: AppColors.fontStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 15, vertical: 15),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1.3),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 5),
-                        child: TextField(
-                          controller: apiDataUser.detailAlamatTokoController,
-                          keyboardType: TextInputType.text,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                              hintText:
-                                  "Detail Lainnya (Contoh: {Nama Jalan, Blok, No Rumah)",
-                              hintStyle: AppColors.fontStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w500),
-                              border: InputBorder.none),
-                          style: AppColors.fontStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500),
-                        ),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: _inputCard(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 4),
+                      child: TextField(
+                        controller: apiDataUser.detailAlamatTokoController,
+                        keyboardType: TextInputType.text,
+                        maxLines: 3,
+                        decoration: _fieldDecoration(
+                            "Detail Lainnya (Contoh: Nama Jalan, Blok, No Rumah)"),
+                        style: AppColors.fontStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _dark),
                       ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(
-                        left: 15, right: 15, top: 30, bottom: 10),
+                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 10),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Metode Pembayaran",
                           style: AppColors.fontStyle(
-                              fontSize: 16,
+                              fontSize: 15.5,
                               fontWeight: FontWeight.w700,
-                              color: Colors.black),
+                              color: _dark),
                         ),
                         InkWell(
                           onTap: () {
                             Get.to(const LayoutTambahMetodeTransfer());
                           },
+                          borderRadius: BorderRadius.circular(20),
                           child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFF2F2828),
+                              borderRadius: BorderRadius.circular(20),
+                              color: _forest.withValues(alpha: 0.08),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 6),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    "Tambah",
-                                    style: AppColors.fontStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white),
-                                  ),
-                                  const Icon(
-                                    Icons.add,
-                                    size: 20,
-                                    color: Colors.white,
-                                  )
-                                ],
-                              ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  "Tambah",
+                                  style: AppColors.fontStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: _forest),
+                                ),
+                                const SizedBox(width: 3),
+                                const Icon(Icons.add_rounded,
+                                    size: 16, color: _forest),
+                              ],
                             ),
                           ),
                         )
                       ],
                     ),
                   ),
-                  const CardMetodePembayaran(
-                      metodePembayaran: "COD",
-                      bank: "Pembayaran dengan uang cash",
-                      noRek: "Default"),
-                  const SizedBox(
-                    height: 5,
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: CardMetodePembayaran(
+                        metodePembayaran: "COD",
+                        bank: "Pembayaran dengan uang cash",
+                        noRek: "Default"),
                   ),
-                  Obx(() {
-                    var listBank = apiTransaksi.listBankMetodeBayar;
-                    return ListView.separated(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemBuilder: (context, index) {
-                          BankModel list = listBank[index];
-                          return CardMetodePembayaran(
-                            metodePembayaran: "Transfer",
-                            bank: list.bank,
-                            noRek: list.rekening,
-                            edit: () {
-                              //ke Edit metode Transfer
-                            },
-                          );
-                        },
-                        separatorBuilder: (context, index) => const SizedBox(
-                              height: 5,
-                            ),
-                        itemCount: listBank.length);
-                  }),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Obx(() {
+                      var listBank = apiTransaksi.listBankMetodeBayar;
+                      return ListView.separated(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          itemBuilder: (context, index) {
+                            BankModel list = listBank[index];
+                            return CardMetodePembayaran(
+                              metodePembayaran: "Transfer",
+                              bank: list.bank,
+                              noRek: list.rekening,
+                              edit: () {
+                                Get.to(() => LayoutTambahMetodeTransfer(
+                                      edit: true,
+                                      bankId: list.id.toString(),
+                                      noRek: list.rekening,
+                                      jenisBank: list.bank,
+                                    ));
+                              },
+                            );
+                          },
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 8),
+                          itemCount: listBank.length);
+                    }),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
+
+            // Bottom action
             Container(
-              color: Colors.white,
-              child: Column(
-                children: [
-                  Container(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    height: 2,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 15, bottom: 25),
-                    child: InkWell(
-                      onTap: () {
-                        if (apiDataUser.namaTokoController.text.isNotEmpty) {
-                          if (latitude != null && longitude != null) {
-                            apiDataUser.isiDataToko(
-                              context,
-                              latitude!,
-                              longitude!,
-                              bannerPath: pickedBanner?.path,
-                            );
-                          } else {
-                            CustomSnackBar.show(context, sukses: false,
-                                  title: "Gagal Menyimpan Data",
-                                  teks: "Masukkan Alamat Anda Terlebih Dahulu",);
-                          }
-                        } else {
-                          CustomSnackBar.show(context, sukses: false,
-                                title: "Gagal Menyimpan Data",
-                                teks: "Masukkan Nama Toko Terlebih Dahulu",);
-                        }
-                      },
-                      child: Container(
-                        height: 55,
-                        width: MediaQuery.of(context).size.width / 1.2,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: const Color(0xFF2F2828)),
-                        child: Center(
-                          child: Text(
-                            "Lanjutkan",
-                            style: AppColors.fontStyle(
-                                fontSize: 18.5,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white),
-                          ),
-                        ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: BoxDecoration(
+                color: _bg,
+                border: Border(
+                  top: BorderSide(color: Colors.black.withValues(alpha: 0.04)),
+                ),
+              ),
+              child: InkWell(
+                onTap: () {
+                  if (apiDataUser.namaTokoController.text.isNotEmpty) {
+                    if (latitude != null && longitude != null) {
+                      apiDataUser.isiDataToko(
+                        context,
+                        latitude!,
+                        longitude!,
+                        bannerPath: pickedBanner?.path,
+                      );
+                    } else {
+                      CustomSnackBar.show(
+                        context,
+                        sukses: false,
+                        title: "Gagal Menyimpan Data",
+                        teks: "Masukkan Alamat Anda Terlebih Dahulu",
+                      );
+                    }
+                  } else {
+                    CustomSnackBar.show(
+                      context,
+                      sukses: false,
+                      title: "Gagal Menyimpan Data",
+                      teks: "Masukkan Nama Toko Terlebih Dahulu",
+                    );
+                  }
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  height: 56,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: _forest,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _forest.withValues(alpha: 0.25),
+                        offset: const Offset(0, 8),
+                        blurRadius: 18,
                       ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      "Lanjutkan",
+                      style: AppColors.fontStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white),
                     ),
                   ),
-                ],
+                ),
               ),
-            )
+            ),
           ],
         ),
-      )),
+      ),
     );
   }
 }

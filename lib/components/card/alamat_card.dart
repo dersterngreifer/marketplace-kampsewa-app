@@ -2,6 +2,7 @@ import 'package:project_camp_sewa/theme_colors.dart';
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 
 class AlamatCard extends StatefulWidget {
@@ -25,6 +26,9 @@ class AlamatCard extends StatefulWidget {
 }
 
 class _AlamatCardState extends State<AlamatCard> {
+  static const Color _forest = Color(0xFF2C4E40);
+  static const Color _dark = Color(0xFF2F2828);
+
   Future<String> convertAlamat(String strLatitude, String strLongitude) async {
     double latitude = double.parse(strLatitude);
     double longitude = double.parse(strLongitude);
@@ -34,142 +38,178 @@ class _AlamatCardState extends State<AlamatCard> {
     if (placemarks.isNotEmpty) {
       Placemark placemark = placemarks.first;
       String jalan = placemark.street ?? '';
-      String postalCode = placemark.postalCode ?? '';
       String kecamatan = placemark.subLocality ?? '';
       String kabupaten = placemark.locality ?? '';
       String provinsi = placemark.administrativeArea ?? '';
+      String postalCode = placemark.postalCode ?? '';
       String alamat = "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
       return alamat;
     } else {
-      CustomSnackBar.show(context, sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+      CustomSnackBar.show(
+        context,
+        sukses: false,
+        teks: "Tidak bisa Mengkonversi koordinat alamat anda",
+      );
       return "";
     }
   }
+
+  bool get _isRumah => widget.tipeAlamat == "Rumah";
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.white,
-          border: Border.all(
-              color: Colors.black.withValues(alpha: 0.25), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-                color: const Color(0xFF646363).withValues(alpha: 0.3),
-                offset: const Offset(3.0, 3.0),
-                blurRadius: 5.0)
-          ]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    topRight: Radius.circular(10)),
-                color: Color(0xFF2F2828)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: _dark.withValues(alpha: 0.05),
+            offset: const Offset(0, 6),
+            blurRadius: 18,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon avatar
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: _forest.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                _isRumah
+                    ? MdiIcons.homeVariantOutline
+                    : MdiIcons.officeBuildingOutline,
+                color: _forest,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  InkWell(
-                    onTap: widget.editAlamat,
-                    child: Text(
-                      "Edit Alamat",
-                      style: AppColors.fontStyle(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
+                  // Name + badge
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.namaUser ?? "",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppColors.fontStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                            color: _dark,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFFFFC107).withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _isRumah ? "Rumah" : "Kantor",
+                          style: AppColors.fontStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFB07C00),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+
+                  // Phone
+                  Text(
+                    widget.noTeleponUser ?? "",
+                    style: AppColors.fontStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
                     ),
-                  )
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Address
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1.5),
+                        child: Icon(MdiIcons.mapMarkerOutline,
+                            size: 14, color: Colors.grey.shade400),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: FutureBuilder<String>(
+                          future:
+                              convertAlamat(widget.latitude, widget.longitude),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Text(
+                                "Memuat alamat...",
+                                style: AppColors.fontStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.grey.shade400,
+                                ),
+                              );
+                            }
+                            return Text(
+                              snapshot.data?.isNotEmpty == true
+                                  ? snapshot.data!
+                                  : "Alamat tidak ditemukan",
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppColors.fontStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.grey.shade600,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10, right: 10, top: 5),
-            child: Text(
-              widget.namaUser!,
-              style: AppColors.fontStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10, right: 10, top: 3),
-            child: Text(
-              widget.noTeleponUser!,
-              style: AppColors.fontStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10, right: 10, top: 5),
-            child: FutureBuilder<String>(
-              future: convertAlamat(widget.latitude, widget.longitude),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Text(
-                    "Loading...",
-                    style: AppColors.fontStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black),
-                  );
-                } else {
-                  return Text(
-                    snapshot.data ?? "Alamat tidak ditemukan",
-                    style: AppColors.fontStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black),
-                  );
-                }
-              },
-            ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.only(left: 10, right: 10, top: 5, bottom: 10),
-            child: Row(
-              children: [
-                widget.tipeAlamat == "Rumah"
-                    ? Image.asset(
-                        "assets/icons/icon-alamat-home.png",
-                        scale: 2,
-                      )
-                    : Image.asset(
-                        "assets/icons/alamat-kantor.png",
-                        scale: 4,
-                      ),
-                const SizedBox(
-                  width: 3,
+
+            // Edit button
+            InkWell(
+              onTap: widget.editAlamat,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                widget.tipeAlamat == "Rumah"
-                    ? Text(
-                        "Rumah",
-                        style: AppColors.fontStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      )
-                    : Text(
-                        "Kantor",
-                        style: AppColors.fontStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-              ],
+                child:
+                    const Icon(MdiIcons.pencilOutline, size: 16, color: _dark),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

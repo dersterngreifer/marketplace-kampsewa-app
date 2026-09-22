@@ -60,6 +60,7 @@ dependencies:
   geocoding: ^5.0.0
   flutter_material_design_icons: ^3.1.0+7447
   shimmer: ^3.0.0
+  image_cropper: ^12.2.1
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +90,7 @@ flutter:
     - assets/logo/
     - assets/images/
     - assets/icons/
+    - assets/new-icons/
     - assets/wisata/
     - assets/favicons/
     - assets/bg/

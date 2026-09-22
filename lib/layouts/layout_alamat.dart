@@ -17,6 +17,9 @@ class LayoutAlamat extends StatefulWidget {
 class _LayoutAlamatState extends State<LayoutAlamat> {
   ApiDataUser apiDataUser = Get.put(ApiDataUser());
 
+  static const Color _forest = Color(0xFF2C4E40);
+  static const Color _dark = Color(0xFF2F2828);
+
   @override
   void initState() {
     super.initState();
@@ -26,57 +29,92 @@ class _LayoutAlamatState extends State<LayoutAlamat> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFAF8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFAFAF8),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () => Get.back(),
+          icon: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEFEFEF)),
+            ),
+            child: const Icon(Icons.arrow_back_ios_new_rounded,
+                color: _dark, size: 16),
+          ),
+        ),
+        title: Text(
+          "Alamat Saya",
+          style: AppColors.fontStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: _dark,
+          ),
+        ),
+      ),
       body: SafeArea(
-          child: Container(
-        color: Colors.white,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 5, bottom: 15),
-              child: Row(children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 3),
-                  child: IconButton(
-                      onPressed: () {
-                        Get.back();
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.black,
-                        size: 28,
-                      )),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width / 4 - 20,
-                ),
-                Text(
-                  "Alamat Saya",
-                  style: AppColors.fontStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black),
-                ),
-              ]),
-            ),
-            Container(
-              color: Colors.black.withValues(alpha: 0.25),
-              height: 2,
-            ),
-            const SizedBox(
-              height: 15,
-            ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Obx(() {
-                  List<AlamatUserModel> listAlamatUser =
-                      apiDataUser.listAlamatUser;
-                  return ListView.separated(
-                      itemBuilder: (context, index) {
-                        AlamatUserModel listAlamat = listAlamatUser[index];
-                        return AlamatCard(
-                          editAlamat: () {
-                            Get.to(LayoutEditAlamat(
+              child: Obx(() {
+                List<AlamatUserModel> listAlamatUser =
+                    apiDataUser.listAlamatUser;
+
+                if (listAlamatUser.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            color: _forest.withValues(alpha: 0.07),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            MdiIcons.mapMarkerOffOutline,
+                            size: 40,
+                            color: _forest.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          "Belum ada alamat tersimpan",
+                          style: AppColors.fontStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                            color: _dark,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "Tambahkan alamat untuk\nmempermudah pengiriman pesananmu",
+                          textAlign: TextAlign.center,
+                          style: AppColors.fontStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  itemBuilder: (context, index) {
+                    AlamatUserModel listAlamat = listAlamatUser[index];
+                    return AlamatCard(
+                      editAlamat: () {
+                        Get.to(() => LayoutEditAlamat(
                               edit: true,
                               idAlamat: listAlamat.id.toString(),
                               namaLengkap: listAlamat.name,
@@ -86,59 +124,73 @@ class _LayoutAlamatState extends State<LayoutAlamat> {
                               longitude: listAlamat.longitude,
                               detailAlamat: listAlamat.detailLainnya ?? "",
                             ));
-                          },
-                          namaUser: listAlamat.name,
-                          latitude: listAlamat.latitude,
-                          longitude: listAlamat.longitude,
-                          noTeleponUser: listAlamat.nomorTelephone,
-                          tipeAlamat: listAlamat.type,
-                        );
                       },
-                      separatorBuilder: (context, index) => const SizedBox(
-                            height: 10,
-                          ),
-                      itemCount: listAlamatUser.length);
-                }),
-              ),
+                      namaUser: listAlamat.name,
+                      latitude: listAlamat.latitude,
+                      longitude: listAlamat.longitude,
+                      noTeleponUser: listAlamat.nomorTelephone,
+                      tipeAlamat: listAlamat.type,
+                    );
+                  },
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 14),
+                  itemCount: listAlamatUser.length,
+                );
+              }),
             ),
-            Padding(
-              padding: const EdgeInsets.only(
-                  left: 20, right: 20, bottom: 25, top: 10),
+
+            // Bottom action
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAF8),
+                border: Border(
+                  top: BorderSide(color: Colors.black.withValues(alpha: 0.04)),
+                ),
+              ),
               child: InkWell(
                 onTap: () {
-                  Get.to(const LayoutEditAlamat(edit: false));
+                  Get.to(() => const LayoutEditAlamat(edit: false));
                 },
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
+                  height: 54,
                   decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black, width: 1.3),
-                      borderRadius: BorderRadius.circular(20),
-                      color: Colors.white),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          MdiIcons.plusBox,
-                          size: 30,
-                          color: Colors.black,
+                    color: _forest,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _forest.withValues(alpha: 0.25),
+                        offset: const Offset(0, 8),
+                        blurRadius: 18,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        MdiIcons.plus,
+                        size: 22,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Tambah Alamat Baru",
+                        style: AppColors.fontStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
-                        Text(
-                          "Tambah Alamat baru",
-                          style: AppColors.fontStyle(
-                              fontSize: 17.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            )
+            ),
           ],
         ),
-      )),
+      ),
     );
   }
 }

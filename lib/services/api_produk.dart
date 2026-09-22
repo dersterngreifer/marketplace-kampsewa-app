@@ -59,7 +59,10 @@ class ApiProduk extends GetxController {
       } else {
         listProdukRekomendasi.clear();
       }
-    } on DioException catch (dioError) {
+    } catch (error) {
+        String msg = "Gagal memuat produk";
+        if (error is DioException) msg = error.message ?? msg;
+        else msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -68,7 +71,7 @@ class ApiProduk extends GetxController {
                 backgroundColor: Colors.transparent,
                 content: CustomAlertDialog(
                   sukses: false,
-                  teks: dioError.message ?? "An unknown error occurred",
+                  teks: msg,
                 ),
               );
             });
@@ -110,7 +113,10 @@ class ApiProduk extends GetxController {
       } else {
         listProdukHome.clear();
       }
-    } on DioException catch (dioError) {
+    } catch (error) {
+        String msg = "Gagal memuat produk";
+        if (error is DioException) msg = error.message ?? msg;
+        else msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -119,7 +125,7 @@ class ApiProduk extends GetxController {
                 backgroundColor: Colors.transparent,
                 content: CustomAlertDialog(
                   sukses: false,
-                  teks: dioError.message ?? "An unknown error occurred",
+                  teks: msg,
                 ),
               );
             });
@@ -176,7 +182,10 @@ class ApiProduk extends GetxController {
       } else {
         listProduk.clear();
       }
-    } on DioException catch (dioError) {
+    } catch (error) {
+        String msg = "Gagal memuat produk";
+        if (error is DioException) msg = error.message ?? msg;
+        else msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -185,7 +194,7 @@ class ApiProduk extends GetxController {
                 backgroundColor: Colors.transparent,
                 content: CustomAlertDialog(
                   sukses: false,
-                  teks: dioError.message ?? "An unknown error occurred",
+                  teks: msg,
                 ),
               );
             });
@@ -226,7 +235,10 @@ class ApiProduk extends GetxController {
       } else {
         listUserProduk.clear();
       }
-    } on DioException catch (dioError) {
+    } catch (error) {
+        String msg = "Gagal memuat produk";
+        if (error is DioException) msg = error.message ?? msg;
+        else msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -235,7 +247,7 @@ class ApiProduk extends GetxController {
                 backgroundColor: Colors.transparent,
                 content: CustomAlertDialog(
                   sukses: false,
-                  teks: dioError.message ?? "An unknown error occurred",
+                  teks: msg,
                 ),
               );
             });
@@ -308,7 +320,10 @@ class ApiProduk extends GetxController {
         CustomSnackBar.show(context, sukses: false,
               teks: "Data Produk Gagal Dimuat",);
       }
-    } on DioException catch (dioError) {
+    } catch (error) {
+        String msg = "Gagal memuat produk";
+        if (error is DioException) msg = error.message ?? msg;
+        else msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -317,7 +332,7 @@ class ApiProduk extends GetxController {
                 backgroundColor: Colors.transparent,
                 content: CustomAlertDialog(
                   sukses: false,
-                  teks: dioError.message ?? "An unknown error occurred",
+                  teks: msg,
                 ),
               );
             });
@@ -384,7 +399,9 @@ class ApiProduk extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        detailProduk.value = DetailProdukModel.fromJson(data['detail_produk'][0]);
+        var detailData = data['detail_produk'];
+          if (detailData is List && detailData.isNotEmpty) detailData = detailData[0];
+          detailProduk.value = DetailProdukModel.fromJson(detailData);
 
         if(data['detail_produk'] != null){
           List<String> rawImages = [
@@ -394,8 +411,8 @@ class ApiProduk extends GetxController {
             detailProduk.value!.fotoKanan,
           ];
 
-          if (data['detail_produk'][0]['foto_array'] != null) {
-            var additional = (data['detail_produk'][0]['foto_array'] as List)
+          if (detailData['foto_array'] != null) {
+            var additional = (detailData['foto_array'] as List)
                 .map((e) => e['url'].toString())
                 .toList();
             rawImages.addAll(additional);
@@ -414,7 +431,10 @@ class ApiProduk extends GetxController {
         CustomSnackBar.show(context, sukses: false,
               teks: "Data Produk Gagal Dimuat",);
       }
-    } on DioException catch (dioError) {
+    } catch (error) {
+        String msg = "Gagal memuat produk";
+        if (error is DioException) msg = error.message ?? msg;
+        else msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -423,7 +443,7 @@ class ApiProduk extends GetxController {
                 backgroundColor: Colors.transparent,
                 content: CustomAlertDialog(
                   sukses: false,
-                  teks: dioError.message ?? "An unknown error occurred",
+                  teks: msg,
                 ),
               );
             });

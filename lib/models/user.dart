@@ -17,6 +17,8 @@ class User {
   String? bannerToko;
   String? background;
   String? jenisKelamin;
+  double ratingToko;
+  int totalUlasanToko;
 
   User(
       {this.id,
@@ -34,7 +36,9 @@ class User {
       this.deskripsiToko,
       this.bannerToko,
       this.background,
-      this.jenisKelamin});
+      this.jenisKelamin,
+      this.ratingToko = 0.0,
+      this.totalUlasanToko = 0});
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
@@ -54,6 +58,8 @@ class User {
       bannerToko: json['banner_toko'],
       background: json['background'],
       jenisKelamin: json['jenis_kelamin'],
+      ratingToko: double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
+      totalUlasanToko: int.tryParse(json['total_ulasan_toko']?.toString() ?? '0') ?? 0,
     );
   }
 }

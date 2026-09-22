@@ -14,167 +14,204 @@ class LayoutLupaPasswordNewPass extends StatefulWidget {
 
 class _LayoutLupaPasswordNewPassState extends State<LayoutLupaPasswordNewPass> {
   ApiLupaPassword apiLupaPassword = Get.put(ApiLupaPassword());
+  static const Color temaBiru = Color(0xFF407BFF);
+  static const Color gelap = Color(0xFF2F2828);
+
   @override
   Widget build(BuildContext context) {
-    final dataKiriman = Get.arguments as Map<String, dynamic>;
-    String noTelephone = dataKiriman['nomor_telephone'];
-    bool lupaPass = dataKiriman['lupa_password'];
+    final dataKiriman = (Get.arguments as Map<String, dynamic>?) ?? {};
+    String noTelephone = dataKiriman['nomor_telephone'] ?? '';
+    bool lupaPass = dataKiriman['lupa_password'] ?? false;
+
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Material(
+            color: temaBiru,
+            shape: const CircleBorder(),
+            child: IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
-          child: Container(
-        color: Colors.white,
-        child: ListView(
-          children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 5),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      IconButton(
-                          onPressed: () {
-                            Get.back();
-                          },
-                          icon: const Icon(
-                            Icons.arrow_back_ios_rounded,
-                            color: Colors.black,
-                            size: 32,
-                          ))
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Image.asset(
+                  "assets/new-icons/newpassword.png",
+                  height: 200,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 40),
+              Text(
+                "Password Baru",
+                style: AppColors.fontStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: gelap,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Jangan lupa untuk memasukkan kembali password baru Anda pada kolom konfirmasi password.",
+                style: AppColors.fontStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey.shade600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 36),
+
+              Text(
+                "Password",
+                style: AppColors.fontStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: gelap,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: const Color(0xFFF6F6F4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: temaBiru.withValues(alpha: 0.06),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: InputVersiSatu(
+                  tipeInput: TextInputType.visiblePassword,
+                  controller: apiLupaPassword.newPassController,
+                  showEyes: true,
+                  passwordTipe: true,
+                  iconInput: const Icon(
+                    Icons.lock_rounded,
+                    size: 24,
+                    color: temaBiru,
+                  ),
+                  placeHolder: "Masukkan Password Baru",
+                  ukuranFontPlaceHolder: 15,
+                  border: false,
+                  ketebalanBorder: 0,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              Text(
+                "Konfirmasi Password",
+                style: AppColors.fontStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: gelap,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: const Color(0xFFF6F6F4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: temaBiru.withValues(alpha: 0.06),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: InputVersiSatu(
+                  tipeInput: TextInputType.visiblePassword,
+                  controller: apiLupaPassword.confirmPassController,
+                  showEyes: true,
+                  passwordTipe: true,
+                  iconInput: const Icon(
+                    Icons.lock_rounded,
+                    size: 24,
+                    color: temaBiru,
+                  ),
+                  placeHolder: "Ketik Ulang Password Baru",
+                  ukuranFontPlaceHolder: 15,
+                  border: false,
+                  ketebalanBorder: 0,
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Tombol Konfirmasi
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  apiLupaPassword.lupaPassResetPass(
+                      context, noTelephone, lupaPass);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: temaBiru,
+                    boxShadow: [
+                      BoxShadow(
+                        color: temaBiru.withValues(alpha: 0.35),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
                     ],
                   ),
-                ),
-                Image.asset(
-                  "assets/images/lock-image-lupa-pass.png",
-                  scale: 2.35,
-                ),
-                const SizedBox(
-                  height: 18,
-                ),
-                Text("Password Baru",
-                    style: AppColors.fontStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black)),
-                const SizedBox(
-                  height: 8,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: Text(
-                    "Jangan lupa untuk memasukkan kembali password baru Anda pada kolom konfirmasi password.",
-                    style: AppColors.fontStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 25, right: 20, top: 20),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Password",
+                        "Konfirmasi",
                         style: AppColors.fontStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: 5,
-                  ),
-                  child: InputVersiSatu(
-                    tipeInput: TextInputType.visiblePassword,
-                    controller: apiLupaPassword.newPassController,
-                    showEyes: true,
-                    passwordTipe: true,
-                    iconInput: const Icon(
-                      Icons.lock_rounded,
-                      size: 26,
-                      color: Colors.black,
-                    ),
-                    placeHolder: "Masukkan Password Baru",
-                    ukuranFontPlaceHolder: 16,
-                    border: true,
-                    ketebalanBorder: 1.7,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      left: 25, right: 20, bottom: 5, top: 15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Konfirmasi Password",
-                        style: AppColors.fontStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: InputVersiSatu(
-                    tipeInput: TextInputType.visiblePassword,
-                    controller: apiLupaPassword.confirmPassController,
-                    showEyes: true,
-                    passwordTipe: true,
-                    iconInput: const Icon(
-                      Icons.lock_rounded,
-                      size: 26,
-                      color: Colors.black,
-                    ),
-                    placeHolder: "Masukkan Password Baru",
-                    ukuranFontPlaceHolder: 16,
-                    border: true,
-                    ketebalanBorder: 1.7,
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
-                  child: InkWell(
-                    onTap: () {
-                      //konfirmasi
-                      apiLupaPassword.lupaPassResetPass(
-                          context, noTelephone, lupaPass);
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: const Color(0xFF2F2828),
-                      ),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Text(
-                            "Konfirmasi",
-                            style: AppColors.fontStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white),
-                          ),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
-      )),
+      ),
     );
   }
 }

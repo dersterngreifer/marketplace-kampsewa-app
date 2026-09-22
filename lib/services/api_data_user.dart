@@ -20,6 +20,7 @@ class ApiDataUser extends GetxController {
   TextEditingController emailController = TextEditingController();
   TextEditingController phoneNumberController = TextEditingController();
   TextEditingController tanggalLahirController = TextEditingController();
+  TextEditingController jenisKelaminController = TextEditingController();
   TextEditingController detailAlamatController = TextEditingController();
   TextEditingController namaTokoController = TextEditingController();
   TextEditingController detailAlamatTokoController = TextEditingController();
@@ -31,7 +32,7 @@ class ApiDataUser extends GetxController {
   DashboardController pageController = Get.put(DashboardController());
   final Rx<User?> dataUser = Rx<User?>(null);
   final RxList<AlamatUserModel> listAlamatUser = <AlamatUserModel>[].obs;
-  
+
   // Statistik
   final RxInt totalSemuaPesanan = 0.obs;
   final RxInt totalSedangDisewa = 0.obs;
@@ -44,25 +45,34 @@ class ApiDataUser extends GetxController {
       String? token = await auth.getToken();
       int? id = await auth.getId();
       if (id == null) return;
-      
+
       var header = {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getStatistikPesanan + id.toString();
+      var url = ApiEndpoints.baseUrl +
+          ApiEndpoints.authendpoints.getStatistikPesanan +
+          id.toString();
 
-      final response = await dio.get(url, options: Options(
-        headers: header,
-        validateStatus: (status) => status! < 500,
-      ));
+      final response = await dio.get(url,
+          options: Options(
+            headers: header,
+            validateStatus: (status) => status! < 500,
+          ));
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = response.data is String ? jsonDecode(response.data) : response.data;
-        if (responseData['message'] == 'success' && responseData['data'] != null) {
-          totalSemuaPesanan.value = responseData['data']['total_semua_pesanan'] ?? 0;
-          totalSedangDisewa.value = responseData['data']['total_sedang_disewa'] ?? 0;
-          totalBelumDikonfirmasi.value = responseData['data']['total_belum_dikonfirmasi'] ?? 0;
-          totalProdukBelumDikonfirmasi.value = responseData['data']['total_produk_belum_dikonfirmasi'] ?? 0;
+        final Map<String, dynamic> responseData =
+            response.data is String ? jsonDecode(response.data) : response.data;
+        if (responseData['message'] == 'success' &&
+            responseData['data'] != null) {
+          totalSemuaPesanan.value =
+              responseData['data']['total_semua_pesanan'] ?? 0;
+          totalSedangDisewa.value =
+              responseData['data']['total_sedang_disewa'] ?? 0;
+          totalBelumDikonfirmasi.value =
+              responseData['data']['total_belum_dikonfirmasi'] ?? 0;
+          totalProdukBelumDikonfirmasi.value =
+              responseData['data']['total_produk_belum_dikonfirmasi'] ?? 0;
         }
       }
     } catch (e) {
@@ -103,14 +113,18 @@ class ApiDataUser extends GetxController {
         emailController.text = attachData.email!;
         phoneNumberController.text = attachData.nomorTelephone!;
         tanggalLahirController.text = attachData.tanggalLahir!;
-        
+        jenisKelaminController.text = attachData.jenisKelamin ?? '';
+
         // Ambil statistik setelah berhasil dapat data user
         await getStatistikPesanan(context);
       } else {
         String errorMessage = data['message'];
-        CustomSnackBar.show(context, sukses: false,
-              title: "Error",
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          title: "Error",
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -147,6 +161,7 @@ class ApiDataUser extends GetxController {
         'email': emailController.text.trim(),
         'nomor_telephone': phoneNumberController.text,
         'tanggal_lahir': tanggalLahirController.text,
+        'jenis_kelamin': jenisKelaminController.text,
         if (photoProfile != null)
           'foto': await MultipartFile.fromFile(photoProfile.path,
               filename: "$idStr-${photoProfile.path.split('/').last}"),
@@ -165,8 +180,11 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        CustomSnackBar.show(context, sukses: true,
-              teks: "Profile Berhasil di Update",);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: "Profile Berhasil di Update",
+        );
 
         namaController.clear();
         emailController.clear();
@@ -179,8 +197,11 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        CustomSnackBar.show(context, sukses: false,
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -236,8 +257,11 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        CustomSnackBar.show(context, sukses: true,
-              teks: "Berhasil Menambahkan Alamat",);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: "Berhasil Menambahkan Alamat",
+        );
 
         if (context.mounted) {
           //get data alamat supaya memperbarui data di layout alamat
@@ -246,8 +270,11 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['error'];
-        CustomSnackBar.show(context, sukses: false,
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -299,8 +326,11 @@ class ApiDataUser extends GetxController {
                 .toList());
         listAlamatUser.assignAll(alamatList);
       } else {
-        CustomSnackBar.show(context, sukses: false,
-              teks: "Data Produk Gagal Dimuat",);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: "Data Produk Gagal Dimuat",
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -353,8 +383,11 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        CustomSnackBar.show(context, sukses: true,
-              teks: "Profile Berhasil di Update",);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: "Profile Berhasil di Update",
+        );
 
         if (context.mounted) {
           getListAlamatUser(context);
@@ -362,8 +395,11 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        CustomSnackBar.show(context, sukses: false,
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -408,8 +444,11 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        CustomSnackBar.show(context, sukses: true,
-              teks: "Alamat Berhasil Dihapus",);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: "Alamat Berhasil Dihapus",
+        );
 
         if (context.mounted) {
           getListAlamatUser(context);
@@ -417,8 +456,11 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        CustomSnackBar.show(context, sukses: false,
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -471,8 +513,11 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        CustomSnackBar.show(context, sukses: true,
-              teks: "Berhasil Menambahkan Metode Transfer",);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: "Berhasil Menambahkan Metode Transfer",
+        );
 
         if (context.mounted) {
           apiTransaksi.getBankOpsiPembayaran(context, idStr);
@@ -480,8 +525,11 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'];
-        CustomSnackBar.show(context, sukses: false,
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -514,7 +562,8 @@ class ApiDataUser extends GetxController {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.isiDataToko + idStr;
+      var url =
+          ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.isiDataToko + idStr;
 
       Map<String, dynamic> body = {
         'name_store': namaTokoController.text,
@@ -546,8 +595,11 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        CustomSnackBar.show(context, sukses: true,
-              teks: "Berhasil Menambahkan Data Toko",);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: "Berhasil Menambahkan Data Toko",
+        );
 
         if (context.mounted) {
           namaTokoController.clear();
@@ -557,8 +609,11 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'] ?? 'Terjadi kesalahan';
-        CustomSnackBar.show(context, sukses: false,
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       if (context.mounted) {
@@ -579,8 +634,54 @@ class ApiDataUser extends GetxController {
     }
   }
 
-  Future<void> inputKYC(BuildContext context, String nomorIdentitas,
-      XFile? fotoIdentitas) async {
+  Future<bool> verifyKTP(BuildContext context, String filePath) async {
+    try {
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ',
+      };
+
+      var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.verifyKTP;
+
+      FormData formData = FormData.fromMap({
+        'foto_identitas': await MultipartFile.fromFile(
+          filePath,
+          filename: filePath.split('/').last,
+        ),
+      });
+
+      final response = await dio.post(
+        url,
+        data: formData,
+        options: Options(
+          headers: header,
+          validateStatus: (status) {
+            return status! < 500;
+          },
+        ),
+      );
+
+      final Map<String, dynamic> json =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        CustomSnackBar.show(context,
+            sukses: false, teks: json['message'] ?? 'KTP ditolak oleh sistem');
+        return false;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        CustomSnackBar.show(context,
+            sukses: false, teks: 'Terjadi kesalahan saat verifikasi KTP');
+      }
+      return false;
+    }
+  }
+
+  Future<void> inputKYC(
+      BuildContext context, String nomorIdentitas, XFile? fotoIdentitas) async {
     try {
       loading.showLoadingDialog();
       Authorization auth = Authorization();
@@ -591,9 +692,8 @@ class ApiDataUser extends GetxController {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      var url = ApiEndpoints.baseUrl +
-          ApiEndpoints.authendpoints.inputKYC +
-          idStr;
+      var url =
+          ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.inputKYC + idStr;
 
       Map<String, dynamic> body = {
         'nomor_identitas': nomorIdentitas,
@@ -623,8 +723,11 @@ class ApiDataUser extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        CustomSnackBar.show(context, sukses: true,
-              teks: "Identitas Berhasil Diverifikasi",);
+        CustomSnackBar.show(
+          context,
+          sukses: true,
+          teks: "Identitas Berhasil Diverifikasi",
+        );
 
         if (context.mounted) {
           await getDataUser(context);
@@ -633,8 +736,11 @@ class ApiDataUser extends GetxController {
         }
       } else {
         String errorMessage = json['message'] ?? 'Terjadi kesalahan';
-        CustomSnackBar.show(context, sukses: false,
-              teks: errorMessage,);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: errorMessage,
+        );
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
@@ -650,6 +756,97 @@ class ApiDataUser extends GetxController {
                 ),
               );
             });
+      }
+    }
+  }
+
+  Future<void> updateBankMetodeTransfer(
+      BuildContext context, String bankId) async {
+    try {
+      Authorization auth = Authorization();
+      int? id = await auth.getId();
+      String idStr = id.toString();
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ',
+      };
+
+      var url = "/api/user/update-bank/";
+
+      Map body = {
+        'rekening': noRekController.text,
+        'bank': jenisBankController.text,
+      };
+
+      final response = await dio.post(url,
+          data: body,
+          options: Options(
+            headers: header,
+            validateStatus: (status) {
+              return status! < 500;
+            },
+          ));
+
+      final Map<String, dynamic> json =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200) {
+        CustomSnackBar.show(context,
+            sukses: true, teks: "Berhasil Mengubah Metode Transfer");
+
+        if (context.mounted) {
+          apiTransaksi.getBankOpsiPembayaran(context, idStr);
+          Get.back();
+        }
+      } else {
+        CustomSnackBar.show(context,
+            sukses: false, teks: json['message'] ?? "Gagal mengubah data");
+      }
+    } catch (e) {
+      if (context.mounted) {
+        CustomSnackBar.show(context,
+            sukses: false, teks: "Terjadi kesalahan Saat Update Bank");
+      }
+    }
+  }
+
+  Future<void> deleteBankMetodeTransfer(
+      BuildContext context, String bankId) async {
+    try {
+      Authorization auth = Authorization();
+      int? id = await auth.getId();
+      String idStr = id.toString();
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ',
+      };
+
+      var url = "/api/user/delete-bank/";
+
+      final response = await dio.get(url,
+          options: Options(
+            headers: header,
+            validateStatus: (status) {
+              return status! < 500;
+            },
+          ));
+
+      if (response.statusCode == 200) {
+        CustomSnackBar.show(context,
+            sukses: true, teks: "Berhasil Menghapus Metode Transfer");
+
+        if (context.mounted) {
+          apiTransaksi.getBankOpsiPembayaran(context, idStr);
+          Get.back();
+        }
+      } else {
+        CustomSnackBar.show(context,
+            sukses: false, teks: "Gagal menghapus data");
+      }
+    } catch (e) {
+      if (context.mounted) {
+        CustomSnackBar.show(context,
+            sukses: false, teks: "Terjadi kesalahan Saat Hapus Bank");
       }
     }
   }

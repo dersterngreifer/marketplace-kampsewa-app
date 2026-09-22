@@ -4,6 +4,8 @@ class ProdukModel {
   final int idProduk;
   final int idUser;
   final String namaToko;
+  final String? fotoToko;
+  final double ratingToko;
   final String namaProduk;
   final String image;
   final String rating;
@@ -16,6 +18,8 @@ class ProdukModel {
     required this.idProduk,
     required this.idUser,
     required this.namaToko,
+    this.fotoToko,
+    this.ratingToko = 0.0,
     required this.namaProduk,
     required this.image,
     required this.rating,
@@ -29,7 +33,9 @@ class ProdukModel {
     return ProdukModel(
       idProduk: json['id_produk'] is int ? json['id_produk'] : int.tryParse(json['id_produk']?.toString() ?? '0') ?? 0,
       idUser: json['id_user'] is int ? json['id_user'] : int.tryParse(json['id_user']?.toString() ?? '0') ?? 0,
-      namaToko: json['nama_user']?.toString() ?? '',
+      namaToko: json['nama_toko']?.toString() ?? 'Toko Tidak Dikenal',
+        fotoToko: json['foto_toko']?.toString(),
+        ratingToko: double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
       namaProduk: json['nama_produk']?.toString() ?? '',
       image: getImageUrl(json['foto_depan']),
       rating: json['rata_rating']?.toString() ?? '0.0',

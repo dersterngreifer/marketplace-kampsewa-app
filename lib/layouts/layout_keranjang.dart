@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -42,7 +42,8 @@ class _LayoutKeranjangState extends State<LayoutKeranjang> {
     final user = apiDataUser.dataUser.value;
     final needsKYC = user != null &&
         user.type == 0 &&
-        (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty);
+        (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty || 
+         user.fotoIdentitas == null || user.fotoIdentitas.toString().isEmpty);
 
     if (needsKYC) {
       CustomSnackBar.show(context, sukses: false,
@@ -200,7 +201,11 @@ class _LayoutKeranjangState extends State<LayoutKeranjang> {
 
                 return RefreshIndicator(
                   color: _green,
-                  onRefresh: () => c.loadKeranjang(context),
+                  onRefresh: () async {
+                    final apiDataUser = Get.find<import_api_data_user.ApiDataUser>();
+                    await apiDataUser.getDataUser(context);
+                    await c.loadKeranjang(context);
+                  },
                   child: ListView.separated(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),

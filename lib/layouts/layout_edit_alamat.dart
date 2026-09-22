@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/models/user.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
@@ -78,12 +79,13 @@ class _LayoutEditAlamatState extends State<LayoutEditAlamat> {
     }
 
     Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high));
     latitude = position.latitude.toString();
     longitude = position.longitude.toString();
 
-    List<Placemark> placemarks =
-        await Geocoding().placemarkFromCoordinates(position.latitude, position.longitude);
+    List<Placemark> placemarks = await Geocoding()
+        .placemarkFromCoordinates(position.latitude, position.longitude);
 
     if (placemarks.isNotEmpty) {
       Placemark placemark = placemarks.first;
@@ -95,8 +97,11 @@ class _LayoutEditAlamatState extends State<LayoutEditAlamat> {
       alamatController.text =
           "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
     } else {
-      CustomSnackBar.show(context, sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+      CustomSnackBar.show(
+        context,
+        sukses: false,
+        teks: "Tidak bisa Mengkonversi koordinat alamat anda",
+      );
     }
   }
 
@@ -116,320 +121,172 @@ class _LayoutEditAlamatState extends State<LayoutEditAlamat> {
       String alamat = "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
       alamatController.text = alamat;
     } else {
-      CustomSnackBar.show(context, sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+      CustomSnackBar.show(
+        context,
+        sukses: false,
+        teks: "Tidak bisa Mengkonversi koordinat alamat anda",
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () => Get.back(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF2F2828), size: 24),
+        ),
+        title: Text(
+          widget.edit ? "Edit Alamat" : "Alamat Baru",
+          style: AppColors.fontStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF2F2828),
+          ),
+        ),
+      ),
       body: SafeArea(
-          child: Container(
-        color: Colors.white,
-        child: ListView(
+        child: Column(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 5, bottom: 15),
-                  child: Row(children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 3),
-                      child: IconButton(
-                          onPressed: () {
-                            Get.back();
-                          },
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.black,
-                            size: 28,
-                          )),
+            Expanded(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle("Kontak"),
+                    _buildTextField(
+                      controller: namaLengkapController,
+                      hintText: "Nama Lengkap",
+                      enabled: false,
+                      icon: MdiIcons.accountOutline,
                     ),
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width / 4 - 15,
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: noTeleponController,
+                      hintText: "Nomor Telepon Aktif",
+                      enabled: false,
+                      icon: MdiIcons.phoneOutline,
+                      keyboardType: TextInputType.phone,
                     ),
-                    Text(
-                      widget.edit ? "Edit Alamat" : "Alamat Baru",
-                      style: AppColors.fontStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black),
-                    ),
-                  ]),
-                ),
-                Container(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  height: 2,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      top: 25, left: 25, right: 20, bottom: 5),
-                  child: Text(
-                    "Kontak",
-                    style: AppColors.fontStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black, width: 1.3),
-                        borderRadius: BorderRadius.circular(20)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 4),
-                      child: TextField(
-                        controller: namaLengkapController,
-                        decoration: InputDecoration(
-                            hintText: "Nama Lengkap",
+
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("Lokasi"),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            controller: alamatController,
+                            hintText: "Provinsi, Kota, Kecamatan, Kode Pos",
                             enabled: false,
-                            hintStyle: AppColors.fontStyle(
-                                fontSize: 14.5, fontWeight: FontWeight.w500),
-                            border: InputBorder.none),
-                        style: AppColors.fontStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black, width: 1.3),
-                        borderRadius: BorderRadius.circular(20)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 5),
-                      child: TextField(
-                        controller: noTeleponController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                            hintText: "Nomor Telepon Aktif",
-                            enabled: false,
-                            hintStyle: AppColors.fontStyle(
-                                fontSize: 14.5, fontWeight: FontWeight.w500),
-                            border: InputBorder.none),
-                        style: AppColors.fontStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      top: 15, left: 25, right: 20, bottom: 5),
-                  child: Text(
-                    "Alamat",
-                    style: AppColors.fontStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                              border:
-                                  Border.all(color: Colors.black, width: 1.3),
-                              borderRadius: BorderRadius.circular(20)),
-                          child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              child: TextField(
-                                controller: alamatController,
-                                enabled: false,
-                                maxLines: null,
-                                decoration: InputDecoration(
-                                    hintText:
-                                        "Provinsi, Kota, Kecamatan, Kode Pos",
-                                    hintStyle: AppColors.fontStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500),
-                                    border: InputBorder.none),
-                                style: AppColors.fontStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black),
-                              )),
+                            icon: MdiIcons.mapMarkerOutline,
+                            maxLines: null,
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 5),
-                        child: InkWell(
-                          onTap: () {
-                            //get location
-                            getLocation();
-                          },
+                        const SizedBox(width: 12),
+                        InkWell(
+                          onTap: () => getLocation(),
+                          borderRadius: BorderRadius.circular(16),
                           child: Container(
+                            height: 56, // Match the typical text field height
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
-                                color: const Color(0xFF2F2828),
-                                borderRadius: BorderRadius.circular(10)),
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 5, vertical: 8),
-                                child: Text(
-                                  "Ambil\nLokasimu",
-                                  maxLines: 2,
-                                  textAlign: TextAlign.center,
+                              color: const Color(0xFF407BFF)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                  color: const Color(0xFF407BFF)
+                                      .withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(MdiIcons.crosshairsGps,
+                                    color: Color(0xFF407BFF), size: 20),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "Lacak",
                                   style: AppColors.fontStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF407BFF),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
-                      )
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black, width: 1.3),
-                        borderRadius: BorderRadius.circular(20)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 5),
-                      child: TextField(
-                        controller: apiDataUser.detailAlamatController,
-                        keyboardType: TextInputType.text,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                            hintText:
-                                "Detail Lainnya (Contoh: {Nama Jalan, Blok, No Rumah)",
-                            hintStyle: AppColors.fontStyle(
-                                fontSize: 14, fontWeight: FontWeight.w500),
-                            border: InputBorder.none),
-                        style: AppColors.fontStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
+                      ],
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      top: 15, left: 25, right: 20, bottom: 5),
-                  child: Text(
-                    "Tandai Sebagai",
-                    style: AppColors.fontStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black),
-                  ),
-                ),
-                const SizedBox(
-                  height: 5,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          ditandaiSebagai = "Rumah";
-                        });
-                      },
-                      child: Container(
-                        height: 100,
-                        width: MediaQuery.of(context).size.width / 2 - 20,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1.5),
-                          borderRadius: BorderRadius.circular(15),
-                          color: ditandaiSebagai == "Rumah"
-                              ? const Color(0xFF2F2828)
-                              : Colors.white,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              ditandaiSebagai == "Rumah"
-                                  ? "assets/icons/alamat-home-selected.png"
-                                  : "assets/icons/alamat-home.png",
-                              scale: 2,
-                            ),
-                            Text(
-                              "Rumah",
-                              style: AppColors.fontStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: ditandaiSebagai == "Rumah"
-                                      ? Colors.white
-                                      : Colors.black),
-                            ),
-                          ],
-                        ),
-                      ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: apiDataUser.detailAlamatController,
+                      hintText:
+                          "Detail Lainnya (Contoh: Nama Jalan, Blok, No Rumah)",
+                      icon: MdiIcons.homeCityOutline,
+                      maxLines: 3,
                     ),
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          ditandaiSebagai = "Kantor";
-                        });
-                      },
-                      child: Container(
-                        height: 100,
-                        width: MediaQuery.of(context).size.width / 2 - 20,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black, width: 1.5),
-                          borderRadius: BorderRadius.circular(15),
-                          color: ditandaiSebagai == "Kantor"
-                              ? const Color(0xFF2F2828)
-                              : Colors.white,
+
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("Tandai Sebagai"),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTypeButton(
+                            title: "Rumah",
+                            iconOn: "assets/icons/alamat-home-selected.png",
+                            iconOff: "assets/icons/alamat-home.png",
+                            isSelected: ditandaiSebagai == "Rumah",
+                            onTap: () =>
+                                setState(() => ditandaiSebagai = "Rumah"),
+                          ),
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              ditandaiSebagai == "Kantor"
-                                  ? "assets/icons/alamat-office-selected.png"
-                                  : "assets/icons/alamat-kantor.png",
-                              scale: 2,
-                            ),
-                            Text(
-                              "Kantor",
-                              style: AppColors.fontStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: ditandaiSebagai == "Kantor"
-                                      ? Colors.white
-                                      : Colors.black),
-                            ),
-                          ],
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildTypeButton(
+                            title: "Kantor",
+                            iconOn: "assets/icons/alamat-office-selected.png",
+                            iconOff: "assets/icons/alamat-kantor.png",
+                            isSelected: ditandaiSebagai == "Kantor",
+                            onTap: () =>
+                                setState(() => ditandaiSebagai = "Kantor"),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
+                    const SizedBox(height: 40), // Bottom padding for scroll
                   ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 30, right: 30, top: 35),
-                  child: InkWell(
+              ),
+            ),
+
+            // Bottom Action Area
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    offset: const Offset(0, -4),
+                    blurRadius: 16,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
                     onTap: () {
-                      if (widget.edit) {
-                        //edit alamat
-                        if (latitude != null && longitude != null) {
+                      if (latitude != null && longitude != null) {
+                        if (widget.edit) {
                           apiDataUser.updateAlamatUser(
                               context,
                               widget.idAlamat!,
@@ -437,74 +294,192 @@ class _LayoutEditAlamatState extends State<LayoutEditAlamat> {
                               longitude!,
                               ditandaiSebagai);
                         } else {
-                          CustomSnackBar.show(context, sukses: false,
-                                teks: "Latitude dan Longitude Kosong!",);
-                        }
-                      } else {
-                        if (latitude != null && longitude != null) {
                           apiDataUser.tambahAlamatUser(
                               context, latitude!, longitude!, ditandaiSebagai);
-                        } else {
-                          CustomSnackBar.show(context, sukses: false,
-                                teks: "Latitude dan Longitude Kosong!",);
                         }
+                      } else {
+                        CustomSnackBar.show(context,
+                            sukses: false,
+                            teks:
+                                "Lokasi belum dilacak. Silakan tekan tombol Lacak!");
                       }
                     },
+                    borderRadius: BorderRadius.circular(16),
                     child: Container(
+                      width: double.infinity,
+                      height: 54,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: const Color(0xFF2F2828),
+                        color: const Color(0xFF407BFF),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                const Color(0xFF407BFF).withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          child: Text(
-                            "Simpan",
-                            style: AppColors.fontStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white),
+                        child: Text(
+                          "Simpan Alamat",
+                          style: AppColors.fontStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                Visibility(
-                  visible: widget.edit,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                        left: 30, right: 30, top: 15, bottom: 20),
-                    child: InkWell(
-                      onTap: () {
-                        apiDataUser.deleteAlamatUser(context, widget.idAlamat!);
-                      },
+                  if (widget.edit) ...[
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () => apiDataUser.deleteAlamatUser(
+                          context, widget.idAlamat!),
+                      borderRadius: BorderRadius.circular(16),
                       child: Container(
+                        width: double.infinity,
+                        height: 54,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: const Color(0xFFEE2737),
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: const Color(0xFFEE2737)
+                                  .withValues(alpha: 0.3)),
                         ),
                         child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              "Hapus Alamat",
-                              style: AppColors.fontStyle(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white),
+                          child: Text(
+                            "Hapus Alamat",
+                            style: AppColors.fontStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFEE2737),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                )
-              ],
+                  ],
+                ],
+              ),
             ),
           ],
         ),
-      )),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Text(
+        title,
+        style: AppColors.fontStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF2F2828),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    bool enabled = true,
+    required IconData icon,
+    int? maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: enabled ? Colors.white : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        crossAxisAlignment: maxLines != 1
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: maxLines != 1 ? 12 : 0, right: 12),
+            child: Icon(icon, color: Colors.grey.shade500, size: 22),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              enabled: enabled,
+              maxLines: maxLines,
+              keyboardType: keyboardType,
+              style: AppColors.fontStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF2F2828),
+              ),
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: AppColors.fontStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade400,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeButton({
+    required String title,
+    required String iconOn,
+    required String iconOff,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 100,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF407BFF).withValues(alpha: 0.1)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF407BFF) : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              isSelected ? iconOn : iconOff,
+              height: 36,
+              color:
+                  isSelected ? const Color(0xFF407BFF) : Colors.grey.shade400,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: AppColors.fontStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                color:
+                    isSelected ? const Color(0xFF407BFF) : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

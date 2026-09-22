@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -10,6 +10,7 @@ import 'package:project_camp_sewa/models/produk_model.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/services/controller_search.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart';
 
 class LayoutProduct extends StatefulWidget {
   const LayoutProduct({super.key});
@@ -150,6 +151,10 @@ class _LayoutProductState extends State<LayoutProduct> {
                 backgroundColor: Colors.white, displacement: 30, strokeWidth: 3,
                 onRefresh: () async {
                   _fetchData();
+                  try {
+                    final apiDataUser = Get.put(ApiDataUser());
+                    await apiDataUser.getDataUser(context);
+                  } catch (_) {}
                   await Future.delayed(const Duration(milliseconds: 600));
                 },
                 child: CustomScrollView(
@@ -468,7 +473,7 @@ class _LayoutProductState extends State<LayoutProduct> {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.53,
+              childAspectRatio: 0.48,
               crossAxisSpacing: 10,
               mainAxisSpacing: 12,
             ),
@@ -558,16 +563,22 @@ class _LayoutProductState extends State<LayoutProduct> {
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.53,
+            childAspectRatio: 0.48,
             crossAxisSpacing: 10,
             mainAxisSpacing: 12,
           ),
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               final ProdukModel p = listProduk[index];
+              final currentUserId = Get.find<ApiDataUser>().dataUser.value?.id;
+              final isOwner = (currentUserId != null && p.idUser == currentUserId);
               return ProdukCard(
+                badgeLabel: isOwner ? "Milik Anda" : null,
                 images: [p.image],
                 namaProduk: p.namaProduk,
+                namaToko: p.namaToko,
+                fotoToko: p.fotoToko,
+                ratingToko: p.ratingToko,
                 harga: p.harga.toString(),
                 rating: p.rating.toString(),
                 stok: p.stok,

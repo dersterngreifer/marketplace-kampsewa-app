@@ -7,12 +7,14 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 import 'package:project_camp_sewa/components/input/input_versi1.dart';
 import 'package:project_camp_sewa/layouts/layout_input_kyc.dart';
 import 'package:project_camp_sewa/models/user.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
+import 'package:project_camp_sewa/constants/api_endpoint.dart';
 
 class LayoutEditProfile extends StatefulWidget {
   const LayoutEditProfile({super.key});
@@ -328,9 +330,15 @@ class _LayoutEditProfileState extends State<LayoutEditProfile> {
         return fallbackAvatar();
       }
 
+      final fullUrl = dataUser.image!.startsWith('http')
+          ? dataUser.image!
+          : ApiEndpoints.baseUrl +
+              ApiEndpoints.authendpoints.getFotoProfile +
+              dataUser.image!;
+
       return ClipOval(
         child: Image.network(
-          dataUser.image!,
+          fullUrl,
           fit: BoxFit.cover,
           width: 116,
           height: 116,
@@ -536,6 +544,12 @@ class _LayoutEditProfileState extends State<LayoutEditProfile> {
           _buildLabel('Tanggal Lahir'),
 
           _buildDateField(),
+
+          const SizedBox(height: 16),
+
+          _buildLabel('Jenis Kelamin'),
+
+          _buildJenisKelaminField(),
         ],
       ),
     );
@@ -591,6 +605,152 @@ class _LayoutEditProfileState extends State<LayoutEditProfile> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildJenisKelaminField() {
+    return InkWell(
+      onTap: () => _selectJenisKelamin(context),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 4,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            width: 1.2,
+            color: const Color(0xFFE1E3E8),
+          ),
+        ),
+        child: IgnorePointer(
+          child: TextField(
+            controller: apiDataUser.jenisKelaminController,
+            enabled: false,
+            keyboardType: TextInputType.none,
+            style: AppColors.fontStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1A1A1A),
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+              ),
+              prefixIcon: const Icon(
+                Icons.wc_rounded,
+                size: 22,
+                color: Color(0xFF8E9691),
+              ),
+              hintText: 'Pilih Jenis Kelamin',
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              hintStyle: AppColors.fontStyle(
+                color: const Color(0xFF8A8A8E),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectJenisKelamin(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          height: 220,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 50),
+                    Text('Pilih Jenis Kelamin',
+                        style: AppColors.fontStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Tutup',
+                          style: AppColors.fontStyle(
+                              color: AppColors.mainColor,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  children: [
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.male, color: Colors.blue.shade600),
+                      ),
+                      title: Text('Laki-Laki',
+                          style: AppColors.fontStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                      onTap: () {
+                        setState(() {
+                          apiDataUser.jenisKelaminController.text = 'Laki-Laki';
+                        });
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.pink.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.female, color: Colors.pink.shade600),
+                      ),
+                      title: Text('Perempuan',
+                          style: AppColors.fontStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                      onTap: () {
+                        setState(() {
+                          apiDataUser.jenisKelaminController.text = 'Perempuan';
+                        });
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -680,7 +840,9 @@ class _LayoutEditProfileState extends State<LayoutEditProfile> {
 
   Widget _buildKYCSection(User user) {
     bool hasNIK = user.nomorIdentitas != null &&
-        user.nomorIdentitas.toString().isNotEmpty;
+        user.nomorIdentitas.toString().isNotEmpty &&
+        user.fotoIdentitas != null &&
+        user.fotoIdentitas.toString().isNotEmpty;
     bool isVerified = user.isVerified == true;
     String maskedNIK = '';
 
@@ -899,9 +1061,42 @@ class _LayoutEditProfileState extends State<LayoutEditProfile> {
       );
 
       if (image != null) {
-        setState(() {
-          pickedPhotoProfile = image;
-        });
+        // CROP IMAGE
+        CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: image.path,
+          uiSettings: [
+            AndroidUiSettings(
+                toolbarTitle: 'Edit Foto Profile',
+                toolbarColor: const Color(0xFF2C4E40),
+                toolbarWidgetColor: Colors.white,
+                initAspectRatio: CropAspectRatioPreset.square,
+                lockAspectRatio: false,
+                aspectRatioPresets: [
+                  CropAspectRatioPreset.square,
+                  CropAspectRatioPreset.ratio3x2,
+                  CropAspectRatioPreset.original,
+                  CropAspectRatioPreset.ratio4x3,
+                  CropAspectRatioPreset.ratio16x9
+                ],
+            ),
+            IOSUiSettings(
+              title: 'Edit Foto Profile',
+              aspectRatioPresets: [
+                CropAspectRatioPreset.square,
+                CropAspectRatioPreset.ratio3x2,
+                CropAspectRatioPreset.original,
+                CropAspectRatioPreset.ratio4x3,
+                CropAspectRatioPreset.ratio16x9
+              ],
+            ),
+          ],
+        );
+
+        if (croppedFile != null) {
+          setState(() {
+            pickedPhotoProfile = XFile(croppedFile.path);
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error picking image: $e');

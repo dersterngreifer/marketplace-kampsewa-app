@@ -429,6 +429,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
     String email = user.email ?? '';
     String phone = user.nomorTelephone ?? '';
     String avatarUrl = user.image ?? '';
+    String jenisKelamin = user.jenisKelamin ?? 'Belum diisi';
 
     String getInitials(String str) {
       if (str.trim().isEmpty) return "US";
@@ -527,6 +528,15 @@ class _LayoutProfileState extends State<LayoutProfile> {
                     color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  jenisKelamin,
+                  style: AppColors.fontStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
               ],
             ),
           ),
@@ -591,7 +601,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
           _buildStatItem(apiDataUser.totalProdukBelumDikonfirmasi.value.toString(), 'Produk\nPending', Icons.inventory_2_rounded,
               const Color(0xFF8B5CF6)), // Purple
           if (isMitra) ...[
-            _buildStatItem('4.8', 'Rating\nToko', Icons.star_rounded, const Color(0xFFED6723)),
+            _buildStatItem(user.ratingToko.toStringAsFixed(1), 'Rating\n(${user.totalUlasanToko} Ulasan)', Icons.star_rounded, const Color(0xFFED6723)),
           ],
         ],
       ),
@@ -675,7 +685,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
   }
 
   Widget _buildMenuSection(dynamic user) {
-    bool needsKYC = user.type == 0 && (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty);
+    bool needsKYC = user.type == 0 && (user.nomorIdentitas == null || 
+user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fotoIdentitas.toString().isEmpty);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -694,117 +705,103 @@ class _LayoutProfileState extends State<LayoutProfile> {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+          if (needsKYC)
+            _buildMenuItem(
+              icon: MdiIcons.shieldLockOutline,
+              title: 'Lengkapi Identitas',
+              subtitle: 'Verifikasi NIK KTP Anda',
+              iconColor: const Color(0xFF2C4E40),
+              iconBgColor: const Color(0xFFE8F5E9), // Hijau muda
+              onTap: () {
+                Get.to(() => const LayoutInputKYC())?.then((_) {
+                  if (mounted) apiDataUser.getDataUser(context);
+                });
+              },
             ),
-            child: Column(
-              children: [
-                if (needsKYC) ...[
-                  _buildMenuItem(
-                    icon: MdiIcons.shieldLockOutline,
-                    title: 'Lengkapi Identitas',
-                    subtitle: 'Verifikasi NIK KTP Anda',
-                    onTap: () {
-                      Get.to(() => const LayoutInputKYC())?.then((_) {
-                        if (mounted) apiDataUser.getDataUser(context);
-                      });
-                    },
-                  ),
-                  _buildDivider(),
-                ],
-                _buildMenuItem(
-                  icon: MdiIcons.shoppingOutline,
-                  title: 'Pesanan Saya',
-                  subtitle: 'Pantau status pesanan',
-                  onTap: () {
-                    pageController.setPageIndex(2);
-                    Get.back();
-                  },
-                ),
-                _buildDivider(),
-                _buildMenuItem(
-                  icon: MdiIcons.packageVariantClosed,
-                  title: 'Produk Saya',
-                  subtitle: 'Lihat daftar produk Anda',
-                  onTap: () {
-                    if (user.isToko == true) {
-                      Get.to(() => const LayoutUserProducts());
-                    } else {
-                      CustomSnackBar.show(context, sukses: false,
-                            title: "Perhatian",
-                            teks: "Lengkapi data di menu 'Mulai Menyewakan', lalu upload produk di website melalui tombol 'Dashboard Web'.",);
-                    }
-                  },
-                ),
-                _buildDivider(),
-                _buildMenuItem(
-                  icon: MdiIcons.mapMarkerOutline,
-                  title: 'Alamat',
-                  subtitle: 'Atur alamat pengiriman',
-                  onTap: () {
-                    Get.to(() => const LayoutAlamat());
-                  },
-                ),
-                _buildDivider(),
-                _buildMenuItem(
-                  icon: MdiIcons.lockOutline,
-                  title: 'Ubah Password',
-                  subtitle: 'Amankan akun Anda',
-                  onTap: () {
-                    Get.to(
-                      () => const LayoutLupaPasswordNewPass(),
-                      arguments: {
-                        'nomor_telephone': user.nomorTelephone ?? '',
-                        'lupa_password': false,
-                      },
-                    );
-                  },
-                ),
-                _buildDivider(),
-                if (user.isToko == true)
-                  _buildMenuItem(
-                    icon: MdiIcons.openInNew,
-                    title: 'Dashboard Web',
-                    subtitle: user.namaStore ?? 'Manajemen Toko Anda',
-                    onTap: () async {
-                      final Uri url = Uri.parse(ApiEndpoints.baseUrl);
-                      if (!await launchUrl(url)) {
-                        Get.snackbar("Error", "Gagal membuka web browser");
-                      }
-                    },
-                  )
-                else
-                  _buildMenuItem(
-                    icon: MdiIcons.storefrontOutline,
-                    title: 'Mulai Menyewakan',
-                    subtitle: 'Pengguna Biasa (Belum membuka penyewaan)',
-                    onTap: () {
-                      if (needsKYC) {
-                        CustomSnackBar.show(context, sukses: false,
-                              title: "Perhatian",
-                              teks: "Harap lengkapi identitas (KTP) Anda sebelum membuka layanan penyewaan.",);
-                        Get.to(() => const LayoutInstruksiKYC());
-                      } else {
-                        Get.to(() => const LayoutTambahDataToko())?.then((_) {
-                          if (mounted) {
-                            apiDataUser.getDataUser(context);
-                          }
-                        });
-                      }
-                    },
-                  ),
-              ],
-            ),
+          
+          _buildMenuItem(
+            icon: MdiIcons.packageVariantClosed,
+            title: 'Produk Saya',
+            subtitle: 'Lihat daftar produk Anda',
+            iconColor: const Color(0xFF407BFF),
+            iconBgColor: const Color(0xFFE3EFFF), // Biru muda
+            onTap: () {
+              if (user.isToko == true) {
+                Get.to(() => const LayoutUserProducts());
+              } else {
+                CustomSnackBar.show(context, sukses: false,
+                      title: "Perhatian",
+                      teks: "Lengkapi data di menu 'Mulai Menyewakan', lalu upload produk di website melalui tombol 'Dashboard Web'.",);
+              }
+            },
           ),
+          
+          _buildMenuItem(
+            icon: MdiIcons.mapMarkerOutline,
+            title: 'Alamat',
+            subtitle: 'Atur alamat pengiriman',
+            iconColor: const Color(0xFFFF9800),
+            iconBgColor: const Color(0xFFFFF3E0), // Orange muda
+            onTap: () {
+              Get.to(() => const LayoutAlamat());
+            },
+          ),
+          
+          _buildMenuItem(
+            icon: MdiIcons.lockOutline,
+            title: 'Ubah Password',
+            subtitle: 'Amankan akun Anda',
+            iconColor: const Color(0xFF9C27B0),
+            iconBgColor: const Color(0xFFF3E5F5), // Ungu muda
+            onTap: () {
+              Get.to(
+                () => const LayoutLupaPasswordNewPass(),
+                arguments: {
+                  'nomor_telephone': user.nomorTelephone ?? '',
+                  'lupa_password': false,
+                },
+              );
+            },
+          ),
+          
+          if (user.isToko == true)
+            _buildMenuItem(
+              icon: MdiIcons.openInNew,
+              title: 'Dashboard Web',
+              subtitle: user.namaStore ?? 'Manajemen Toko Anda',
+              iconColor: const Color(0xFF009688),
+              iconBgColor: const Color(0xFFE0F2F1), // Teal muda
+              onTap: () async {
+                final Uri url = Uri.parse(ApiEndpoints.baseUrl);
+                if (!await launchUrl(url)) {
+                  Get.snackbar("Error", "Gagal membuka web browser");
+                }
+              },
+            )
+          else
+            _buildMenuItem(
+              icon: MdiIcons.storefrontOutline,
+              title: 'Mulai Menyewakan',
+              subtitle: 'Buka peluang baru hari ini',
+              iconColor: Colors.white,
+              iconBgColor: const Color(0xFF407BFF), // Biru solid agar standout
+              isHighlighted: true, // Custom flag
+              onTap: () {
+                if (needsKYC) {
+                  CustomSnackBar.show(context, sukses: false,
+                        title: "Perhatian",
+                        teks: "Harap lengkapi identitas (KTP) Anda sebelum membuka layanan penyewaan.",);
+                  Get.to(() => const LayoutInstruksiKYC());
+                } else {
+                  Get.to(() => const LayoutTambahDataToko())?.then((_) {
+                    if (mounted) {
+                      apiDataUser.getDataUser(context);
+                    }
+                  });
+                }
+              },
+            ),
+
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.only(left: 8, bottom: 12),
@@ -817,35 +814,36 @@ class _LayoutProfileState extends State<LayoutProfile> {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: _buildMenuItem(
-              icon: MdiIcons.logout,
-              title: 'Keluar',
-              subtitle: 'Akhiri sesi saat ini',
-              textColor: const Color(0xFFEE2737),
-              iconColor: const Color(0xFFEE2737),
-              iconBgColor: const Color(0xFFFEF2F2),
-              onTap: () async {
-                final bool? confirm = await showDialog<bool>(
-                  context: context,
-                  barrierDismissible: true,
-                  barrierColor: Colors.black.withValues(alpha: 0.5),
-                  builder: (_) => Dialog(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28)),
-                    backgroundColor: Colors.white,
-                    elevation: 0,
+          _buildMenuItem(
+            icon: MdiIcons.logout,
+            title: 'Keluar',
+            subtitle: 'Akhiri sesi saat ini',
+            textColor: const Color(0xFFEE2737),
+            iconColor: const Color(0xFFEE2737),
+            iconBgColor: const Color(0xFFFEF2F2),
+            onTap: () async {
+              final bool? confirm = await showDialog<bool>(
+                context: context,
+                barrierDismissible: true,
+                barrierColor: Colors.black.withValues(alpha: 0.5),
+                builder: (_) => Dialog(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28)),
+                  backgroundColor: Colors.transparent, // Transparan agar bayangan bisa dari Container
+                  elevation: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 30,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
                       child: Column(
@@ -944,9 +942,10 @@ class _LayoutProfileState extends State<LayoutProfile> {
                       ),
                     ),
                   ),
-                );
+                ),
+              );
 
-                if (confirm == true) {
+              if (confirm == true) {
                   try {
                     Authorization auth = Authorization();
                     String? token = await auth.getToken();
@@ -969,11 +968,10 @@ class _LayoutProfileState extends State<LayoutProfile> {
                 }
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
+    }
 
   Widget _buildMenuItem({
     required IconData icon,
@@ -983,56 +981,90 @@ class _LayoutProfileState extends State<LayoutProfile> {
     Color? textColor,
     Color? iconColor,
     Color? iconBgColor,
+    bool isHighlighted = false,
   }) {
     final Color actualIconColor = iconColor ?? const Color(0xFF2C4E40);
-    final Color actualIconBgColor = iconBgColor ?? const Color(0xFFFFFFFF);
-    final Color actualTextColor = textColor ?? const Color(0xFF2F2828);
+    final Color actualIconBgColor = iconBgColor ?? const Color(0xFFE8F5E9);
+    final Color actualTextColor = isHighlighted ? Colors.white : (textColor ?? const Color(0xFF2F2828));
+    final Color subtitleColor = isHighlighted ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF8A8A8E);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: actualIconBgColor,
-                  borderRadius: BorderRadius.circular(16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isHighlighted ? const Color(0xFF407BFF) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF407BFF).withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 5),
                 ),
-                child: Icon(icon, color: actualIconColor, size: 22),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppColors.fontStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: actualTextColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: AppColors.fontStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFFBDBDBD),
-                      ),
-                    ),
-                  ],
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 24,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 6),
                 ),
-              ),
-              Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.grey.shade400, size: 16),
-            ],
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 0,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 0),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isHighlighted ? Colors.white.withValues(alpha: 0.2) : actualIconBgColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: isHighlighted ? Colors.white : actualIconColor, size: 22),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppColors.fontStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: actualTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: AppColors.fontStyle(
+                          fontSize: 12,
+                          color: subtitleColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  MdiIcons.chevronRight,
+                  color: isHighlighted ? Colors.white : const Color(0xFFBDBDBD),
+                  size: 24,
+                ),
+              ],
+            ),
           ),
         ),
       ),

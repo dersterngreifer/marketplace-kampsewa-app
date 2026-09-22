@@ -7,6 +7,7 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
@@ -98,9 +99,53 @@ class _LayoutInputKYCState extends State<LayoutInputKYC> {
     );
 
     if (image != null) {
-      setState(() {
-        pickedFotoIdentitas = image;
-      });
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        uiSettings: [
+          AndroidUiSettings(
+              toolbarTitle: 'Edit Foto KTP',
+              toolbarColor: const Color(0xFF2C4E40),
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.ratio3x2,
+              lockAspectRatio: false,
+              aspectRatioPresets: [
+                CropAspectRatioPreset.ratio3x2,
+                CropAspectRatioPreset.ratio4x3,
+                CropAspectRatioPreset.original,
+                CropAspectRatioPreset.square,
+                CropAspectRatioPreset.ratio16x9
+              ],
+          ),
+          IOSUiSettings(
+            title: 'Edit Foto KTP',
+            aspectRatioPresets: [
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio16x9
+            ],
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        XFile finalFile = XFile(croppedFile.path);
+        
+        // Panggil endpoint /api/user/verify-ktp sebagai gatekeeper AI
+        bool isValid = await apiDataUser.verifyKTP(context, finalFile.path);
+        
+        if (isValid) {
+          setState(() {
+            pickedFotoIdentitas = finalFile;
+          });
+        } else {
+          // Jika tidak valid, kosongkan foto
+          setState(() {
+            pickedFotoIdentitas = null;
+          });
+        }
+      }
     }
   }
 

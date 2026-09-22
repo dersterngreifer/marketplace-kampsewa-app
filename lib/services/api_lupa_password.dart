@@ -1,4 +1,4 @@
-﻿// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -51,6 +51,56 @@ class ApiLupaPassword extends GetxController {
           Get.to(const LayoutLupaPasswordOTP(), arguments: kirimData);
         }
         telephoneController.clear();
+      } else {
+        String errorMessage = json['message'];
+        CustomSnackBar.show(context, sukses: false,
+              teks: errorMessage,);
+      }
+    } on DioException catch (dioError) {
+      loading.hideLoadingDialog();
+      if (context.mounted) {
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                backgroundColor: Colors.transparent,
+                content: CustomAlertDialog(
+                  sukses: false,
+                  teks: dioError.message ?? "An unknown error occurred",
+                ),
+              );
+            });
+      }
+    }
+  }
+
+  Future<void> lupaPassKirimUlangOTP(BuildContext context, String noTelephone) async {
+    try {
+      loading.showLoadingDialog();
+      var header = {'Accept': 'application/json'};
+      var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.lupaPass;
+
+      Map body = {
+        "nomor_telephone": noTelephone.trim(),
+      };
+
+      final response = await dio.post(url,
+          data: body,
+          options: Options(
+            headers: header,
+            validateStatus: (status) {
+              return status! <= 500;
+            },
+          ));
+
+      final Map<String, dynamic> json =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      loading.hideLoadingDialog();
+
+      if (response.statusCode == 200) {
+        CustomSnackBar.show(context, sukses: true,
+              teks: json['message'] ?? "OTP berhasil dikirim ulang",);
       } else {
         String errorMessage = json['message'];
         CustomSnackBar.show(context, sukses: false,

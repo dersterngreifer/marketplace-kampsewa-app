@@ -16,6 +16,7 @@ class ApiRegistrasi extends GetxController {
   TextEditingController phoneNumberController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController tanggalLahirController = TextEditingController();
+  TextEditingController jenisKelaminController = TextEditingController();
   final Dio dio = Dio();
   final LoadingDialog loading = Get.put(LoadingDialog());
 
@@ -24,7 +25,8 @@ class ApiRegistrasi extends GetxController {
         emailController.text.trim().isEmpty ||
         phoneNumberController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty ||
-        tanggalLahirController.text.trim().isEmpty) {
+        tanggalLahirController.text.trim().isEmpty ||
+        jenisKelaminController.text.trim().isEmpty) {
       CustomSnackBar.show(
         context,
         sukses: false,
@@ -46,7 +48,8 @@ class ApiRegistrasi extends GetxController {
         'email': emailController.text.trim(),
         'nomor_telephone': phoneNumberController.text,
         'password': passwordController.text,
-        'tanggal_lahir': tanggalLahirController.text
+        'tanggal_lahir': tanggalLahirController.text,
+        'jenis_kelamin': jenisKelaminController.text
       };
 
       final response = await dio.post(url,
@@ -83,6 +86,7 @@ class ApiRegistrasi extends GetxController {
         phoneNumberController.clear();
         passwordController.clear();
         tanggalLahirController.clear();
+        jenisKelaminController.clear();
         if (context.mounted) {
           Get.to(const LoginScreen());
         }

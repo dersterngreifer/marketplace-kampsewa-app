@@ -11,17 +11,10 @@ String getImageUrl(String? imageUrl) {
     return imageUrl;
   }
 
-  const String baseHost = ApiEndpoints.baseUrl;
-
-  if (imageUrl.startsWith('/')) {
-    imageUrl = imageUrl.substring(1);
-  }
-
-  if (imageUrl.startsWith('storage/')) {
-    imageUrl = imageUrl.substring(8);
-  }
-
-  return '$baseHost/$imageUrl';
+  // The UI components (e.g. Profile, Dashboard, Keranjang) will prepend
+  // the specific folder paths like /assets/image/customers/profile/
+  // So we just return the raw filename.
+  return imageUrl;
 }
 
 String getFotoIdentitasUrl(String? filename) {
@@ -58,6 +51,7 @@ class AuthEndPoints {
   final String getDataUser = "/api/user/";
   final String isiDataToko = "/api/user/input-store/";
   final String inputKYC = "/api/user/input-kyc/";
+  final String verifyKTP = "/api/user/verify-ktp";
   final String updateDataUser = "/api/user/update-profile/";
   final String tambahAlamatUser = "/api/user/tambah-alamat";
   final String getAlamatUser = "/api/user/list-alamat/";

@@ -203,6 +203,47 @@ class _LayoutRegisterState extends State<LayoutRegister> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 5),
+              child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: apiRegistrasi.jenisKelaminController,
+                    onTap: () {
+                      _selectJenisKelamin(context);
+                    },
+                    keyboardType: TextInputType.none,
+                    style: AppColors.fontStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: IconTheme(
+                        data: IconThemeData(
+                          color: Colors.grey.shade400,
+                          size: 22,
+                        ),
+                        child: const Icon(Icons.wc),
+                      ),
+                      hintText: "Jenis Kelamin",
+                      border:
+                          const OutlineInputBorder(borderSide: BorderSide.none),
+                      hintStyle: AppColors.fontStyle(
+                          color: Colors.grey.shade400, fontSize: 14),
+                    ),
+                  )),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 5),
               child: InputVersiSatu(
                 warnaBgInput: const Color(0xFFF3F4F6),
                 // passwordTipe: true,
@@ -328,6 +369,99 @@ class _LayoutRegisterState extends State<LayoutRegister> {
                       apiRegistrasi.tanggalLahirController.text = formattedDate;
                     });
                   },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _selectJenisKelamin(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          height: 220,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 50),
+                    Text('Pilih Jenis Kelamin',
+                        style: AppColors.fontStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Tutup',
+                          style: AppColors.fontStyle(
+                              color: AppColors.mainColor,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  children: [
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.male, color: Colors.blue.shade600),
+                      ),
+                      title: Text('Laki-Laki',
+                          style: AppColors.fontStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                      onTap: () {
+                        setState(() {
+                          apiRegistrasi.jenisKelaminController.text = 'Laki-Laki';
+                        });
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.pink.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.female, color: Colors.pink.shade600),
+                      ),
+                      title: Text('Perempuan',
+                          style: AppColors.fontStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                      onTap: () {
+                        setState(() {
+                          apiRegistrasi.jenisKelaminController.text = 'Perempuan';
+                        });
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],

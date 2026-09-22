@@ -1,4 +1,4 @@
-﻿import 'package:carousel_slider/carousel_slider.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart' hide CarouselController;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -127,6 +127,8 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             strokeWidth: 3,
             onRefresh: () async {
               apiIklan.getIklan(context);
+              await apiDataUser.getDataUser(context);
+              if (!context.mounted) return;
               await apiProduk.getFeaturedProduk(context);
             },
             child: SingleChildScrollView(
@@ -807,7 +809,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             shrinkWrap: true,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.53,
+              childAspectRatio: 0.48,
               crossAxisSpacing: 10,
               mainAxisSpacing: 12,
             ),
@@ -905,7 +907,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
       shrinkWrap: true,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.53,
+        childAspectRatio: 0.48,
         crossAxisSpacing: 10,
         mainAxisSpacing: 12,
       ),
