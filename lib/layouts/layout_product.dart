@@ -619,8 +619,8 @@ class _LayoutProductState extends State<LayoutProduct> {
               final isOwner =
                   (currentUserId != null && p.idUser == currentUserId);
               return ProdukCard(
-                badgeLabel: isOwner ? "Milik Anda" : null,
-                images: [p.image],
+                badgeLabel: isOwner ? "Milik Anda" : p.kategori,
+                images: p.images,
                 namaProduk: p.namaProduk,
                 namaToko: p.namaToko,
                 fotoToko: p.fotoToko,
@@ -714,3 +714,4 @@ class _ShimmerCardState extends State<_ShimmerCard>
     );
   }
 }
+
