@@ -132,8 +132,14 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
 
   Widget _buildImageSection() {
     final habis = widget.stok <= 0;
-    final List<String> displayImages =
+    List<String> displayImages =
         widget.images.where((e) => e.isNotEmpty).toList();
+        
+    // --- TEMPORARY FIX ---
+    if (displayImages.length == 1) {
+      displayImages = [displayImages[0], displayImages[0]];
+    }
+        
     final bool hasMultiple = displayImages.length > 1;
 
     return Stack(

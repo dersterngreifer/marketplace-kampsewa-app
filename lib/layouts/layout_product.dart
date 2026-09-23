@@ -518,7 +518,7 @@ class _LayoutProductState extends State<LayoutProduct> {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.48,
+              mainAxisExtent: 340,
               crossAxisSpacing: 10,
               mainAxisSpacing: 12,
             ),
@@ -608,7 +608,7 @@ class _LayoutProductState extends State<LayoutProduct> {
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.48,
+            mainAxisExtent: 340,
             crossAxisSpacing: 10,
             mainAxisSpacing: 12,
           ),
@@ -714,4 +714,5 @@ class _ShimmerCardState extends State<_ShimmerCard>
     );
   }
 }
+
 
