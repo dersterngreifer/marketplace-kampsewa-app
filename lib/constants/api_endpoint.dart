@@ -1,11 +1,11 @@
 class ApiEndpoints {
-  static const String baseUrl = "http://192.168.0.2:8000";
+  static const String baseUrl = "http://192.168.0.3:8000";
   static AuthEndPoints authendpoints = AuthEndPoints();
 }
 
-String getImageUrl(String? imageUrl) {
+String getImageUrl(String? imageUrl, {bool fallbackAvatar = true}) {
   if (imageUrl == null || imageUrl.isEmpty) {
-    return 'https://ui-avatars.com/api/?name=User&background=random';
+    return fallbackAvatar ? 'https://ui-avatars.com/api/?name=User&background=random' : '';
   }
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
     return imageUrl;
@@ -15,6 +15,25 @@ String getImageUrl(String? imageUrl) {
   // the specific folder paths like /assets/image/customers/profile/
   // So we just return the raw filename.
   return imageUrl;
+}
+
+String resolveFullUrl(String path, String defaultPrefix) {
+  if (path.isEmpty) return '';
+  path = path.trim();
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  
+  if (path.startsWith('/')) path = path.substring(1);
+  
+  String cleanPrefix = defaultPrefix.startsWith('/') ? defaultPrefix.substring(1) : defaultPrefix;
+  if (path.startsWith(cleanPrefix)) {
+    return '${ApiEndpoints.baseUrl}/$path';
+  }
+  
+  if (path.startsWith('assets/') || path.startsWith('storage/')) {
+    return '${ApiEndpoints.baseUrl}/$path';
+  }
+  
+  return '${ApiEndpoints.baseUrl}$defaultPrefix$path';
 }
 
 String getFotoIdentitasUrl(String? filename) {

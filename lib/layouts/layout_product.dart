@@ -24,31 +24,9 @@ class _LayoutProductState extends State<LayoutProduct> {
   TeksSearchController textSearchController = Get.put(TeksSearchController());
   TextEditingController searchController = TextEditingController();
 
-  final List<_KategoriItem> _kategoriList = const [
-    _KategoriItem(label: 'Semua', icon: Icons.apps_rounded, param: ''),
-    _KategoriItem(
-        label: 'Rekomendasi',
-        icon: Icons.thumb_up_rounded,
-        param: 'rekomendasi'),
-    _KategoriItem(
-        label: 'Terbaru', icon: Icons.fiber_new_rounded, param: 'terbaru'),
-    _KategoriItem(
-        label: 'Termurah',
-        icon: Icons.trending_down_rounded,
-        param: 'termurah'),
-    _KategoriItem(
-        label: 'Termahal',
-        icon: Icons.workspace_premium_rounded,
-        param: 'termahal'),
-    _KategoriItem(label: 'Tenda', icon: Icons.house_rounded, param: 'tenda'),
-    _KategoriItem(
-        label: 'Pakaian', icon: Icons.checkroom_rounded, param: 'pakaian'),
-    _KategoriItem(
-        label: 'Peralatan', icon: Icons.build_rounded, param: 'peralatan'),
-  ];
-
   String filterKategoriLabel = 'Semua';
   String filterKategoriParam = '';
+  String sortMode = 'rekomendasi'; // rekomendasi, terbaru, termurah, termahal
 
   // Separate loading state for this page's product list
   final RxBool _isLoading = true.obs;
@@ -67,7 +45,20 @@ class _LayoutProductState extends State<LayoutProduct> {
           : textSearchController.searchTeks.value,
       filterKategoriParam.isEmpty ? null : filterKategoriParam,
     );
+    _applySorting();
     _isLoading.value = false;
+  }
+
+  void _applySorting() {
+    final sortedList = apiProduk.listProduk.toList();
+    if (sortMode == 'termurah') {
+      sortedList.sort((a, b) => a.harga.compareTo(b.harga));
+    } else if (sortMode == 'termahal') {
+      sortedList.sort((a, b) => b.harga.compareTo(a.harga));
+    } else if (sortMode == 'terbaru') {
+      sortedList.sort((a, b) => b.idProduk.compareTo(a.idProduk));
+    }
+    apiProduk.listProduk.assignAll(sortedList);
   }
 
   void _filterProduk(String label, String param) {
@@ -97,6 +88,9 @@ class _LayoutProductState extends State<LayoutProduct> {
       if (searchController.text != value) searchController.text = value;
     });
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      apiProduk.getListKategori();
+    });
     _fetchData();
 
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -318,74 +312,68 @@ class _LayoutProductState extends State<LayoutProduct> {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: SizedBox(
         height: 48,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          scrollDirection: Axis.horizontal,
-          // clipBehavior: Clip.none so shadows are not cut off
-          clipBehavior: Clip.none,
-          itemCount: _kategoriList.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (context, index) {
-            final item = _kategoriList[index];
-            final isSelected = filterKategoriLabel == item.label;
-            return GestureDetector(
-              onTap: () => _filterProduk(item.label, item.param),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF2C4E40)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
+        child: Obx(() {
+          final List<String> categories = ['Semua', ...apiProduk.listKategori];
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            itemCount: categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final cat = categories[index];
+              final isSelected = filterKategoriLabel == cat;
+              return GestureDetector(
+                onTap: () => _filterProduk(cat, cat == 'Semua' ? '' : cat),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFF2C4E40)
-                        : Colors.grey.shade300,
-                    width: 1.2,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color:
-                                const Color(0xFF2C4E40).withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          )
-                        ]
-                      : null,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      item.icon,
-                      size: 13,
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
                       color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF9E9E9E),
+                          ? const Color(0xFF2C4E40)
+                          : Colors.grey.shade300,
+                      width: 1.2,
                     ),
-                    const SizedBox(width: 5),
-                    Text(
-                      item.label,
-                      style: AppColors.fontStyle(
-                        fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : const Color(0xFF9E9E9E),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color:
+                                  const Color(0xFF2C4E40).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            )
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        cat,
+                        style: AppColors.fontStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF9E9E9E),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
+              );
+            },
+          );
+        }),
       ),
     );
   }
@@ -426,37 +414,98 @@ class _LayoutProductState extends State<LayoutProduct> {
               }),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.swap_vert_rounded,
-                    size: 16, color: Color(0xFFBDBDBD)),
-                const SizedBox(width: 5),
-                Text(
-                  "Urutkan",
-                  style: AppColors.fontStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFBDBDBD),
+          GestureDetector(
+            onTap: _showSortBottomSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.swap_vert_rounded,
+                      size: 16, color: Color(0xFFBDBDBD)),
+                  const SizedBox(width: 5),
+                  Text(
+                    "Urutkan",
+                    style: AppColors.fontStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFBDBDBD),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Text(
+                "Urutkan Berdasarkan",
+                style: AppColors.fontStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2F2828),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSortOption('Rekomendasi', 'rekomendasi'),
+              _buildSortOption('Terbaru', 'terbaru'),
+              _buildSortOption('Termurah', 'termurah'),
+              _buildSortOption('Termahal', 'termahal'),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSortOption(String label, String value) {
+    final isSelected = sortMode == value;
+    return ListTile(
+      title: Text(
+        label,
+        style: AppColors.fontStyle(
+          fontSize: 14,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          color: isSelected ? const Color(0xFF2C4E40) : const Color(0xFF2F2828),
+        ),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2C4E40))
+          : null,
+      onTap: () {
+        setState(() {
+          sortMode = value;
+        });
+        _applySorting();
+        Get.back();
+      },
     );
   }
 

@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/components/card/produk_card.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_product.dart';
 import 'package:project_camp_sewa/models/produk_model.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:shimmer/shimmer.dart';
@@ -139,13 +140,13 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
 
   Widget _buildShimmerLoading() {
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 24),
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 24),
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.48,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 12,
+        mainAxisExtent: 340,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 10,
       ),
       itemCount: 4,
       itemBuilder: (context, index) {
@@ -191,32 +192,41 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
       }
 
       return GridView.builder(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 24),
+        padding: const EdgeInsets.fromLTRB(6, 0, 6, 24),
         physics: const BouncingScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.48,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 12,
+          mainAxisExtent: 340,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 10,
         ),
         itemCount: listProduk.length,
         itemBuilder: (context, index) {
           final ProdukModel p = listProduk[index];
           return ProdukCard(
-            images: [p.image],
+            images: p.images,
             namaProduk: p.namaProduk,
             harga: p.harga.toString(),
             rating: p.rating.toString(),
             stok: p.stok,
             jumlahReview: p.jumlahReview,
             isFavorite: p.isFavorite,
+            badgeLabel: "Milik Anda", // Disable sewa button and show badge
+            namaToko: p.namaToko,
+            fotoToko: p.fotoToko,
+            ratingToko: p.ratingToko,
             aksi: () {
+              // Ensure idToko matches current user so LayoutDetailProduct recognizes it as own product
+              final currentUserId =
+                  Get.find<ApiDataUser>().dataUser.value?.id ?? p.idUser;
               Get.to(const LayoutDetailProduct(), arguments: {
-                'idToko': p.idUser,
+                'idToko': currentUserId,
                 'idProduk': p.idProduk,
                 'namaProduk': p.namaProduk,
                 'fotoProduk': p.image,
                 'namaToko': p.namaToko,
+                'fotoToko': p.fotoToko,
+                'ratingToko': p.ratingToko,
               });
             },
             aksiKeranjang: () {
@@ -235,7 +245,3 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
     });
   }
 }
-
-
-
-

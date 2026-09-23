@@ -68,9 +68,7 @@ class _CheckoutProdukCardState extends State<CheckoutProdukCard> {
                           : widget.image!.startsWith('assets/')
                               ? Image.asset(widget.image!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image))
                               : Image.network(
-                                  widget.image!.startsWith('http')
-                                      ? widget.image!
-                                      : ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getImageProduk + widget.image!,
+                                  resolveFullUrl(widget.image!, ApiEndpoints.authendpoints.getImageProduk),
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
                                 ),

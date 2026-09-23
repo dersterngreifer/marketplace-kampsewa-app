@@ -26,6 +26,7 @@ class ApiProduk extends GetxController {
   var uniqueSizes = <String>[].obs;
   var colors = <String>[].obs;
   var imageDetailProduk = <String>[].obs;
+  final RxList<String> listKategori = <String>[].obs;
 
   Future<void> getProdukRekomendasiPencarian(BuildContext context) async {
     try {
@@ -60,9 +61,11 @@ class ApiProduk extends GetxController {
         listProdukRekomendasi.clear();
       }
     } catch (error) {
-        String msg = "Gagal memuat produk";
-        if (error is DioException) msg = error.message ?? msg;
-        else msg = error.toString();
+      String msg = "Gagal memuat produk";
+      if (error is DioException)
+        msg = error.message ?? msg;
+      else
+        msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -114,9 +117,11 @@ class ApiProduk extends GetxController {
         listProdukHome.clear();
       }
     } catch (error) {
-        String msg = "Gagal memuat produk";
-        if (error is DioException) msg = error.message ?? msg;
-        else msg = error.toString();
+      String msg = "Gagal memuat produk";
+      if (error is DioException)
+        msg = error.message ?? msg;
+      else
+        msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -183,9 +188,11 @@ class ApiProduk extends GetxController {
         listProduk.clear();
       }
     } catch (error) {
-        String msg = "Gagal memuat produk";
-        if (error is DioException) msg = error.message ?? msg;
-        else msg = error.toString();
+      String msg = "Gagal memuat produk";
+      if (error is DioException)
+        msg = error.message ?? msg;
+      else
+        msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -236,9 +243,11 @@ class ApiProduk extends GetxController {
         listUserProduk.clear();
       }
     } catch (error) {
-        String msg = "Gagal memuat produk";
-        if (error is DioException) msg = error.message ?? msg;
-        else msg = error.toString();
+      String msg = "Gagal memuat produk";
+      if (error is DioException)
+        msg = error.message ?? msg;
+      else
+        msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -295,11 +304,10 @@ class ApiProduk extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200) {
-        List<VariantProductModel> variants =
-            (data['all_variants'] as List)
-                .map((variantJson) => VariantProductModel.fromJson(
-                    variantJson as Map<String, dynamic>))
-                .toList();
+        List<VariantProductModel> variants = (data['all_variants'] as List)
+            .map((variantJson) => VariantProductModel.fromJson(
+                variantJson as Map<String, dynamic>))
+            .toList();
 
         groupedByColor.clear();
 
@@ -317,13 +325,18 @@ class ApiProduk extends GetxController {
         updateAllUniqueSizes();
         updateColors();
       } else {
-        CustomSnackBar.show(context, sukses: false,
-              teks: "Data Produk Gagal Dimuat",);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: "Data Produk Gagal Dimuat",
+        );
       }
     } catch (error) {
-        String msg = "Gagal memuat produk";
-        if (error is DioException) msg = error.message ?? msg;
-        else msg = error.toString();
+      String msg = "Gagal memuat produk";
+      if (error is DioException)
+        msg = error.message ?? msg;
+      else
+        msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -400,41 +413,52 @@ class ApiProduk extends GetxController {
 
       if (response.statusCode == 200) {
         var detailData = data['detail_produk'];
-          if (detailData is List && detailData.isNotEmpty) detailData = detailData[0];
-          detailProduk.value = DetailProdukModel.fromJson(detailData);
+        if (detailData is List && detailData.isNotEmpty)
+          detailData = detailData[0];
+        detailProduk.value = DetailProdukModel.fromJson(detailData);
 
-        if(data['detail_produk'] != null){
+        if (data['detail_produk'] != null) {
           List<String> rawImages = [
             detailProduk.value!.fotoDepan,
             detailProduk.value!.fotoBelakang,
             detailProduk.value!.fotoKiri,
             detailProduk.value!.fotoKanan,
-          ];
+          ].where((u) => u.isNotEmpty).toList();
 
-          if (detailData['foto_array'] != null) {
-            var additional = (detailData['foto_array'] as List)
-                .map((e) => e['url'].toString())
-                .toList();
-            rawImages.addAll(additional);
+          if (detailProduk.value!.fotoArray.isNotEmpty) {
+            rawImages.addAll(detailProduk.value!.fotoArray);
           }
 
-          imageDetailProduk.assignAll(rawImages.where((url) => 
-              url.isNotEmpty && 
-              !url.contains('ui-avatars.com') && 
-              url != 'Belum di isi'
-          ).toList());
+
+          imageDetailProduk.assignAll(rawImages
+              .map((url) {
+                if (url.startsWith('[') && url.endsWith(']')) {
+                  return url
+                      .replaceAll(RegExp(r'[\[\]\"]'), '')
+                      .split(',')
+                      .first;
+                }
+                return url;
+              })
+              .where((url) => url.isNotEmpty)
+              .toList());
         } else {
           detailProduk.value = null;
           imageDetailProduk.clear();
         }
       } else {
-        CustomSnackBar.show(context, sukses: false,
-              teks: "Data Produk Gagal Dimuat",);
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: "Data Produk Gagal Dimuat",
+        );
       }
     } catch (error) {
-        String msg = "Gagal memuat produk";
-        if (error is DioException) msg = error.message ?? msg;
-        else msg = error.toString();
+      String msg = "Gagal memuat produk";
+      if (error is DioException)
+        msg = error.message ?? msg;
+      else
+        msg = error.toString();
       if (context.mounted) {
         showDialog(
             context: context,
@@ -450,5 +474,34 @@ class ApiProduk extends GetxController {
       }
     }
   }
-}
 
+  Future<void> getListKategori() async {
+    try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      var url = "${ApiEndpoints.baseUrl}/api/produk/list-kategori";
+
+      final response = await dio.get(url,
+          options: Options(
+            headers: header,
+            validateStatus: (status) => status! < 500,
+          ));
+
+      final Map<String, dynamic> data =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200 && data['data'] != null) {
+        List<String> kats = List<String>.from(data['data']);
+        listKategori.assignAll(kats);
+      } else {
+        listKategori.clear();
+      }
+    } catch (e) {
+      listKategori.clear();
+    }
+  }
+}

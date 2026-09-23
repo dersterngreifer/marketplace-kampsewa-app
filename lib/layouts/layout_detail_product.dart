@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart' hide CarouselController;
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
@@ -11,6 +10,7 @@ import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/constants/database_helper.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
+import 'package:project_camp_sewa/layouts/layout_ulasan_produk.dart';
 
 class LayoutDetailProduct extends StatefulWidget {
   const LayoutDetailProduct({super.key});
@@ -21,7 +21,8 @@ class LayoutDetailProduct extends StatefulWidget {
 
 class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   final ApiProduk apiProduk = Get.put(ApiProduk());
-  final CarouselSliderController carouselController = CarouselSliderController();
+  // PageController dikelola secara lokal di _buildSliverAppBar
+  // agar tidak stale saat imageList berubah panjang
   
   int currentIndex = 0;
   int quantity = 1;
@@ -201,20 +202,35 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   }
 
   Widget _buildBody() {
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        _buildSliverAppBar(),
-        SliverToBoxAdapter(
-          child: _buildProductInfo(),
+    try {
+      return CustomScrollView(
+        physics: const ClampingScrollPhysics(),
+        slivers: [
+          _buildSliverAppBar(),
+          SliverToBoxAdapter(
+            child: _buildProductInfo(),
+          ),
+        ],
+      );
+    } catch (e, stack) {
+      debugPrint('Error building detail produk: $e\n$stack');
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('Terjadi kesalahan menampilkan produk.\n$e',
+              textAlign: TextAlign.center,
+              style: AppColors.fontStyle(fontSize: 13, color: Colors.red)),
         ),
-      ],
-    );
+      );
+    }
   }
 
   Widget _buildSliverAppBar() {
+    const double thumbStripHeight = 76.0;
+    final double imgHeight = MediaQuery.of(context).size.width;
+
     return SliverAppBar(
-      expandedHeight: MediaQuery.of(context).size.width,
+      expandedHeight: imgHeight + thumbStripHeight,
       pinned: true,
       backgroundColor: Colors.white,
       elevation: 0,
@@ -224,67 +240,156 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
           onTap: () => Get.back(),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: Colors.white.withValues(alpha: 0.85),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF2F2828), size: 20),
+            child: const Icon(Icons.arrow_back_ios_new_rounded,
+                color: Color(0xFF2F2828), size: 20),
           ),
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: Obx(() {
-          List<String> imageList = apiProduk.imageDetailProduk;
+          List<String> imageList = apiProduk.imageDetailProduk
+              .where((u) => u.isNotEmpty)
+              .toList();
           if (imageList.isEmpty && fotoProduk != null) {
             imageList = [fotoProduk!];
           }
           if (imageList.isEmpty) {
-            return const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey));
+            return Container(
+              color: const Color(0xFFF0F2F1),
+              child: const Center(
+                child: Icon(Icons.image_not_supported,
+                    size: 50, color: Colors.grey),
+              ),
+            );
           }
-          return Stack(
+
+          final pageCtrl = PageController(initialPage: currentIndex);
+
+          return Column(
             children: [
-              CarouselSlider(
-                items: imageList.map((item) {
-                  final fullUrl = item.startsWith('http') 
-                      ? item 
-                      : ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getImageProduk + item;
-                  return Image.network(
-                    fullUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.error)),
-                  );
-                }).toList(),
-                carouselController: carouselController,
-                options: CarouselOptions(
-                  height: MediaQuery.of(context).size.width,
-                  viewportFraction: 1,
-                  onPageChanged: (index, reason) {
-                    setState(() {
-                      currentIndex = index;
-                    });
-                  },
+              // ── Gambar Utama ──
+              SizedBox(
+                height: imgHeight,
+                child: Stack(
+                  children: [
+                    PageView.builder(
+                      controller: pageCtrl,
+                      itemCount: imageList.length,
+                      onPageChanged: (i) => setState(() => currentIndex = i),
+                      itemBuilder: (_, i) {
+                        final fullUrl = resolveFullUrl(
+                            imageList[i],
+                            ApiEndpoints.authendpoints.getImageProduk);
+                        return Image.network(
+                          fullUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          loadingBuilder: (_, child, progress) =>
+                              progress == null
+                                  ? child
+                                  : Container(
+                                      color: const Color(0xFFF0F2F1),
+                                      child: const Center(
+                                        child: Icon(Icons.image_rounded,
+                                            color: Color(0xFFBDBDBD),
+                                            size: 48),
+                                      ),
+                                    ),
+                          errorBuilder: (_, __, ___) => Container(
+                            color: const Color(0xFFF0F2F1),
+                            child: const Center(
+                              child: Icon(Icons.broken_image_rounded,
+                                  color: Color(0xFFBDBDBD), size: 48),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    // Counter badge "2 / 4"
+                    if (imageList.length > 1)
+                      Positioned(
+                        bottom: 12,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${currentIndex + 1} / ${imageList.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              Positioned(
-                bottom: 20,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: imageList.asMap().entries.map((entry) {
-                    return Container(
-                      width: currentIndex == entry.key ? 20 : 8,
-                      height: 8,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        color: currentIndex == entry.key
-                            ? AppColors.mainColor
-                            : Colors.white.withValues(alpha: 0.6),
-                      ),
-                    );
-                  }).toList(),
-                ),
+
+              // ── Thumbnail Strip ──
+              Container(
+                height: thumbStripHeight,
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                child: imageList.length > 1
+                    ? ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: imageList.length,
+                        itemBuilder: (_, i) {
+                          final isActive = currentIndex == i;
+                          final fullUrl = resolveFullUrl(
+                              imageList[i],
+                              ApiEndpoints.authendpoints.getImageProduk);
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() => currentIndex = i);
+                              pageCtrl.animateToPage(
+                                i,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 52,
+                              height: 52,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isActive
+                                      ? AppColors.mainColor
+                                      : Colors.grey.shade300,
+                                  width: isActive ? 2.5 : 1,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  fullUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: const Color(0xFFF0F2F1),
+                                    child: const Icon(Icons.image_rounded,
+                                        size: 20,
+                                        color: Color(0xFFBDBDBD)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : const SizedBox.shrink(),
               ),
             ],
           );
@@ -612,49 +717,382 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                 ),
               ],
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 40),
             
-            // Terms & Conditions (Static for now, but formatted nicely)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(MdiIcons.shieldCheckOutline, color: AppColors.mainColor, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Syarat dan Ketentuan",
-                        style: AppColors.fontStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF2F2828),
-                        ),
+            // Input Ulasan Form (Hanya untuk non-owner)
+            Obx(() {
+              final currentUserId = Get.find<ApiDataUser>().dataUser.value?.id;
+              final isOwner = (currentUserId != null && idToko == currentUserId);
+              
+              if (isOwner) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Berikan Ulasan Anda",
+                      style: AppColors.fontStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF2F2828),
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0), // Orange muda
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFFB74D)), // Orange border
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline_rounded, color: Color(0xFFF57C00), size: 24),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              "Anda sebagai pemilik produk ini tidak bisa memberikan rating dan ulasan.",
+                              style: AppColors.fontStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFFE65100),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                );
+              }
+              
+              return Column(
+                children: [
+                  _buildReviewForm(),
+                  const SizedBox(height: 40),
+                ],
+              );
+            }),
+
+            // Ulasan List
+            _buildUlasanList(),
+            const SizedBox(height: 40),
+
+            // Terms & Conditions (Static for now, but formatted nicely)
+            _buildSyaratKetentuan(),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Berikan Ulasan Anda",
+          style: AppColors.fontStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF2F2828),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    "Rating:",
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "1. Menjaminkan Kartu identitas saat pengambilan (KTP, KTM, Kartu Pelajar).\n2. Kerusakan, kehilangan, dan keterlambatan akan dikenakan denda.\n3. Keterlambatan maksimal 2 jam setelah masa sewa habis.",
-                    style: AppColors.fontStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF616161),
-                      height: 1.5,
+                  const SizedBox(width: 8),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (index) => const Icon(
+                        Icons.star_border_rounded,
+                        color: Color(0xFFBDBDBD),
+                        size: 28,
+                      ),
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              TextField(
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: "Tulis ulasan Anda di sini...",
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.mainColor),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      CustomSnackBar.show(context, sukses: true, title: "Info", teks: "Fitur upload foto segera hadir");
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F2F1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.add_a_photo_outlined, size: 16, color: Color(0xFF616161)),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Tambah Foto",
+                            style: AppColors.fontStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF616161),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  InkWell(
+                    onTap: () {
+                      CustomSnackBar.show(context, sukses: true, title: "Berhasil", teks: "Ulasan berhasil dikirim!");
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.mainColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "Kirim",
+                        style: AppColors.fontStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUlasanList() {
+    final dummyReviews = List.generate(10, (index) => {
+      'user': 'Pembeli ${index + 1}',
+      'rating': 5,
+      'date': '12 Sep 2023',
+      'comment': 'Barang sangat bagus dan berkualitas. Cocok untuk camping keluarga.',
+      'photos': [
+        'https://picsum.photos/200/200?random=$index',
+      ],
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Ulasan Pembeli",
+              style: AppColors.fontStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF2F2828),
+              ),
             ),
-            const SizedBox(height: 40),
+            InkWell(
+              onTap: () {
+                Get.to(() => LayoutUlasanProduk(namaProduk: namaProduk ?? 'Produk'));
+              },
+              child: Text(
+                "Lihat Semua",
+                style: AppColors.fontStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mainColor,
+                ),
+              ),
+            ),
           ],
         ),
+        const SizedBox(height: 16),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: 3, // Tampilkan 3 saja di preview detail
+          separatorBuilder: (_, __) => const Divider(height: 32, thickness: 1),
+          itemBuilder: (context, index) {
+            final review = dummyReviews[index];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: Colors.grey.shade300,
+                      child: const Icon(Icons.person, size: 18, color: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        review['user'] as String,
+                        style: AppColors.fontStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF2F2828),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      review['date'] as String,
+                      style: AppColors.fontStyle(
+                        fontSize: 11,
+                        color: const Color(0xFF8E8E8E),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: List.generate(
+                    5,
+                    (starIndex) => Icon(
+                      Icons.star_rounded,
+                      size: 14,
+                      color: starIndex < (review['rating'] as int)
+                          ? const Color(0xFFFFC107)
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  review['comment'] as String,
+                  style: AppColors.fontStyle(
+                    fontSize: 13,
+                    color: const Color(0xFF2F2828),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: (review['photos'] as List<String>).map((photo) => Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: DecorationImage(
+                        image: NetworkImage(photo),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  )).toList(),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () {
+              Get.to(() => LayoutUlasanProduk(namaProduk: namaProduk ?? 'Produk'));
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              side: BorderSide(color: Colors.grey.shade300),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              "Lihat Semua Ulasan",
+              style: AppColors.fontStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF2F2828),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSyaratKetentuan() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(MdiIcons.shieldCheckOutline, color: AppColors.mainColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                "Syarat dan Ketentuan",
+                style: AppColors.fontStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2F2828),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "1. Menjaminkan Kartu identitas saat pengambilan (KTP, KTM, Kartu Pelajar).\n2. Kerusakan, kehilangan, dan keterlambatan akan dikenakan denda.\n3. Keterlambatan maksimal 2 jam setelah masa sewa habis.",
+            style: AppColors.fontStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF616161),
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -736,18 +1174,23 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
+                  color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Center(
-                  child: Text(
-                    "Milik Anda",
-                    style: AppColors.fontStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1976D2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shopping_cart_outlined, color: Colors.grey, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Milik Anda",
+                      style: AppColors.fontStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               )
             else
@@ -780,6 +1223,7 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20),
                     const SizedBox(width: 8),

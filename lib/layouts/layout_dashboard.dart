@@ -799,26 +799,31 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             return _buildEmptyProduct();
           }
 
-          final displayCount = listProduk.length > 6 ? 6 : listProduk.length;
-
           return GridView.builder(
             padding:
-                const EdgeInsets.only(left: 10, right: 10, bottom: 20, top: 4),
+                const EdgeInsets.only(left: 6, right: 6, bottom: 20, top: 4),
             clipBehavior: Clip.none,
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.48,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 12,
+              mainAxisExtent: 340,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 10,
             ),
-            itemCount: displayCount,
+            itemCount: listProduk.length,
             itemBuilder: (context, index) {
               final p = listProduk[index];
+              final currentUserId = Get.find<ApiDataUser>().dataUser.value?.id;
+              final isOwner = (currentUserId != null && p.idUser == currentUserId);
+              
               return ProdukTerlarisDashboard(
-                images: [p.image],
+                badgeLabel: isOwner ? "Milik Anda" : p.kategori,
+                images: p.images,
                 namaProduk: p.namaProduk,
+                namaToko: p.namaToko,
+                fotoToko: p.fotoToko,
+                ratingToko: p.ratingToko,
                 harga: p.harga.toString(),
                 rating: p.rating.toString(),
                 stok: p.stok,
@@ -901,15 +906,15 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   /// Skeleton shimmer untuk grid produk saat loading
   Widget _buildProductShimmer() {
     return GridView.builder(
-      padding: const EdgeInsets.only(left: 10, right: 10, bottom: 20, top: 4),
+      padding: const EdgeInsets.only(left: 6, right: 6, bottom: 20, top: 4),
       clipBehavior: Clip.none,
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.48,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 12,
+        mainAxisExtent: 340,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 10,
       ),
       itemCount: 4,
       itemBuilder: (context, index) =>

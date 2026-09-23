@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 
 class ProdukModel {
@@ -7,7 +8,9 @@ class ProdukModel {
   final String? fotoToko;
   final double ratingToko;
   final String namaProduk;
+  final String kategori;
   final String image;
+  final List<String> images;
   final String rating;
   final int harga;
   final int stok;
@@ -21,7 +24,9 @@ class ProdukModel {
     this.fotoToko,
     this.ratingToko = 0.0,
     required this.namaProduk,
+    this.kategori = 'Lainnya',
     required this.image,
+    required this.images,
     required this.rating,
     required this.harga,
     this.stok = 0,
@@ -30,14 +35,64 @@ class ProdukModel {
   });
 
   factory ProdukModel.fromJson(Map<String, dynamic> json) {
+    String rawImage = json['foto_depan']?.toString() ?? '';
+    if (rawImage.startsWith('[') && rawImage.endsWith(']')) {
+      rawImage = rawImage.replaceAll(RegExp(r'[\[\]\"]'), '').split(',').first;
+    }
+    
+    List<String> parsedImages = [];
+    
+    // Jika backend memberikan field 'images' berupa array (solusi baru)
+    if (json['images'] is List) {
+      parsedImages = (json['images'] as List).map((e) {
+        if (e is Map) return e['url']?.toString() ?? '';
+        return e.toString();
+      }).where((url) => url.isNotEmpty && url != 'null' && url != 'Belum di isi').toList();
+    } 
+    
+    // Fallback parsing jika field 'images' array tidak ada / kosong
+    if (parsedImages.isEmpty) {
+      parsedImages.add(getImageUrl(rawImage));
+      
+      final fotoBelakang = json['foto_belakang']?.toString() ?? '';
+      if (fotoBelakang.isNotEmpty && fotoBelakang != 'Belum di isi') parsedImages.add(getImageUrl(fotoBelakang));
+      
+      final fotoKiri = json['foto_kiri']?.toString() ?? '';
+      if (fotoKiri.isNotEmpty && fotoKiri != 'Belum di isi') parsedImages.add(getImageUrl(fotoKiri));
+      
+      final fotoKanan = json['foto_kanan']?.toString() ?? '';
+      if (fotoKanan.isNotEmpty && fotoKanan != 'Belum di isi') parsedImages.add(getImageUrl(fotoKanan));
+
+      if (json['foto_array'] != null) {
+        var arr = json['foto_array'];
+        if (arr is String) {
+          try {
+            arr = jsonDecode(arr);
+          } catch (_) {}
+        }
+        if (arr is Map) {
+          arr = arr.values.toList();
+        }
+        if (arr is List) {
+          var parsedArr = arr.map<String>((e) {
+            if (e is Map) return e['url']?.toString() ?? '';
+            return e.toString();
+          }).where((url) => url.isNotEmpty && url != 'null' && url != 'Belum di isi').toList();
+          parsedImages.addAll(parsedArr);
+        }
+      }
+    }
+
     return ProdukModel(
       idProduk: json['id_produk'] is int ? json['id_produk'] : int.tryParse(json['id_produk']?.toString() ?? '0') ?? 0,
       idUser: json['id_user'] is int ? json['id_user'] : int.tryParse(json['id_user']?.toString() ?? '0') ?? 0,
       namaToko: json['nama_toko']?.toString() ?? 'Toko Tidak Dikenal',
-        fotoToko: json['foto_toko']?.toString(),
-        ratingToko: double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
+      fotoToko: json['foto_toko']?.toString(),
+      ratingToko: double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
       namaProduk: json['nama_produk']?.toString() ?? '',
-      image: getImageUrl(json['foto_depan']),
+      kategori: json['kategori']?.toString() ?? 'Lainnya',
+      image: getImageUrl(rawImage),
+      images: parsedImages,
       rating: json['rata_rating']?.toString() ?? '0.0',
       harga: json['harga_sewa'] is int ? json['harga_sewa'] : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0,
       stok: json['stok'] is int ? json['stok'] : int.tryParse(json['stok']?.toString() ?? '0') ?? 0,
