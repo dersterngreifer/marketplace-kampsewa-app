@@ -46,6 +46,8 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
     with SingleTickerProviderStateMixin {
   static const Color _dark = Color(0xFF1A1A1A);
   static const Color _grey = Color(0xFF8E8E8E);
+  static const Color _green = Color(0xFF2C4E40);
+  static const double _radius = 16;
 
   late AnimationController _pressController;
   late Animation<double> _scaleAnim;
@@ -84,62 +86,54 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
+        borderRadius: BorderRadius.circular(_radius),
+        boxShadow: const [
           BoxShadow(
-            color: Color(0x0D000000), // rgba(0,0,0,0.05)
+            color: Color(0x14000000),
             offset: Offset(0, 6),
-            blurRadius: 24,
+            blurRadius: 20,
             spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Color(0x14000000), // rgba(0,0,0,0.08)
-            offset: Offset(0, 0),
-            blurRadius: 0,
-            spreadRadius: 1,
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Gambar 1:1 ratio ──
-          AspectRatio(
-            aspectRatio: 1.0,
-            child: _buildImageSection(),
-          ),
-          // ── Info: area tap untuk navigasi ──
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapDown: (_) => _pressController.forward(),
-              onTapUp: (_) {
-                _pressController.reverse();
-                widget.aksi();
-              },
-              onTapCancel: () => _pressController.reverse(),
-              child: ScaleTransition(
-                scale: _scaleAnim,
-                child: _buildInfoSection(),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(_radius),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Gambar 1:1 ratio ──
+            AspectRatio(
+              aspectRatio: 1.0,
+              child: _buildImageSection(),
+            ),
+            // ── Info: area tap untuk navigasi ──
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (_) => _pressController.forward(),
+                onTapUp: (_) {
+                  _pressController.reverse();
+                  widget.aksi();
+                },
+                onTapCancel: () => _pressController.reverse(),
+                child: ScaleTransition(
+                  scale: _scaleAnim,
+                  child: _buildInfoSection(),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildImageSection() {
     final habis = widget.stok <= 0;
-    List<String> displayImages =
+    final List<String> displayImages =
         widget.images.where((e) => e.isNotEmpty).toList();
-        
-    // --- TEMPORARY FIX ---
-    if (displayImages.length == 1) {
-      displayImages = [displayImages[0], displayImages[0]];
-    }
-        
     final bool hasMultiple = displayImages.length > 1;
 
     return Stack(
@@ -153,10 +147,8 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                 child: PageView.builder(
                   controller: _pageController,
                   itemCount: displayImages.length,
-                  onPageChanged: (i) =>
-                      setState(() => _currentImageIndex = i),
-                  itemBuilder: (_, i) =>
-                      _buildSingleImage(displayImages[i]),
+                  onPageChanged: (i) => setState(() => _currentImageIndex = i),
+                  itemBuilder: (_, i) => _buildSingleImage(displayImages[i]),
                 ),
               ),
 
@@ -166,16 +158,15 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             color: Colors.black.withValues(alpha: 0.45),
             alignment: Alignment.center,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'Stok Habis',
                 style: AppColors.fontStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFFEE2737),
                 ),
@@ -183,74 +174,103 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             ),
           ),
 
-        // ── Badge Kiri Atas ──
+        // ── Badge Kiri Atas (diperbesar) ──
         if (!habis && (widget.badgeLabel != null || widget.stok <= 5))
           Positioned(
-            top: 8,
-            left: 8,
+            top: 10,
+            left: 10,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: widget.badgeLabel == 'Milik Anda'
-                    ? const Color(0xFF407BFF) // Biru
-                    : widget.badgeLabel != null 
-                        ? const Color(0xFF2C4E40) // Hijau gelap (mainColor) untuk kategori
-                        : const Color(0xFFED6723), // Orange untuk sisa stok
-                borderRadius: BorderRadius.circular(4),
+                    ? const Color(0xFF407BFF)
+                    : widget.badgeLabel != null
+                        ? _green
+                        : const Color(0xFFED6723),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x26000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Text(
                 widget.badgeLabel ?? 'Sisa ${widget.stok}',
                 style: AppColors.fontStyle(
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
+                  letterSpacing: 0.1,
                 ),
               ),
             ),
           ),
 
-        // ── Badge Terlaris ──
+        // ── Badge Terlaris (diperbesar) ──
         if (!habis && widget.badgeLabel == null && widget.stok > 5)
           Positioned(
-            top: 8,
-            left: 8,
+            top: 10,
+            left: 10,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(4),
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x26000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Text(
-                'Terlaris',
-                style: AppColors.fontStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.local_fire_department_rounded,
+                      size: 12, color: Color(0xFFFFC107)),
+                  const SizedBox(width: 3),
+                  Text(
+                    'Terlaris',
+                    style: AppColors.fontStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
 
-        // ── Tombol Favorit ──
+        // ── Tombol Favorit (diperbesar) ──
         Positioned(
-          top: 8,
-          right: 8,
+          top: 10,
+          right: 10,
           child: GestureDetector(
             onTap: widget.aksiFavorite,
             child: Container(
-              width: 28,
-              height: 28,
+              width: 36,
+              height: 36,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x26000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Icon(
                 widget.isFavorite
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
-                size: 15,
+                size: 19,
                 color: widget.isFavorite
                     ? const Color(0xFFEE2737)
                     : const Color(0xFF2F2828),
@@ -267,8 +287,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             right: 0,
             child: Center(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(20),
@@ -301,8 +320,8 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
 
   Widget _placeholder() => Container(
         color: const Color(0xFFF0F2F1),
-        child: const Icon(Icons.image_rounded,
-            color: Color(0xFFBDBDBD), size: 36),
+        child:
+            const Icon(Icons.image_rounded, color: Color(0xFFBDBDBD), size: 36),
       );
 
   Widget _buildSingleImage(String imagePath) {
@@ -318,13 +337,44 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
     );
   }
 
+  /// Chip rating ala marketplace: "★ 4.8"
+  Widget _ratingChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF6DE),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFA000)),
+          const SizedBox(width: 3),
+          Text(
+            formatRating(widget.rating),
+            style: AppColors.fontStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF8A5A00),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Catatan:
+  // - Padding & spacing dirapatkan supaya konten selalu muat di dalam
+  //   Expanded walau GridView pakai mainAxisExtent tetap (mis. 340).
+  // - Expanded kosong di tengah menyerap sisa ruang vertikal supaya blok
+  //   harga + tombol selalu menempel rapi di bawah card, bukan menyisakan
+  //   celah kosong di bawah tombol.
   Widget _buildInfoSection() {
     final bisaDitambah = widget.stok > 0 && widget.badgeLabel != 'Milik Anda';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(9, 9, 9, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           // Nama produk
           Text(
@@ -332,26 +382,26 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppColors.fontStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
               color: _dark,
+              height: 1.15,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 5),
 
-          // Rating + Ulasan
+          // Rating chip + jumlah ulasan
           Row(
             children: [
-              const Icon(Icons.star_rounded,
-                  size: 14, color: Color(0xFFFFC107)),
-              const SizedBox(width: 4),
+              _ratingChip(),
+              const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  '${formatRating(widget.rating)}  ·  ${widget.jumlahReview} ulasan',
+                  '${widget.jumlahReview} ulasan',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppColors.fontStyle(
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: _grey,
                   ),
@@ -359,37 +409,47 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 5),
 
           // Nama Toko
           if (widget.namaToko != null)
             Row(
               children: [
-                ClipOval(
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    color: Colors.grey.shade200,
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: ClipOval(
                     child: widget.fotoToko != null
                         ? Image.network(
                             widget.fotoToko!.startsWith('http')
                                 ? widget.fotoToko!
                                 : '${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getFotoProfile}${widget.fotoToko!}',
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.store, size: 10),
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey.shade100,
+                              child: const Icon(Icons.store_rounded,
+                                  size: 9, color: Color(0xFF8E8E8E)),
+                            ),
                           )
-                        : const Icon(Icons.store, size: 10, color: Colors.grey),
+                        : Container(
+                            color: Colors.grey.shade100,
+                            child: const Icon(Icons.store_rounded,
+                                size: 9, color: Color(0xFF8E8E8E)),
+                          ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     widget.namaToko!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppColors.fontStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       color: _grey,
                     ),
@@ -398,7 +458,8 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ],
             ),
 
-          const SizedBox(height: 10),
+          // Spacer fleksibel: mendorong blok harga + tombol ke bawah card
+          const Expanded(child: SizedBox()),
 
           // Harga
           RichText(
@@ -407,7 +468,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             text: TextSpan(
               text: 'Rp ${formatCurrency(widget.harga)}',
               style: AppColors.fontStyle(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w900,
                 color: _dark,
               ),
@@ -415,7 +476,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                 TextSpan(
                   text: ' /hari',
                   style: AppColors.fontStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: _grey,
                   ),
@@ -423,28 +484,26 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // Tombol Sewa
           SizedBox(
             width: double.infinity,
             child: Material(
-              color: bisaDitambah
-                  ? const Color(0xFF2C4E40)
-                  : Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(6),
+              color: bisaDitambah ? _green : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(8),
               child: InkWell(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 onTap: bisaDitambah ? widget.aksiKeranjang : null,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Sewa',
                         style: AppColors.fontStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: bisaDitambah ? Colors.white : Colors.grey,
                         ),
@@ -452,7 +511,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                       const SizedBox(width: 6),
                       Icon(
                         Icons.add_shopping_cart_rounded,
-                        size: 16,
+                        size: 14,
                         color: bisaDitambah ? Colors.white : Colors.grey,
                       ),
                     ],
@@ -466,4 +525,3 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
     );
   }
 }
-
