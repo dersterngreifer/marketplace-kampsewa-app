@@ -25,7 +25,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      apiProduk.getUserProducts(context);
+      apiProduk.getUserProducts(context, filter: filterKategoriParam);
     });
   }
 
@@ -92,6 +92,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
       filterKategoriLabel = label;
       filterKategoriParam = param;
     });
+    apiProduk.getUserProducts(context, filter: param);
   }
 
   Widget _buildWarningCard() {
@@ -177,14 +178,11 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
 
   Widget _buildProductGrid() {
     return Obx(() {
-      final List<ProdukModel> filteredList = filterKategoriParam.isEmpty
-          ? apiProduk.listUserProduk
-          : apiProduk.listUserProduk.where((p) => p.kategori == filterKategoriParam).toList();
       if (apiProduk.isLoadingUserProducts.value) {
         return _buildShimmerLoading();
       }
 
-      final listProduk = filteredList;
+      final listProduk = apiProduk.listUserProduk;
       if (listProduk.isEmpty) {
         return Center(
           child: Column(

@@ -209,7 +209,7 @@ class ApiProduk extends GetxController {
     }
   }
 
-  Future<void> getUserProducts(BuildContext context) async {
+  Future<void> getUserProducts(BuildContext context, {String? filter}) async {
     isLoadingUserProducts.value = true;
     try {
       Authorization auth = Authorization();
@@ -220,6 +220,15 @@ class ApiProduk extends GetxController {
       };
       var url =
           "${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getUserProducts}";
+
+      Map<String, String> queryParams = {};
+      if (filter != null && filter.isNotEmpty && filter != 'Semua') {
+        queryParams['filter'] = filter;
+      }
+      
+      if (queryParams.isNotEmpty) {
+        url += "?${Uri(queryParameters: queryParams).query}";
+      }
 
       final response = await dio.get(url,
           options: Options(
