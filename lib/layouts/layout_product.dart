@@ -645,7 +645,10 @@ class _LayoutProductState extends State<LayoutProduct> {
         );
       }
 
-      final listProduk = apiProduk.listProduk;
+      final List<ProdukModel> filteredList = filterKategoriParam.isEmpty
+          ? apiProduk.listProduk
+          : apiProduk.listProduk.where((p) => p.kategori == filterKategoriParam).toList();
+      final listProduk = filteredList;
 
       // Empty state — only shown after loading completes
       if (listProduk.isEmpty) {
