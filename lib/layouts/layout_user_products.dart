@@ -18,6 +18,8 @@ class LayoutUserProducts extends StatefulWidget {
 
 class _LayoutUserProductsState extends State<LayoutUserProducts> {
   final ApiProduk apiProduk = Get.put(ApiProduk());
+  String filterKategoriLabel = 'Semua';
+  String filterKategoriParam = '';
 
   @override
   void initState() {
@@ -42,6 +44,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
             children: [
               _buildHeader(),
               _buildWarningCard(),
+              _buildCategoryChips(),
               Expanded(
                 child: _buildProductGrid(),
               ),
@@ -81,6 +84,14 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
         ],
       ),
     );
+  }
+
+
+  void _filterProduk(String label, String param) {
+    setState(() {
+      filterKategoriLabel = label;
+      filterKategoriParam = param;
+    });
   }
 
   Widget _buildWarningCard() {
@@ -166,11 +177,14 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
 
   Widget _buildProductGrid() {
     return Obx(() {
+      final List<ProdukModel> filteredList = filterKategoriParam.isEmpty
+          ? apiProduk.listUserProduk
+          : apiProduk.listUserProduk.where((p) => p.kategori == filterKategoriParam).toList();
       if (apiProduk.isLoadingUserProducts.value) {
         return _buildShimmerLoading();
       }
 
-      final listProduk = apiProduk.listUserProduk;
+      final listProduk = filteredList;
       if (listProduk.isEmpty) {
         return Center(
           child: Column(
@@ -244,4 +258,93 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
       );
     });
   }
+
+
+  Widget _buildCategoryChips() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: SizedBox(
+        height: 56,
+        child: Obx(() {
+          final List<String> categories = ['Semua', ...apiProduk.listKategori];
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            itemCount: categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final cat = categories[index];
+              final isSelected = filterKategoriLabel == cat;
+              return GestureDetector(
+                onTap: () => _filterProduk(cat, cat == 'Semua' ? '' : cat),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF2C4E40) : Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF2C4E40) : Colors.grey.shade200,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isSelected
+                            ? const Color(0xFF2C4E40).withValues(alpha: 0.3)
+                            : Colors.black.withValues(alpha: 0.03),
+                        blurRadius: isSelected ? 10 : 4,
+                        offset: Offset(0, isSelected ? 4 : 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _getCategoryIcon(cat),
+                        size: 15,
+                        color:
+                            isSelected ? Colors.white : const Color(0xFF8E8E8E),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        cat,
+                        style: AppColors.fontStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w600,
+                          color: isSelected ? Colors.white : const Color(0xFF2F2828),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }),
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'semua':
+        return Icons.apps_rounded;
+      case 'tenda':
+        return Icons.holiday_village_rounded;
+      case 'pakaian':
+        return Icons.checkroom_rounded;
+      case 'tas & sepatu':
+        return Icons.backpack_rounded;
+      case 'peralatan':
+        return Icons.construction_rounded;
+      default:
+        return Icons.category_rounded;
+    }
+  }
 }
+
+
