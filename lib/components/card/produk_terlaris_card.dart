@@ -292,24 +292,30 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                   color: Colors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: displayImages.asMap().entries.map((e) {
-                    final active = _currentImageIndex == e.key;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOut,
-                      width: active ? 16 : 6,
-                      height: 6,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(3),
-                        color: active
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.45),
-                      ),
-                    );
-                  }).toList(),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 130),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: displayImages.asMap().entries.map((e) {
+                        final active = _currentImageIndex == e.key;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
+                          width: active ? 16 : 6,
+                          height: 6,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(3),
+                            color: active
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.45),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
               ),
             ),

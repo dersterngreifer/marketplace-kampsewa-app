@@ -47,7 +47,15 @@ class DetailProdukModel {
     if (json['foto_array'] != null) {
       var arr = json['foto_array'];
       if (arr is String) {
-        try { arr = jsonDecode(arr); } catch (_) {}
+        try { 
+          arr = jsonDecode(arr); 
+        } catch (_) {
+          if (arr.toString().contains(',') && !arr.toString().trim().startsWith('[')) {
+            arr = arr.toString().split(',').map((e) => e.trim()).toList();
+          } else {
+            arr = [arr.toString()];
+          }
+        }
       }
       if (arr is Map) {
         arr = arr.values.toList();
@@ -55,8 +63,8 @@ class DetailProdukModel {
       if (arr is List) {
         parsedFotoArray = arr.map<String>((e) {
           if (e is Map) return e['url']?.toString() ?? '';
-          return e.toString();
-        }).where((url) => url.isNotEmpty && url != 'null').toList();
+          return e.toString().trim();
+        }).where((url) => url.isNotEmpty && url != 'null' && url != 'Belum di isi').toList();
       }
     }
 

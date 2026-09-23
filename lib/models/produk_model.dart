@@ -50,38 +50,54 @@ class ProdukModel {
       }).where((url) => url.isNotEmpty && url != 'null' && url != 'Belum di isi').toList();
     } 
     
-    // Fallback parsing jika field 'images' array tidak ada / kosong
-    if (parsedImages.isEmpty) {
-      parsedImages.add(getImageUrl(rawImage));
-      
-      final fotoBelakang = json['foto_belakang']?.toString() ?? '';
-      if (fotoBelakang.isNotEmpty && fotoBelakang != 'Belum di isi') parsedImages.add(getImageUrl(fotoBelakang));
-      
-      final fotoKiri = json['foto_kiri']?.toString() ?? '';
-      if (fotoKiri.isNotEmpty && fotoKiri != 'Belum di isi') parsedImages.add(getImageUrl(fotoKiri));
-      
-      final fotoKanan = json['foto_kanan']?.toString() ?? '';
-      if (fotoKanan.isNotEmpty && fotoKanan != 'Belum di isi') parsedImages.add(getImageUrl(fotoKanan));
+    // Kita selalu mem-parsing fallback field untuk berjaga-jaga jika 'images'
+    // dari backend ternyata tidak lengkap (misal hanya berisi 4 foto tanpa foto_array)
+    List<String> fallbackImages = [];
+    fallbackImages.add(getImageUrl(rawImage));
+    
+    final fotoBelakang = json['foto_belakang']?.toString() ?? '';
+    if (fotoBelakang.isNotEmpty && fotoBelakang != 'Belum di isi') fallbackImages.add(getImageUrl(fotoBelakang));
+    
+    final fotoKiri = json['foto_kiri']?.toString() ?? '';
+    if (fotoKiri.isNotEmpty && fotoKiri != 'Belum di isi') fallbackImages.add(getImageUrl(fotoKiri));
+    
+    final fotoKanan = json['foto_kanan']?.toString() ?? '';
+    if (fotoKanan.isNotEmpty && fotoKanan != 'Belum di isi') fallbackImages.add(getImageUrl(fotoKanan));
 
-      if (json['foto_array'] != null) {
-        var arr = json['foto_array'];
-        if (arr is String) {
-          try {
-            arr = jsonDecode(arr);
-          } catch (_) {}
-        }
-        if (arr is Map) {
-          arr = arr.values.toList();
-        }
-        if (arr is List) {
-          var parsedArr = arr.map<String>((e) {
-            if (e is Map) return e['url']?.toString() ?? '';
-            return e.toString();
-          }).where((url) => url.isNotEmpty && url != 'null' && url != 'Belum di isi').toList();
-          parsedImages.addAll(parsedArr);
+    if (json['foto_array'] != null) {
+      var arr = json['foto_array'];
+      if (arr is String) {
+        try {
+          arr = jsonDecode(arr);
+        } catch (_) {
+          if (arr.toString().contains(',') && !arr.toString().trim().startsWith('[')) {
+            arr = arr.toString().split(',').map((e) => e.trim()).toList();
+          } else {
+            arr = [arr.toString()];
+          }
         }
       }
+      if (arr is Map) {
+        arr = arr.values.toList();
+      }
+      if (arr is List) {
+        var parsedArr = arr.map<String>((e) {
+          if (e is Map) return e['url']?.toString() ?? '';
+          return e.toString().trim();
+        }).where((url) => url.isNotEmpty && url != 'null' && url != 'Belum di isi').toList();
+        fallbackImages.addAll(parsedArr);
+      }
     }
+    
+    // Gabungkan array dari backend (images) dengan fallback jika ada yang tertinggal
+    for (var img in fallbackImages) {
+      if (!parsedImages.contains(img) && !parsedImages.contains(getImageUrl(img))) {
+        parsedImages.add(img);
+      }
+    }
+    
+    // Hapus duplikat secara aman
+    parsedImages = parsedImages.toSet().toList();
 
     return ProdukModel(
       idProduk: json['id_produk'] is int ? json['id_produk'] : int.tryParse(json['id_produk']?.toString() ?? '0') ?? 0,
