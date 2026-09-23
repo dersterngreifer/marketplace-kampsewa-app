@@ -313,10 +313,9 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
   }
 
   Widget _buildInfoSection() {
-    final bisaDitambah =
-        widget.stok > 0 && widget.badgeLabel != 'Milik Anda';
+    final bisaDitambah = widget.stok > 0 && widget.badgeLabel != 'Milik Anda';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -327,26 +326,26 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppColors.fontStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: _dark,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
 
           // Rating + Ulasan
           Row(
             children: [
               const Icon(Icons.star_rounded,
-                  size: 13, color: Color(0xFFFFC107)),
-              const SizedBox(width: 2),
+                  size: 14, color: Color(0xFFFFC107)),
+              const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   '${formatRating(widget.rating)}  ·  ${widget.jumlahReview} ulasan',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppColors.fontStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: _grey,
                   ),
@@ -354,7 +353,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
 
           // Nama Toko
           if (widget.namaToko != null)
@@ -362,8 +361,8 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               children: [
                 ClipOval(
                   child: Container(
-                    width: 14,
-                    height: 14,
+                    width: 18,
+                    height: 18,
                     color: Colors.grey.shade200,
                     child: widget.fotoToko != null
                         ? Image.network(
@@ -372,20 +371,20 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                                 : '${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getFotoProfile}${widget.fotoToko!}',
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.store, size: 8),
+                                const Icon(Icons.store, size: 10),
                           )
-                        : const Icon(Icons.store, size: 8, color: Colors.grey),
+                        : const Icon(Icons.store, size: 10, color: Colors.grey),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     widget.namaToko!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppColors.fontStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                       color: _grey,
                     ),
                   ),
@@ -393,22 +392,34 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ],
             ),
 
-          const Spacer(),
+          const SizedBox(height: 10),
 
           // Harga
-          Text(
-            'Rp ${formatCurrency(widget.harga)}',
+          RichText(
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppColors.fontStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: _dark,
+            text: TextSpan(
+              text: 'Rp ${formatCurrency(widget.harga)}',
+              style: AppColors.fontStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+                color: _dark,
+              ),
+              children: [
+                TextSpan(
+                  text: ' /hari',
+                  style: AppColors.fontStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _grey,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
-          // Tombol Keranjang (icon + teks, full width)
+          // Tombol Sewa
           SizedBox(
             width: double.infinity,
             child: Material(
@@ -420,22 +431,22 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                 borderRadius: BorderRadius.circular(6),
                 onTap: bisaDitambah ? widget.aksiKeranjang : null,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Sewa',
                         style: AppColors.fontStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: bisaDitambah ? Colors.white : Colors.grey,
                         ),
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 6),
                       Icon(
                         Icons.add_shopping_cart_rounded,
-                        size: 13,
+                        size: 16,
                         color: bisaDitambah ? Colors.white : Colors.grey,
                       ),
                     ],
@@ -449,3 +460,4 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
     );
   }
 }
+
