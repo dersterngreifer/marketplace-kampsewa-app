@@ -91,13 +91,28 @@ class ProdukModel {
     
     // Gabungkan array dari backend (images) dengan fallback jika ada yang tertinggal
     for (var img in fallbackImages) {
-      if (!parsedImages.contains(img) && !parsedImages.contains(getImageUrl(img))) {
+      bool exists = false;
+      String filename = img.split('/').last;
+      for (var existing in parsedImages) {
+        if (existing.split('/').last == filename) {
+          exists = true;
+          break;
+        }
+      }
+      if (!exists) {
         parsedImages.add(img);
       }
     }
     
-    // Hapus duplikat secara aman
-    parsedImages = parsedImages.toSet().toList();
+    // Hapus duplikat di parsedImages dengan cara yang sama (mencocokkan nama file)
+    List<String> finalImages = [];
+    for (var img in parsedImages) {
+      String filename = img.split('/').last;
+      if (!finalImages.any((e) => e.split('/').last == filename)) {
+        finalImages.add(img);
+      }
+    }
+    parsedImages = finalImages;
 
     return ProdukModel(
       idProduk: json['id_produk'] is int ? json['id_produk'] : int.tryParse(json['id_produk']?.toString() ?? '0') ?? 0,

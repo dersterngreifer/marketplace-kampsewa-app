@@ -437,7 +437,16 @@ class ApiProduk extends GetxController {
           if (detailProduk.value!.fotoArray.isNotEmpty) {
             rawImages.addAll(detailProduk.value!.fotoArray);
           }
-
+          
+          // Deduplicate by filename
+          List<String> uniqueImages = [];
+          for (var img in rawImages) {
+            String filename = img.split('/').last;
+            if (!uniqueImages.any((e) => e.split('/').last == filename)) {
+              uniqueImages.add(img);
+            }
+          }
+          rawImages = uniqueImages;
 
           imageDetailProduk.assignAll(rawImages
               .map((url) {
