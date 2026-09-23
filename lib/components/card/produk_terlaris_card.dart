@@ -91,10 +91,16 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
         borderRadius: BorderRadius.circular(_radius),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x14000000),
+            color: Color(0x0D000000),
             offset: Offset(0, 6),
-            blurRadius: 20,
+            blurRadius: 24,
             spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Color(0x14000000),
+            offset: Offset(0, 0),
+            blurRadius: 0,
+            spreadRadius: 1,
           ),
         ],
       ),
