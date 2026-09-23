@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 
-class LayoutUlasanProduk extends StatelessWidget {
+class LayoutUlasanProduk extends StatefulWidget {
   final String namaProduk;
 
   const LayoutUlasanProduk({super.key, required this.namaProduk});
+
+  @override
+  State<LayoutUlasanProduk> createState() => _LayoutUlasanProdukState();
+}
+
+class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
+  String selectedFilter = 'Terbaru';
+  final List<String> filterOptions = ['Terbaru', 'Terlama', 'Tertinggi', 'Terendah'];
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +52,52 @@ class LayoutUlasanProduk extends StatelessWidget {
           ),
         ),
       ),
-      body: ListView.separated(
+      body: Column(
+        children: [
+          Container(
+            height: 56,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: filterOptions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final filter = filterOptions[index];
+                final isSelected = selectedFilter == filter;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedFilter = filter;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF2C4E40) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF2C4E40) : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        filter,
+                        style: AppColors.fontStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                          color: isSelected ? Colors.white : const Color(0xFF8E8E8E),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: dummyReviews.length,
         separatorBuilder: (_, __) => const Divider(height: 32, thickness: 1),
@@ -131,6 +184,9 @@ class LayoutUlasanProduk extends StatelessWidget {
             ],
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }

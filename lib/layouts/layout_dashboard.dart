@@ -62,18 +62,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   late List<WisataModel> wisataList;
   late List<BeritaModel> beritaList;
 
-  final List<Map<String, dynamic>> kategori = [
-    {"title": "Semua", "icon": Icons.grid_view_rounded, "param": ""},
-    {"title": "Tenda", "icon": Icons.holiday_village_rounded, "param": "tenda"},
-    {"title": "Pakaian", "icon": Icons.checkroom_rounded, "param": "pakaian"},
-    {"title": "Tas & Sepatu", "icon": Icons.backpack_rounded, "param": "tas"},
-    {
-      "title": "Peralatan",
-      "icon": Icons.construction_rounded,
-      "param": "peralatan"
-    },
-  ];
-  int selectedCategoryIndex = 0;
+  String selectedCategoryLabel = 'Semua';
 
   final CarouselSliderController carouselController =
       CarouselSliderController();
@@ -88,6 +77,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       apiDataUser.getDataUser(context);
       apiIklan.getIklan(context);
+      apiProduk.getListKategori();
       // getFeaturedProduk (rekomendasi endpoint) supaya produk selalu tampil di Home.
       apiProduk.getFeaturedProduk(context);
       keranjangController.updateTotalItemKeranjang(context);
@@ -97,11 +87,9 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   /// Filter kategori dilakukan lokal berdasarkan nama produk,
   /// karena getFeaturedProduk tidak menerima parameter kategori.
   List<dynamic> _applyCategoryFilter(Iterable<dynamic> source) {
-    final param = kategori[selectedCategoryIndex]['param'] as String;
-    if (param.isEmpty) return source.toList();
-    final q = param.toLowerCase();
+    if (selectedCategoryLabel == 'Semua') return source.toList();
     return source
-        .where((p) => (p.namaProduk as String).toLowerCase().contains(q))
+        .where((p) => p.kategori == selectedCategoryLabel)
         .toList();
   }
 
@@ -127,6 +115,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             strokeWidth: 3,
             onRefresh: () async {
               apiIklan.getIklan(context);
+      apiProduk.getListKategori();
               await apiDataUser.getDataUser(context);
               if (!context.mounted) return;
               await apiProduk.getFeaturedProduk(context);
@@ -443,66 +432,80 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Category Chips Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'semua': return Icons.apps_rounded;
+      case 'tenda': return Icons.holiday_village_rounded;
+      case 'pakaian': return Icons.checkroom_rounded;
+      case 'tas & sepatu': return Icons.backpack_rounded;
+      case 'peralatan': return Icons.construction_rounded;
+      default: return Icons.category_rounded;
+    }
+  }
+
   Widget _buildCategories() {
     return SizedBox(
       height: 56,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-        clipBehavior: Clip.none,
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: kategori.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final isSelected = index == selectedCategoryIndex;
-          final cat = kategori[index];
-          return GestureDetector(
-            onTap: () => setState(() => selectedCategoryIndex = index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: isSelected ? _green : Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: isSelected ? _green : Colors.grey.shade200,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isSelected
-                        ? _green.withValues(alpha: 0.3)
-                        : Colors.black.withValues(alpha: 0.03),
-                    blurRadius: isSelected ? 10 : 4,
-                    offset: Offset(0, isSelected ? 4 : 2),
+      child: Obx(() {
+        final List<String> categories = ['Semua', ...apiProduk.listKategori];
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+          clipBehavior: Clip.none,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (context, index) {
+            final cat = categories[index];
+            final isSelected = cat == selectedCategoryLabel;
+            return GestureDetector(
+              onTap: () => setState(() => selectedCategoryLabel = cat),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isSelected ? _green : Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: isSelected ? _green : Colors.grey.shade200,
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    cat['icon'] as IconData,
-                    size: 16,
-                    color: isSelected ? Colors.white : const Color(0xFF8E8E8E),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    cat['title'] as String,
-                    style: AppColors.fontStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color:
-                          isSelected ? Colors.white : const Color(0xFF6B6B6B),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isSelected
+                          ? _green.withValues(alpha: 0.3)
+                          : Colors.black.withValues(alpha: 0.03),
+                      blurRadius: isSelected ? 10 : 4,
+                      offset: Offset(0, isSelected ? 4 : 2),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getCategoryIcon(cat),
+                      size: 16,
+                      color: isSelected ? Colors.white : const Color(0xFF8E8E8E),
+                    ),
+                    const SizedBox(width: 7),
+                    Text(
+                      cat,
+                      style: AppColors.fontStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w600,
+                        color:
+                            isSelected ? Colors.white : const Color(0xFF6B6B6B),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      }),
     );
   }
 
@@ -1035,6 +1038,11 @@ class _ShimmerBoxState extends State<_ShimmerBox>
     );
   }
 }
+
+
+
+
+
 
 
 
