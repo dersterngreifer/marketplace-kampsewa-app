@@ -94,6 +94,7 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
       'namaProduk': produk.namaProduk,
       'fotoProduk': produk.image,
       'namaToko': produk.namaToko,
+      'fotoToko': produk.fotoToko,
     });
   }
 

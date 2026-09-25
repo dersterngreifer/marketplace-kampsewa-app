@@ -1,4 +1,4 @@
-import 'package:project_camp_sewa/constants/api_endpoint.dart';
+﻿import 'package:project_camp_sewa/constants/api_endpoint.dart';
 
 class User {
   int? id;
@@ -15,6 +15,7 @@ class User {
   bool? isVerified;
   String? deskripsiToko;
   String? bannerToko;
+  String? fotoToko;
   String? background;
   String? jenisKelamin;
   double ratingToko;
@@ -35,6 +36,7 @@ class User {
       this.isVerified,
       this.deskripsiToko,
       this.bannerToko,
+      this.fotoToko,
       this.background,
       this.jenisKelamin,
       this.ratingToko = 0.0,
@@ -56,6 +58,7 @@ class User {
       isVerified: json['is_verified'] == true || json['is_verified'] == 1,
       deskripsiToko: json['deskripsi_toko'],
       bannerToko: json['banner_toko'],
+      fotoToko: json['foto_toko'],
       background: json['background'],
       jenisKelamin: json['jenis_kelamin'],
       ratingToko: double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
@@ -63,3 +66,4 @@ class User {
     );
   }
 }
+

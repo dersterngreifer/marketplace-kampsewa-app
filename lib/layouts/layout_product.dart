@@ -52,7 +52,7 @@ class _LayoutProductState extends State<LayoutProduct> {
   Timer? _debounce;
   Worker? _searchWorker;
 
-  // ── Data fetching ──────────────────────────────────────────────
+  // â”€â”€ Data fetching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void _fetchData() async {
     _isLoading.value = true;
@@ -95,7 +95,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     });
   }
 
-  // ── Lifecycle ──────────────────────────────────────────────────
+  // â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   void initState() {
@@ -130,7 +130,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     super.dispose();
   }
 
-  // ── Build ──────────────────────────────────────────────────────
+  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
@@ -147,13 +147,13 @@ class _LayoutProductState extends State<LayoutProduct> {
         backgroundColor: const Color(0xFFF8F9FA),
         body: Column(
           children: [
-            // ── 1+2. HEADER + SEARCH BAR (satu panel hijau, sudut bawah rounded) ──
+            // â”€â”€ 1+2. HEADER + SEARCH BAR (satu panel hijau, sudut bawah rounded) â”€â”€
             _buildTopPanel(),
 
-            // ── 3. CATEGORY CHIPS ──
+            // â”€â”€ 3. CATEGORY CHIPS â”€â”€
             _buildCategoryChips(),
 
-            // ── 4. RESULTS HEADER + 5. PRODUCT GRID (scrollable) ──
+            // â”€â”€ 4. RESULTS HEADER + 5. PRODUCT GRID (scrollable) â”€â”€
             Expanded(
               child: RefreshIndicator(
                 color: _green,
@@ -185,7 +185,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     );
   }
 
-  // ── 1+2. TOP PANEL (header + search, satu kesatuan) ─────────────
+  // â”€â”€ 1+2. TOP PANEL (header + search, satu kesatuan) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildTopPanel() {
     return Container(
@@ -271,7 +271,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     );
   }
 
-  // ── SEARCH BAR (below header, above chips) ───────────────────────
+  // â”€â”€ SEARCH BAR (below header, above chips) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildSearchBar() {
     return Padding(
@@ -344,7 +344,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     );
   }
 
-  // ── 3. CATEGORY CHIPS (below search bar, above grid) ──────────────
+  // â”€â”€ 3. CATEGORY CHIPS (below search bar, above grid) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   IconData _getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
@@ -432,7 +432,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     );
   }
 
-  // ── 4. RESULTS HEADER (count + tombol Urutkan yang jelas terlihat) ──
+  // â”€â”€ 4. RESULTS HEADER (count + tombol Urutkan yang jelas terlihat) â”€â”€
 
   Widget _buildResultsHeader() {
     return Padding(
@@ -475,7 +475,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     );
   }
 
-  /// Chip "Urutkan" — dibuat kontras (tint hijau + border) supaya
+  /// Chip "Urutkan" â€” dibuat kontras (tint hijau + border) supaya
   /// tidak tenggelam di atas background halaman yang terang, dan
   /// menampilkan mode sort yang sedang aktif.
   Widget _buildSortChip() {
@@ -491,7 +491,7 @@ class _LayoutProductState extends State<LayoutProduct> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.swap_vert_rounded, size: 16, color: _green),
+            const Icon(Icons.swap_vert_rounded, size: 16, color: _green),
             const SizedBox(width: 6),
             Text(
               _sortLabels[sortMode] ?? 'Urutkan',
@@ -502,7 +502,8 @@ class _LayoutProductState extends State<LayoutProduct> {
               ),
             ),
             const SizedBox(width: 2),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 17, color: _green),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 17, color: _green),
           ],
         ),
       ),
@@ -622,7 +623,7 @@ class _LayoutProductState extends State<LayoutProduct> {
     );
   }
 
-  // ── 5. PRODUCT GRID ───────────────────────────────────────────────
+  // â”€â”€ 5. PRODUCT GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildProductGrid() {
     return Obx(() {
@@ -647,10 +648,12 @@ class _LayoutProductState extends State<LayoutProduct> {
 
       final List<ProdukModel> filteredList = filterKategoriParam.isEmpty
           ? apiProduk.listProduk
-          : apiProduk.listProduk.where((p) => p.kategori == filterKategoriParam).toList();
+          : apiProduk.listProduk
+              .where((p) => p.kategori == filterKategoriParam)
+              .toList();
       final listProduk = filteredList;
 
-      // Empty state — only shown after loading completes
+      // Empty state â€” only shown after loading completes
       if (listProduk.isEmpty) {
         return SliverToBoxAdapter(
           child: Padding(
@@ -754,14 +757,24 @@ class _LayoutProductState extends State<LayoutProduct> {
                 rating: p.rating.toString(),
                 stok: p.stok,
                 jumlahReview: p.jumlahReview,
-                isFavorite: p.isFavorite,
+                isLiked: p.isLiked,
+                totalLikes: p.totalLikes,
+                aksiFavorite: () async {
+                  final res = await apiProduk.toggleLike(p.idProduk.toString());
+                  if (res['success'] == true) {
+                    p.isLiked = res['is_liked'] ?? false;
+                    p.totalLikes = res['total_likes'] ?? 0;
+                    apiProduk.listProduk.refresh();
+                  }
+                },
                 aksi: () {
-                  Get.to(const LayoutDetailProduct(), arguments: {
+                  Get.to(() => const LayoutDetailProduct(), arguments: {
                     'idToko': p.idUser,
                     'idProduk': p.idProduk,
                     'namaProduk': p.namaProduk,
                     'fotoProduk': p.image,
                     'namaToko': p.namaToko,
+                    'fotoToko': p.fotoToko,
                   });
                 },
                 aksiKeranjang: () {
@@ -790,7 +803,7 @@ class _LayoutProductState extends State<LayoutProduct> {
   }
 }
 
-// ── Shimmer card placeholder ────────────────────────────────────────
+// â”€â”€ Shimmer card placeholder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ShimmerCard extends StatefulWidget {
   @override

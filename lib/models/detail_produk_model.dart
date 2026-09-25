@@ -6,9 +6,7 @@ class DetailProdukModel {
   String namaProduk;
   String deskripsiProduk;
   String fotoDepan;
-  String fotoBelakang;
-  String fotoKiri;
-  String fotoKanan;
+  List<String> images;
   List<String> fotoArray;
   int hargaSewa;
   int stok;
@@ -20,15 +18,15 @@ class DetailProdukModel {
   String namaToko;
   String? fotoToko;
   double ratingToko;
+  int totalLikes;
+  bool isLiked;
 
   DetailProdukModel({
     required this.idProduk,
     required this.namaProduk,
     required this.deskripsiProduk,
     required this.fotoDepan,
-    required this.fotoBelakang,
-    required this.fotoKiri,
-    required this.fotoKanan,
+    required this.images,
     required this.fotoArray,
     required this.hargaSewa,
     required this.stok,
@@ -40,6 +38,8 @@ class DetailProdukModel {
     required this.namaToko,
     this.fotoToko,
     this.ratingToko = 0.0,
+    this.totalLikes = 0,
+    this.isLiked = false,
   });
 
   factory DetailProdukModel.fromJson(Map<String, dynamic> json) {
@@ -47,10 +47,11 @@ class DetailProdukModel {
     if (json['foto_array'] != null) {
       var arr = json['foto_array'];
       if (arr is String) {
-        try { 
-          arr = jsonDecode(arr); 
+        try {
+          arr = jsonDecode(arr);
         } catch (_) {
-          if (arr.toString().contains(',') && !arr.toString().trim().startsWith('[')) {
+          if (arr.toString().contains(',') &&
+              !arr.toString().trim().startsWith('[')) {
             arr = arr.toString().split(',').map((e) => e.trim()).toList();
           } else {
             arr = [arr.toString()];
@@ -64,11 +65,27 @@ class DetailProdukModel {
         parsedFotoArray = arr.map<String>((e) {
           if (e is Map) return e['url']?.toString() ?? '';
           return e.toString().trim();
-        }).where((url) => url.isNotEmpty && url != 'null' && url != 'Belum di isi').toList();
+        }).where((url) {
+          return url.toString().isNotEmpty &&
+              url.toString() != 'null' &&
+              url.toString() != 'Belum di isi';
+        }).toList();
       }
     }
 
-    String _cleanPhoto(dynamic val) {
+    List<String> parsedImages = [];
+    if (json['images'] is List) {
+      parsedImages = (json['images'] as List).map((e) {
+        if (e is Map) return e['url']?.toString() ?? '';
+        return e.toString();
+      }).where((url) {
+        return url.toString().isNotEmpty &&
+            url.toString() != 'null' &&
+            url.toString() != 'Belum di isi';
+      }).toList();
+    }
+
+    String cleanPhoto(dynamic val) {
       if (val == null) return '';
       final str = val.toString();
       if (str == 'Belum di isi') return '';
@@ -76,24 +93,40 @@ class DetailProdukModel {
     }
 
     return DetailProdukModel(
-      idProduk: json['id_produk'] is int ? json['id_produk'] : int.tryParse(json['id_produk']?.toString() ?? '0') ?? 0,
+      idProduk: json['id_produk'] is int
+          ? json['id_produk']
+          : int.tryParse(json['id_produk']?.toString() ?? '0') ?? 0,
       namaProduk: json['nama_produk']?.toString() ?? '',
       deskripsiProduk: json['deskripsi_produk']?.toString() ?? '',
-      fotoDepan: getImageUrl(_cleanPhoto(json['foto_depan']), fallbackAvatar: false),
-      fotoBelakang: getImageUrl(_cleanPhoto(json['foto_belakang']), fallbackAvatar: false),
-      fotoKiri: getImageUrl(_cleanPhoto(json['foto_kiri']), fallbackAvatar: false),
-      fotoKanan: getImageUrl(_cleanPhoto(json['foto_kanan']), fallbackAvatar: false),
+      fotoDepan:
+          getImageUrl(cleanPhoto(json['foto_depan']), fallbackAvatar: false),
+      images: parsedImages,
       fotoArray: parsedFotoArray,
-      hargaSewa: json['harga_sewa'] is int ? json['harga_sewa'] : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0,
-      stok: json['stok'] is int ? json['stok'] : int.tryParse(json['stok']?.toString() ?? '0') ?? 0,
+      hargaSewa: json['harga_sewa'] is int
+          ? json['harga_sewa']
+          : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0,
+      stok: json['stok'] is int
+          ? json['stok']
+          : int.tryParse(json['stok']?.toString() ?? '0') ?? 0,
       rating: json['rating']?.toString() ?? '0.0',
-      totalUlasan: json['total_ulasan'] is int ? json['total_ulasan'] : int.tryParse(json['total_ulasan']?.toString() ?? '0') ?? 0,
-      idUser: json['id_user'] is int ? json['id_user'] : int.tryParse(json['id_user']?.toString() ?? '0') ?? 0,
+      totalUlasan: json['total_ulasan'] is int
+          ? json['total_ulasan']
+          : int.tryParse(json['total_ulasan']?.toString() ?? '0') ?? 0,
+      idUser: json['id_user'] is int
+          ? json['id_user']
+          : int.tryParse(json['id_user']?.toString() ?? '0') ?? 0,
       fotoUser: getImageUrl(json['foto_user']),
       namaUser: json['nama_user']?.toString() ?? '',
       namaToko: json['nama_toko']?.toString() ?? 'Toko Tidak Dikenal',
       fotoToko: json['foto_toko']?.toString(),
-      ratingToko: double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
+      ratingToko:
+          double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
+      totalLikes: json['total_likes'] is int
+          ? json['total_likes']
+          : int.tryParse(json['total_likes']?.toString() ?? '0') ?? 0,
+      isLiked: json['is_liked'] == true ||
+          json['is_liked'] == 1 ||
+          json['is_liked'] == '1',
     );
   }
 }

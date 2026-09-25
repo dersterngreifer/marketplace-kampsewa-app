@@ -1,3 +1,4 @@
+import 'package:project_camp_sewa/services/api_client.dart';
 // ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:dio/dio.dart';
@@ -12,7 +13,7 @@ import 'package:project_camp_sewa/models/variant_model.dart';
 import 'package:project_camp_sewa/services/authorization_token.dart';
 
 class ApiProduk extends GetxController {
-  Dio dio = Dio();
+  Dio dio = ApiClient().dio;
   final RxList<ProdukModel> listProdukRekomendasi = <ProdukModel>[].obs;
   final RxList<ProdukModel> listProduk = <ProdukModel>[].obs;
   // Separate list for home featured products (uses rekomendasi endpoint
@@ -427,12 +428,10 @@ class ApiProduk extends GetxController {
         detailProduk.value = DetailProdukModel.fromJson(detailData);
 
         if (data['detail_produk'] != null) {
-          List<String> rawImages = [
-            detailProduk.value!.fotoDepan,
-            detailProduk.value!.fotoBelakang,
-            detailProduk.value!.fotoKiri,
-            detailProduk.value!.fotoKanan,
-          ].where((u) => u.isNotEmpty).toList();
+          List<String> rawImages = [];
+          if (detailProduk.value!.fotoDepan.isNotEmpty) {
+            rawImages.add(detailProduk.value!.fotoDepan);
+          }
 
           if (detailProduk.value!.fotoArray.isNotEmpty) {
             rawImages.addAll(detailProduk.value!.fotoArray);
@@ -522,4 +521,88 @@ class ApiProduk extends GetxController {
       listKategori.clear();
     }
   }
+
+  Future<Map<String, dynamic>> toggleLike(String idProduk) async {
+    try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Anda harus login untuk menyukai produk'};
+      }
+
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      
+      var url = "${ApiEndpoints.baseUrl}/api/produk/$idProduk/toggle-like";
+
+      final response = await dio.post(
+        url,
+        data: {},
+        options: Options(
+          headers: header,
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      final Map<String, dynamic> data =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      print("=== SUCCESS TOGGLE LIKE ===");
+      print(data);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Success',
+          'is_liked': data['data']?['is_liked'],
+          'total_likes': data['data']?['total_likes']
+        };
+      } else {
+        print("\x1B[31m=== FAILED TOGGLE LIKE ===\x1B[0m");
+        print("\x1B[31m$data\x1B[0m");
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Gagal memproses like produk',
+        };
+      }
+    } catch (e) {
+      String errorMessage = e.toString();
+      if (e is DioException) {
+        print("\x1B[31m=== ERROR TOGGLE LIKE (DIO EXCEPTION) ===\x1B[0m");
+        print("\x1B[31mStatus Code: ${e.response?.statusCode}\x1B[0m");
+        print("\x1B[31mResponse Data: ${e.response?.data}\x1B[0m");
+        print("\x1B[31m=========================================\x1B[0m");
+        
+        if (e.response != null && e.response!.data != null) {
+          try {
+            var responseData = e.response!.data;
+            if (responseData is Map && responseData.containsKey('message')) {
+              errorMessage = responseData['message'].toString();
+            } else if (responseData is String) {
+              if (responseData.toLowerCase().contains("<!doctype html>")) {
+                errorMessage = "Terjadi kesalahan internal server (500). Cek console debug untuk detail lengkapnya.";
+              } else {
+                errorMessage = responseData;
+              }
+            }
+          } catch (_) {}
+        }
+      } else {
+        print("\x1B[31m=== ERROR TOGGLE LIKE ===\x1B[0m");
+        print("\x1B[31m${e.toString()}\x1B[0m");
+        print("\x1B[31m=========================\x1B[0m");
+      }
+      return {
+        'success': false,
+        'message': 'Gagal: $errorMessage',
+      };
+    }
+  }
 }
+
+
+
+
+
+

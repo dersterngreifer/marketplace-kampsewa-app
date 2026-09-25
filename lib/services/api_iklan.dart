@@ -1,4 +1,5 @@
-﻿// ignore_for_file: use_build_context_synchronously
+import 'package:project_camp_sewa/services/api_client.dart';
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -11,7 +12,7 @@ import 'package:project_camp_sewa/models/iklan_model.dart';
 import 'package:project_camp_sewa/services/authorization_token.dart';
 
 class ApiIklan extends GetxController {
-  Dio dio = Dio();
+  Dio dio = ApiClient().dio;
   final RxList<IklanModel> listIklan = <IklanModel>[].obs;
 
   Future<void> getIklan(BuildContext context) async {

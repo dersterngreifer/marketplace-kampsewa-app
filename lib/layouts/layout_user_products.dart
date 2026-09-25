@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/components/card/produk_card.dart';
@@ -222,7 +222,16 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
             rating: p.rating.toString(),
             stok: p.stok,
             jumlahReview: p.jumlahReview,
-            isFavorite: p.isFavorite,
+            isLiked: p.isLiked,
+            totalLikes: p.totalLikes,
+            aksiFavorite: () async {
+              final res = await apiProduk.toggleLike(p.idProduk.toString());
+              if (res['success'] == true) {
+                p.isLiked = res['is_liked'] ?? false;
+                p.totalLikes = res['total_likes'] ?? 0;
+                apiProduk.listProduk.refresh();
+              }
+            },
             badgeLabel: "Milik Anda", // Disable sewa button and show badge
             namaToko: p.namaToko,
             fotoToko: p.fotoToko,
@@ -231,7 +240,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
               // Ensure idToko matches current user so LayoutDetailProduct recognizes it as own product
               final currentUserId =
                   Get.find<ApiDataUser>().dataUser.value?.id ?? p.idUser;
-              Get.to(const LayoutDetailProduct(), arguments: {
+              Get.to(() => const LayoutDetailProduct(), arguments: {
                 'idToko': currentUserId,
                 'idProduk': p.idProduk,
                 'namaProduk': p.namaProduk,
@@ -344,5 +353,10 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
     }
   }
 }
+
+
+
+
+
 
 

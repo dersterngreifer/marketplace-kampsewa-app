@@ -1,3 +1,4 @@
+import 'package:project_camp_sewa/services/api_client.dart';
 // ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:dio/dio.dart';
@@ -27,7 +28,7 @@ class ApiDataUser extends GetxController {
   TextEditingController deskripsiTokoController = TextEditingController();
   TextEditingController noRekController = TextEditingController();
   TextEditingController jenisBankController = TextEditingController();
-  Dio dio = Dio();
+  Dio dio = ApiClient().dio;
   LoadingDialog loading = Get.put(LoadingDialog());
   DashboardController pageController = Get.put(DashboardController());
   final Rx<User?> dataUser = Rx<User?>(null);
@@ -107,8 +108,20 @@ class ApiDataUser extends GetxController {
       if (response.statusCode == 200) {
         // listDataUser =
         //     List.from(dataUser['user']).map((e) => User.fromJson(e)).toList();
+
+        // ?? Debug: lihat semua key yang mengandung "foto" dari response mentah
+        final rawUser = data['data_users'];
+        print("\x1B[35mDEBUG raw keys: ${rawUser.keys.toList()}\x1B[0m");
+        print(
+            "\x1B[35mDEBUG raw foto-related: ${rawUser.entries.where((e) => e.key.toString().toLowerCase().contains('foto')).toList()}\x1B[0m");
+
         dataUser.value = User.fromJson(data['data_users']);
         final User? attachData = dataUser.value;
+
+        // ?? Debug sementara
+        print("\x1B[35mDEBUG fotoToko: ${attachData?.fotoToko}\x1B[0m");
+        print("\x1B[35mDEBUG bannerToko: ${attachData?.bannerToko}\x1B[0m");
+
         namaController.text = attachData!.name!;
         emailController.text = attachData.email!;
         phoneNumberController.text = attachData.nomorTelephone!;
@@ -552,7 +565,7 @@ class ApiDataUser extends GetxController {
 
   Future<void> isiDataToko(
       BuildContext context, String latitude, String longitude,
-      {String? bannerPath}) async {
+      {String? bannerPath, String? fotoTokoPath}) async {
     try {
       Authorization auth = Authorization();
       String? token = await auth.getToken();
@@ -577,6 +590,12 @@ class ApiDataUser extends GetxController {
         body['banner_toko'] = await MultipartFile.fromFile(
           bannerPath,
           filename: bannerPath.split('/').last,
+        );
+      }
+      if (fotoTokoPath != null && fotoTokoPath.isNotEmpty) {
+        body['foto_toko'] = await MultipartFile.fromFile(
+          fotoTokoPath,
+          filename: fotoTokoPath.split('/').last,
         );
       }
 
@@ -848,6 +867,73 @@ class ApiDataUser extends GetxController {
         CustomSnackBar.show(context,
             sukses: false, teks: "Terjadi kesalahan Saat Hapus Bank");
       }
+    }
+  }
+
+  Future<bool> updateInformasiToko(
+    BuildContext context, {
+    String? nameStore,
+    String? deskripsiToko,
+    String? bannerPath,
+    String? fotoTokoPath,
+  }) async {
+    try {
+      print("\x1B[33m=== START UPDATE INFORMASI TOKO ===\x1B[0m");
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      int? id = await auth.getId();
+      var url = ApiEndpoints.baseUrl +
+          ApiEndpoints.authendpoints.isiDataToko +
+          id.toString();
+      print("\x1B[36mURL: $url\x1B[0m");
+
+      Map<String, dynamic> body = {};
+      if (nameStore != null) body['name_store'] = nameStore;
+      if (deskripsiToko != null) body['deskripsi_toko'] = deskripsiToko;
+
+      if (bannerPath != null && bannerPath.isNotEmpty) {
+        body['banner_toko'] = await MultipartFile.fromFile(bannerPath,
+            filename: bannerPath.split('/').last);
+        print("\x1B[36mAttach Banner: $bannerPath\x1B[0m");
+      }
+      if (fotoTokoPath != null && fotoTokoPath.isNotEmpty) {
+        body['foto_toko'] = await MultipartFile.fromFile(fotoTokoPath,
+            filename: fotoTokoPath.split('/').last);
+        print("\x1B[36mAttach Foto Toko: $fotoTokoPath\x1B[0m");
+      }
+
+      print("\x1B[36mBody payload keys: ${body.keys.toList()}\x1B[0m");
+
+      final response = await dio.post(
+        url,
+        data: FormData.fromMap(body),
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token'
+          },
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      print("\x1B[32m=== RESPONSE UPDATE INFORMASI TOKO ===\x1B[0m");
+      print("\x1B[32mStatus Code: ${response.statusCode}\x1B[0m");
+      print("\x1B[32mData: ${response.data}\x1B[0m");
+
+      if (response.statusCode == 200) {
+        await getDataUser(context);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("\x1B[31m=== ERROR EXCEPTION UPDATE INFORMASI TOKO ===\x1B[0m");
+      if (e is DioException) {
+        print("\x1B[31mStatus Code: ${e.response?.statusCode}\x1B[0m");
+        print("\x1B[31mResponse Data: ${e.response?.data}\x1B[0m");
+      } else {
+        print("\x1B[31mError: $e\x1B[0m");
+      }
+      return false;
     }
   }
 }

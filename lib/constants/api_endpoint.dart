@@ -1,11 +1,13 @@
 class ApiEndpoints {
-  static const String baseUrl = "http://192.168.0.3:8000";
+  static const String baseUrl = "http://192.168.0.2:8000";
   static AuthEndPoints authendpoints = AuthEndPoints();
 }
 
 String getImageUrl(String? imageUrl, {bool fallbackAvatar = true}) {
   if (imageUrl == null || imageUrl.isEmpty) {
-    return fallbackAvatar ? 'https://ui-avatars.com/api/?name=User&background=random' : '';
+    return fallbackAvatar
+        ? 'https://ui-avatars.com/api/?name=User&background=random'
+        : '';
   }
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
     return imageUrl;
@@ -21,18 +23,20 @@ String resolveFullUrl(String path, String defaultPrefix) {
   if (path.isEmpty) return '';
   path = path.trim();
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  
+
   if (path.startsWith('/')) path = path.substring(1);
-  
-  String cleanPrefix = defaultPrefix.startsWith('/') ? defaultPrefix.substring(1) : defaultPrefix;
+
+  String cleanPrefix = defaultPrefix.startsWith('/')
+      ? defaultPrefix.substring(1)
+      : defaultPrefix;
   if (path.startsWith(cleanPrefix)) {
     return '${ApiEndpoints.baseUrl}/$path';
   }
-  
+
   if (path.startsWith('assets/') || path.startsWith('storage/')) {
     return '${ApiEndpoints.baseUrl}/$path';
   }
-  
+
   return '${ApiEndpoints.baseUrl}$defaultPrefix$path';
 }
 
@@ -50,10 +54,25 @@ String getBannerTokoUrl(String? filename) {
   if (filename == null || filename.isEmpty) {
     return '';
   }
-  if (filename.startsWith('http://') || filename.startsWith('https://')) {
-    return filename;
+  return resolveFullUrl(filename.trim(), '/assets/image/customers/banner/');
+}
+
+/// Membangun URL foto logo toko dari folder `/assets/image/customers/logo_toko/`.
+///
+/// Menangani semua format: URL absolut (http/https), path relatif (dimulai /),
+/// path parsial (assets/image/...), atau nama file mentah.
+/// Mengembalikan `''` untuk nilai kosong atau placeholder server.
+String getFotoTokoUrl(String? filename) {
+  if (filename == null || filename.isEmpty) {
+    return '';
   }
-  return '${ApiEndpoints.baseUrl}/assets/image/customers/banner/$filename';
+  final String trimmed = filename.trim();
+  // Tolak placeholder
+  if (trimmed == 'placeholder-image.png' ||
+      trimmed.endsWith('/placeholder-image.png')) {
+    return '';
+  }
+  return resolveFullUrl(trimmed, '/assets/image/customers/logo_toko/');
 }
 
 class AuthEndPoints {
@@ -92,4 +111,12 @@ class AuthEndPoints {
   final String getBankOpsiPembayaranTransfer = "/api/transaksi/bank-toko";
   final String transaksiPembayaran = "/api/transaksi/pembayaran";
   final String getStatistikPesanan = "/api/statistik-pesanan/";
+
+  // ── Public Store Endpoints ──────────────────────────────────────────────────
+  /// GET /api/store/{id_user} — Profil toko publik
+  final String getStoreProfile = "/api/store/";
+
+  /// GET /api/store/{id_user}/products — List produk toko publik (filter + search)
+  /// Gunakan bersama [getStoreProfile]: "/api/store/{id_user}/products"
+  final String getStoreProducts = "/api/store/";
 }

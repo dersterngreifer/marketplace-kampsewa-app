@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
@@ -14,6 +14,8 @@ class ProdukCard extends StatefulWidget {
   final int stok;
   final int jumlahReview;
   final bool isFavorite;
+  final bool isLiked;
+  final int totalLikes;
   final Function() aksi;
   final Function() aksiKeranjang;
   final Function()? aksiFavorite;
@@ -31,6 +33,8 @@ class ProdukCard extends StatefulWidget {
     this.stok = 0,
     this.jumlahReview = 0,
     this.isFavorite = false,
+    this.isLiked = false,
+    this.totalLikes = 0,
     required this.aksi,
     required this.aksiKeranjang,
     this.aksiFavorite,
@@ -213,19 +217,18 @@ class _ProdukCardState extends State<ProdukCard>
             ),
           ),
 
-        // ── Tombol Favorit (diperbesar) ──
+        // Tombol Favorit (diperbesar)
         Positioned(
           top: 10,
           right: 10,
           child: GestureDetector(
             onTap: widget.aksiFavorite,
             child: Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
                   BoxShadow(
                     color: Color(0x26000000),
                     blurRadius: 6,
@@ -233,19 +236,32 @@ class _ProdukCardState extends State<ProdukCard>
                   ),
                 ],
               ),
-              child: Icon(
-                widget.isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                size: 19,
-                color: widget.isFavorite
-                    ? const Color(0xFFEE2737)
-                    : const Color(0xFF2F2828),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    widget.isLiked
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    size: 17,
+                    color: widget.isLiked
+                        ? const Color(0xFFEE2737)
+                        : const Color(0xFF2F2828),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${widget.totalLikes}',
+                    style: AppColors.fontStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2F2828),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-
         // ── Dot Indicators ──
         if (hasMultiple)
           Positioned(
@@ -398,11 +414,11 @@ class _ProdukCardState extends State<ProdukCard>
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: ClipOval(
-                    child: widget.fotoToko != null
+                    child: widget.fotoToko != null &&
+                            widget.fotoToko!.isNotEmpty &&
+                            getFotoTokoUrl(widget.fotoToko).isNotEmpty
                         ? Image.network(
-                            widget.fotoToko!.startsWith('http')
-                                ? widget.fotoToko!
-                                : '${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getFotoProfile}${widget.fotoToko!}',
+                            getFotoTokoUrl(widget.fotoToko),
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
                               color: Colors.grey.shade100,
@@ -500,3 +516,4 @@ class _ProdukCardState extends State<ProdukCard>
     );
   }
 }
+

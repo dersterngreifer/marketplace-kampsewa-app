@@ -1,3 +1,4 @@
+import 'package:project_camp_sewa/services/api_client.dart';
 // ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 
@@ -16,7 +17,7 @@ class ApiLupaPassword extends GetxController {
   TextEditingController telephoneController = TextEditingController();
   TextEditingController newPassController = TextEditingController();
   TextEditingController confirmPassController = TextEditingController();
-  final Dio dio = Dio();
+  final Dio dio = ApiClient().dio;
   final LoadingDialog loading = Get.put(LoadingDialog());
 
   Future<void> lupaPass(BuildContext context) async {

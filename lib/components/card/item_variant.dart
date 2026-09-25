@@ -16,26 +16,62 @@ class ItemVariant extends StatefulWidget {
 }
 
 class _ItemVariantState extends State<ItemVariant> {
+  // Gradient hijau brand — menggantikan warna gelap/coklat flat sebelumnya.
+  static const Color _gradientStart = Color(0xFF2C4E40);
+  static const Color _gradientEnd = Color(0xFF3F7360);
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: widget.aksi,
-      child: Container(
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
         decoration: BoxDecoration(
-            border: Border.all(
-                color: widget.selected ? const Color(0xFF2F2828) : Colors.black,
-                width: 1.2),
-            borderRadius: BorderRadius.circular(5),
-            color: widget.selected ? const Color(0xFF2F2828) : Colors.white),
+          borderRadius: BorderRadius.circular(12),
+          gradient: widget.selected
+              ? const LinearGradient(
+                  colors: [_gradientStart, _gradientEnd],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: widget.selected ? null : Colors.white,
+          border: widget.selected
+              ? null
+              : Border.all(color: const Color(0xFFE0E0E0), width: 1.2),
+          boxShadow: widget.selected
+              ? [
+                  BoxShadow(
+                    color: _gradientStart.withValues(alpha: 0.30),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : [],
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           child: Center(
-            child: Text(
-              widget.item,
-              style: AppColors.fontStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: widget.selected ? Colors.white : Colors.black),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.selected) ...[
+                  const Icon(Icons.check_rounded,
+                      size: 14, color: Colors.white),
+                  const SizedBox(width: 5),
+                ],
+                Text(
+                  widget.item,
+                  style: AppColors.fontStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: widget.selected
+                          ? Colors.white
+                          : const Color(0xFF424242)),
+                ),
+              ],
             ),
           ),
         ),

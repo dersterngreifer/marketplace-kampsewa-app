@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:project_camp_sewa/layouts/layout_informasi_toko.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/layouts/layout_instruksi_kyc.dart';
@@ -19,6 +20,7 @@ import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
+import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
 
 class LayoutProfile extends StatefulWidget {
   const LayoutProfile({super.key});
@@ -60,7 +62,9 @@ class _LayoutProfileState extends State<LayoutProfile> {
           }
           return RefreshIndicator(
             color: const Color(0xFF2C4E40),
-            backgroundColor: Colors.white, displacement: 30, strokeWidth: 3,
+            backgroundColor: Colors.white,
+            displacement: 30,
+            strokeWidth: 3,
             onRefresh: () async {
               await apiDataUser.getDataUser(context);
               await Future.delayed(const Duration(milliseconds: 600));
@@ -68,71 +72,71 @@ class _LayoutProfileState extends State<LayoutProfile> {
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
-          child: Stack(
-            children: [
-              // Hero Background
-              Container(
-                height: 280,
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    colors: [
-                      Color(0xFF2C4E40),
-                      Color(0xFF2C4E40),
-                      Color(0xFF2C4E40),
+              child: Stack(
+                children: [
+                  // Hero Background
+                  Container(
+                    height: 280,
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [
+                          Color(0xFF2C4E40),
+                          Color(0xFF2C4E40),
+                          Color(0xFF2C4E40),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(40),
+                        bottomRight: Radius.circular(40),
+                      ),
+                    ),
+                  ),
+
+                  // Decorative Circles
+                  Positioned(
+                    top: -50,
+                    right: -50,
+                    child: Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 100,
+                    left: -30,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                  ),
+
+                  // Content
+                  Column(
+                    children: [
+                      const SizedBox(height: 70),
+                      _buildHeaderInfo(user),
+                      const SizedBox(height: 25),
+                      _buildStatsCard(user),
+                      const SizedBox(height: 25),
+                      _buildMenuSection(user),
+                      const SizedBox(height: 40),
                     ],
                   ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(40),
-                    bottomRight: Radius.circular(40),
-                  ),
-                ),
-              ),
-
-              // Decorative Circles
-              Positioned(
-                top: -50,
-                right: -50,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.05),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 100,
-                left: -30,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.05),
-                  ),
-                ),
-              ),
-
-              // Content
-              Column(
-                children: [
-                  const SizedBox(height: 70),
-                  _buildHeaderInfo(user),
-                  const SizedBox(height: 25),
-                  _buildStatsCard(user),
-                  const SizedBox(height: 25),
-                  _buildMenuSection(user),
-                  const SizedBox(height: 40),
                 ],
               ),
-            ],
-          ),
-        ),
-        );
+            ),
+          );
         }),
       ),
     );
@@ -384,7 +388,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
                                         children: [
                                           Shimmer.fromColors(
                                             baseColor: Colors.grey.shade300,
-                                            highlightColor: Colors.grey.shade100,
+                                            highlightColor:
+                                                Colors.grey.shade100,
                                             child: Container(
                                               width: 120,
                                               height: 14,
@@ -394,7 +399,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
                                           const SizedBox(height: 6),
                                           Shimmer.fromColors(
                                             baseColor: Colors.grey.shade300,
-                                            highlightColor: Colors.grey.shade100,
+                                            highlightColor:
+                                                Colors.grey.shade100,
                                             child: Container(
                                               width: 180,
                                               height: 12,
@@ -592,16 +598,32 @@ class _LayoutProfileState extends State<LayoutProfile> {
         spacing: 15,
         runSpacing: 20,
         children: [
-          _buildStatItem(apiDataUser.totalSemuaPesanan.value.toString(), 'Total\nPesanan', Icons.shopping_bag_rounded,
+          _buildStatItem(
+              apiDataUser.totalSemuaPesanan.value.toString(),
+              'Total\nPesanan',
+              Icons.shopping_bag_rounded,
               const Color(0xFF3B82F6)),
-          _buildStatItem(apiDataUser.totalBelumDikonfirmasi.value.toString(), 'Pesanan\nPending', Icons.pending_actions_rounded,
+          _buildStatItem(
+              apiDataUser.totalBelumDikonfirmasi.value.toString(),
+              'Pesanan\nPending',
+              Icons.pending_actions_rounded,
               const Color(0xFFF59E0B)), // Amber
-          _buildStatItem(apiDataUser.totalSedangDisewa.value.toString(), 'Sedang\nDisewa', Icons.local_shipping_rounded,
+          _buildStatItem(
+              apiDataUser.totalSedangDisewa.value.toString(),
+              'Sedang\nDisewa',
+              Icons.local_shipping_rounded,
               const Color(0xFF10B981)),
-          _buildStatItem(apiDataUser.totalProdukBelumDikonfirmasi.value.toString(), 'Produk\nPending', Icons.inventory_2_rounded,
+          _buildStatItem(
+              apiDataUser.totalProdukBelumDikonfirmasi.value.toString(),
+              'Produk\nPending',
+              Icons.inventory_2_rounded,
               const Color(0xFF8B5CF6)), // Purple
           if (isMitra) ...[
-            _buildStatItem(user.ratingToko.toStringAsFixed(1), 'Rating\n(${user.totalUlasanToko} Ulasan)', Icons.star_rounded, const Color(0xFFED6723)),
+            _buildStatItem(
+                user.ratingToko.toStringAsFixed(1),
+                'Rating\n(${user.totalUlasanToko} Ulasan)',
+                Icons.star_rounded,
+                const Color(0xFFED6723)),
           ],
         ],
       ),
@@ -655,17 +677,24 @@ class _LayoutProfileState extends State<LayoutProfile> {
       ),
       child: Row(
         children: [
-          const Icon(MdiIcons.alertCircleOutline, color: Color(0xFFF57C00), size: 30),
+          const Icon(MdiIcons.alertCircleOutline,
+              color: Color(0xFFF57C00), size: 30),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Identitas Belum Dilengkapi",
-                  style: AppColors.fontStyle(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFFF57C00))),
+                    style: AppColors.fontStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFF57C00))),
                 const SizedBox(height: 4),
                 Text("Lengkapi NIK KTP untuk membuka akses transaksi.",
-                  style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFFE65100))),
+                    style: AppColors.fontStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFE65100))),
               ],
             ),
           ),
@@ -675,7 +704,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
               backgroundColor: const Color(0xFFF57C00),
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text("Isi"),
           ),
@@ -685,8 +715,11 @@ class _LayoutProfileState extends State<LayoutProfile> {
   }
 
   Widget _buildMenuSection(dynamic user) {
-    bool needsKYC = user.type == 0 && (user.nomorIdentitas == null || 
-user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fotoIdentitas.toString().isEmpty);
+    bool needsKYC = user.type == 0 &&
+        (user.nomorIdentitas == null ||
+            user.nomorIdentitas.toString().isEmpty ||
+            user.fotoIdentitas == null ||
+            user.fotoIdentitas.toString().isEmpty);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -718,7 +751,6 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
                 });
               },
             ),
-          
           _buildMenuItem(
             icon: MdiIcons.packageVariantClosed,
             title: 'Produk Saya',
@@ -729,13 +761,16 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
               if (user.isToko == true) {
                 Get.to(() => const LayoutUserProducts());
               } else {
-                CustomSnackBar.show(context, sukses: false,
-                      title: "Perhatian",
-                      teks: "Lengkapi data di menu 'Mulai Menyewakan', lalu upload produk di website melalui tombol 'Dashboard Web'.",);
+                CustomSnackBar.show(
+                  context,
+                  sukses: false,
+                  title: "Perhatian",
+                  teks:
+                      "Lengkapi data di menu 'Mulai Menyewakan', lalu upload produk di website melalui tombol 'Dashboard Web'.",
+                );
               }
             },
           ),
-          
           _buildMenuItem(
             icon: MdiIcons.mapMarkerOutline,
             title: 'Alamat',
@@ -746,7 +781,6 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
               Get.to(() => const LayoutAlamat());
             },
           ),
-          
           _buildMenuItem(
             icon: MdiIcons.lockOutline,
             title: 'Ubah Password',
@@ -763,8 +797,30 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
               );
             },
           ),
-          
-          if (user.isToko == true)
+          if (user.isToko == true) ...[
+            _buildMenuItem(
+              icon: MdiIcons.storeSearchOutline,
+              title: 'Lihat Toko Publik',
+              subtitle: 'Tampilan profil toko untuk pelanggan',
+              iconColor: const Color(0xFF2196F3),
+              iconBgColor: const Color(0xFFE3F2FD), // Biru muda
+              onTap: () {
+                Get.to(() => LayoutPublicStoreProfile(
+                  idUser: user.id ?? 0, 
+                  initialStoreName: user.namaStore,
+                ));
+              },
+            ),
+            _buildMenuItem(
+              icon: MdiIcons.storeEditOutline,
+              title: 'Informasi Toko',
+              subtitle: 'Atur profil & banner toko Anda',
+              iconColor: const Color(0xFF009688),
+              iconBgColor: const Color(0xFFE0F2F1), // Teal muda
+              onTap: () {
+                Get.to(() => const LayoutInformasiToko());
+              },
+            ),
             _buildMenuItem(
               icon: MdiIcons.openInNew,
               title: 'Dashboard Web',
@@ -778,7 +834,7 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
                 }
               },
             )
-          else
+          ] else
             _buildMenuItem(
               icon: MdiIcons.storefrontOutline,
               title: 'Mulai Menyewakan',
@@ -788,9 +844,13 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
               isHighlighted: true, // Custom flag
               onTap: () {
                 if (needsKYC) {
-                  CustomSnackBar.show(context, sukses: false,
-                        title: "Perhatian",
-                        teks: "Harap lengkapi identitas (KTP) Anda sebelum membuka layanan penyewaan.",);
+                  CustomSnackBar.show(
+                    context,
+                    sukses: false,
+                    title: "Perhatian",
+                    teks:
+                        "Harap lengkapi identitas (KTP) Anda sebelum membuka layanan penyewaan.",
+                  );
                   Get.to(() => const LayoutInstruksiKYC());
                 } else {
                   Get.to(() => const LayoutTambahDataToko())?.then((_) {
@@ -801,7 +861,6 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
                 }
               },
             ),
-
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.only(left: 8, bottom: 12),
@@ -829,7 +888,8 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
                 builder: (_) => Dialog(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28)),
-                  backgroundColor: Colors.transparent, // Transparan agar bayangan bisa dari Container
+                  backgroundColor: Colors
+                      .transparent, // Transparan agar bayangan bisa dari Container
                   elevation: 0,
                   child: Container(
                     decoration: BoxDecoration(
@@ -946,32 +1006,33 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
               );
 
               if (confirm == true) {
-                  try {
-                    Authorization auth = Authorization();
-                    String? token = await auth.getToken();
-                    if (token != null) {
-                      final dio = Dio();
-                      var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.logout;
-                      await dio.post(url,
-                          options: Options(
-                            headers: {
-                              'Accept': 'application/json',
-                              'Authorization': 'Bearer $token',
-                            },
-                            validateStatus: (_) => true,
-                          ));
-                    }
-                  } catch (_) {}
+                try {
                   Authorization auth = Authorization();
-                  await auth.clearAll();
-                  Get.offAll(() => const LoginScreen());
-                }
-              },
-            ),
-          ],
-        ),
-      );
-    }
+                  String? token = await auth.getToken();
+                  if (token != null) {
+                    final dio = Dio();
+                    var url = ApiEndpoints.baseUrl +
+                        ApiEndpoints.authendpoints.logout;
+                    await dio.post(url,
+                        options: Options(
+                          headers: {
+                            'Accept': 'application/json',
+                            'Authorization': 'Bearer $token',
+                          },
+                          validateStatus: (_) => true,
+                        ));
+                  }
+                } catch (_) {}
+                Authorization auth = Authorization();
+                await auth.clearAll();
+                Get.offAll(() => const LoginScreen());
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMenuItem({
     required IconData icon,
@@ -985,8 +1046,11 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
   }) {
     final Color actualIconColor = iconColor ?? const Color(0xFF2C4E40);
     final Color actualIconBgColor = iconBgColor ?? const Color(0xFFE8F5E9);
-    final Color actualTextColor = isHighlighted ? Colors.white : (textColor ?? const Color(0xFF2F2828));
-    final Color subtitleColor = isHighlighted ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF8A8A8E);
+    final Color actualTextColor =
+        isHighlighted ? Colors.white : (textColor ?? const Color(0xFF2F2828));
+    final Color subtitleColor = isHighlighted
+        ? Colors.white.withValues(alpha: 0.8)
+        : const Color(0xFF8A8A8E);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1029,10 +1093,14 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isHighlighted ? Colors.white.withValues(alpha: 0.2) : actualIconBgColor,
+                    color: isHighlighted
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : actualIconBgColor,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: isHighlighted ? Colors.white : actualIconColor, size: 22),
+                  child: Icon(icon,
+                      color: isHighlighted ? Colors.white : actualIconColor,
+                      size: 22),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1082,9 +1150,3 @@ user.nomorIdentitas.toString().isEmpty || user.fotoIdentitas == null || user.fot
     );
   }
 }
-
-
-
-
-
-

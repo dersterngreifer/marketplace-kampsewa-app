@@ -1,4 +1,5 @@
-﻿// ignore_for_file: unused_local_variable
+import 'package:project_camp_sewa/services/api_client.dart';
+// ignore_for_file: unused_local_variable
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:convert';
@@ -20,7 +21,7 @@ import 'package:project_camp_sewa/services/controller_dashboard.dart';
 class ApiTransaksi extends GetxController {
   DashboardController pageController = Get.put(DashboardController());
   TextEditingController pesanController = TextEditingController();
-  Dio dio = Dio();
+  Dio dio = ApiClient().dio;
   var listProdukCheckout = <Map<String, dynamic>>[].obs;
   final RxList<BankModel> listBankMetodeBayar = <BankModel>[].obs;
   final Rx<AlamatTokoCheckoutModel?> alamatTokoCheckout =

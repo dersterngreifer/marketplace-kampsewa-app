@@ -1,3 +1,4 @@
+import 'package:project_camp_sewa/services/api_client.dart';
 // ignore_for_file: unused_local_variable
 // ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
@@ -12,7 +13,7 @@ import 'package:project_camp_sewa/services/authorization_token.dart';
 
 class ApiRiwayatCari extends GetxController {
   final RxList<String> riwayatCari = <String>[].obs;
-  Dio dio = Dio();
+  Dio dio = ApiClient().dio;
 
   Future<void> showRiwayatCari(BuildContext context) async {
     try {
