@@ -144,6 +144,9 @@ class _ProdukCardState extends State<ProdukCard>
     final List<String> displayImages =
         widget.images.where((e) => e.isNotEmpty).toList();
     final bool hasMultiple = displayImages.length > 1;
+    // Aman dari data berubah: nomor slide tidak boleh melebihi total gambar.
+    final int total = displayImages.length;
+    final int slide = _currentImageIndex.clamp(0, total - 1);
 
     return Stack(
       fit: StackFit.expand,
@@ -262,43 +265,23 @@ class _ProdukCardState extends State<ProdukCard>
             ),
           ),
         ),
-        // ── Dot Indicators ──
+        // ── Penanda slide aktif di pojok kanan bawah: "1/10", "2/10", dst ──
         if (hasMultiple)
           Positioned(
             bottom: 8,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 130),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: displayImages.asMap().entries.map((e) {
-                        final active = _currentImageIndex == e.key;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                          width: active ? 16 : 6,
-                          height: 6,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(3),
-                            color: active
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.45),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${slide + 1}/$total',
+                style: AppColors.fontStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 ),
               ),
             ),

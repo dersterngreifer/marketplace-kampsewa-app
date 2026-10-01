@@ -228,7 +228,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Selamat datang kembali ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ¢â‚¬Â¹",
+                    "Selamat datang kembali 👋",
                     style: AppColors.fontStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,

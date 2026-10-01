@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:image_picker/image_picker.dart';
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
+import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/constants/database_helper.dart';
@@ -172,6 +173,7 @@ class ApiTransaksi extends GetxController {
               teks: errorMessage,);
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -224,6 +226,7 @@ class ApiTransaksi extends GetxController {
               teks: "Gagal Mendapatkan List Bank",);
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -290,6 +293,7 @@ class ApiTransaksi extends GetxController {
               teks: "Gagal Mendapatkan List Bank",);
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,

@@ -1,6 +1,24 @@
 class ApiEndpoints {
   static const String baseUrl = "http://192.168.0.2:8000";
+
+  /// Domain publik KampSewa Marketplace, dipakai untuk link yang dibagikan
+  /// (share/deep-link) profil toko.
+  static const String webDomain = "abbmamarketplacekampsewa.com";
+
   static AuthEndPoints authendpoints = AuthEndPoints();
+}
+
+/// Membangun URL profil toko publik yang bisa dibagikan ke orang lain.
+///
+/// Format: `https://abbmamarketplacekampsewa.com/{emailUser}`
+///
+/// [emailUser] adalah email pemilik toko. Kalau emailnya belum tersedia,
+/// pemanggil boleh mengoper nilai cadangan (mis. nama toko) supaya link tetap
+/// berisi path yang bisa dibuka.
+String getShareProfileTokoUrl(String? emailUser) {
+  final String slug = (emailUser ?? '').trim();
+  if (slug.isEmpty) return 'https://${ApiEndpoints.webDomain}';
+  return 'https://${ApiEndpoints.webDomain}/$slug';
 }
 
 String getImageUrl(String? imageUrl, {bool fallbackAvatar = true}) {
@@ -10,6 +28,12 @@ String getImageUrl(String? imageUrl, {bool fallbackAvatar = true}) {
         : '';
   }
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    if (imageUrl.contains('localhost') || imageUrl.contains('127.0.0.1')) {
+      final uri = Uri.tryParse(imageUrl);
+      if (uri != null) {
+        return '${ApiEndpoints.baseUrl}${uri.path}';
+      }
+    }
     return imageUrl;
   }
 
@@ -22,7 +46,15 @@ String getImageUrl(String? imageUrl, {bool fallbackAvatar = true}) {
 String resolveFullUrl(String path, String defaultPrefix) {
   if (path.isEmpty) return '';
   path = path.trim();
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    if (path.contains('localhost') || path.contains('127.0.0.1')) {
+      final uri = Uri.tryParse(path);
+      if (uri != null) {
+        return '${ApiEndpoints.baseUrl}${uri.path}';
+      }
+    }
+    return path;
+  }
 
   if (path.startsWith('/')) path = path.substring(1);
 
@@ -119,4 +151,30 @@ class AuthEndPoints {
   /// GET /api/store/{id_user}/products — List produk toko publik (filter + search)
   /// Gunakan bersama [getStoreProfile]: "/api/store/{id_user}/products"
   final String getStoreProducts = "/api/store/";
+
+  // ── Feedback & Chat Endpoints ────────────────────────────────────────────
+  /// POST /api/feedback                    — Buat feedback baru (Customer only)
+  final String postFeedback = "/api/feedback";
+
+  /// GET  /api/chat-room                   — Daftar percakapan / Room (Customer: miliknya, Admin: semua)
+  final String chatRoom = "/api/chat-room";
+
+  /// GET  /api/chat-room/{feedback_id}/{admin_id}/messages      — Ambil isi chat + mark-as-read
+  /// POST /api/chat-room/{feedback_id}/{admin_id}/messages      — Kirim pesan
+  String chatRoomMessages(int feedbackId, int adminId) => "/api/chat-room/$feedbackId/$adminId/messages";
+
+  // ── Follow / Unfollow Endpoints ─────────────────────────────────────────────
+  /// POST /api/follow/{user_id} — Follow akun user
+  String followUser(int userId) => "/api/follow/$userId";
+
+  /// POST /api/unfollow/{user_id} atau DELETE /api/follow/{user_id} — Unfollow akun user
+  String unfollowUser(int userId) => "/api/unfollow/$userId";
+
+  /// GET /api/user/{user_id}/followers — List user yang mem-follow user tersebut
+  String getFollowers(int userId) => "/api/user/$userId/followers";
+
+  /// GET /api/user/{user_id}/following — List user yang difollow oleh user tersebut
+  String getFollowing(int userId) => "/api/user/$userId/following";
 }
+
+

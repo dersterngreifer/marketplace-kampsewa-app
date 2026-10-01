@@ -7,6 +7,7 @@ import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:image_picker/image_picker.dart';
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/loading_dialog.dart';
+import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/models/alamat_model.dart';
@@ -140,6 +141,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -217,6 +219,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         if (context.mounted) {
           showDialog(
@@ -290,6 +293,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         if (context.mounted) {
           showDialog(
@@ -346,6 +350,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -415,6 +420,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         if (context.mounted) {
           showDialog(
@@ -476,6 +482,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         if (context.mounted) {
           showDialog(
@@ -545,6 +552,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         if (context.mounted) {
           showDialog(
@@ -635,6 +643,7 @@ class ApiDataUser extends GetxController {
         );
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         if (context.mounted) {
           showDialog(
@@ -691,6 +700,7 @@ class ApiDataUser extends GetxController {
         return false;
       }
     } catch (e) {
+      if (NetworkErrorDialog.isNetworkOrServerError(e)) return false;
       if (context.mounted) {
         CustomSnackBar.show(context,
             sukses: false, teks: 'Terjadi kesalahan saat verifikasi KTP');
@@ -763,6 +773,7 @@ class ApiDataUser extends GetxController {
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -822,6 +833,7 @@ class ApiDataUser extends GetxController {
             sukses: false, teks: json['message'] ?? "Gagal mengubah data");
       }
     } catch (e) {
+      if (NetworkErrorDialog.isNetworkOrServerError(e)) return;
       if (context.mounted) {
         CustomSnackBar.show(context,
             sukses: false, teks: "Terjadi kesalahan Saat Update Bank");
@@ -863,6 +875,7 @@ class ApiDataUser extends GetxController {
             sukses: false, teks: "Gagal menghapus data");
       }
     } catch (e) {
+      if (NetworkErrorDialog.isNetworkOrServerError(e)) return;
       if (context.mounted) {
         CustomSnackBar.show(context,
             sukses: false, teks: "Terjadi kesalahan Saat Hapus Bank");

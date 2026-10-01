@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/loading_dialog.dart';
+import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/layouts/layout_lupa_password_new_pass.dart';
@@ -59,6 +60,7 @@ class ApiLupaPassword extends GetxController {
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -109,6 +111,7 @@ class ApiLupaPassword extends GetxController {
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -170,6 +173,7 @@ class ApiLupaPassword extends GetxController {
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,
@@ -234,6 +238,7 @@ class ApiLupaPassword extends GetxController {
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,

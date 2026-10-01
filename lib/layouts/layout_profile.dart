@@ -21,6 +21,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
+import 'package:project_camp_sewa/layouts/layout_feedback_list.dart';
+import 'package:project_camp_sewa/layouts/layout_follow_list.dart';
 
 class LayoutProfile extends StatefulWidget {
   const LayoutProfile({super.key});
@@ -570,63 +572,246 @@ class _LayoutProfileState extends State<LayoutProfile> {
 
   Widget _buildStatsCard(dynamic user) {
     bool isMitra = user != null && user.isToko == true;
+    final int userId = user?.id ?? 0;
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 35,
-            spreadRadius: 5,
-            offset: const Offset(0, 15),
+    return Column(
+      children: [
+        // ── Stats Pesanan ──────────────────────────────────────────────────
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 35,
+                spreadRadius: 5,
+                offset: const Offset(0, 15),
+              ),
+              BoxShadow(
+                color: const Color(0xFF2C4E40).withValues(alpha: 0.08),
+                blurRadius: 12,
+                spreadRadius: 0,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          BoxShadow(
-            color: const Color(0xFF2C4E40).withValues(alpha: 0.08),
-            blurRadius: 12,
-            spreadRadius: 0,
-            offset: const Offset(0, 6),
+          child: Wrap(
+            alignment: WrapAlignment.spaceEvenly,
+            spacing: 15,
+            runSpacing: 20,
+            children: [
+              _buildStatItem(
+                  apiDataUser.totalSemuaPesanan.value.toString(),
+                  'Total\nPesanan',
+                  Icons.shopping_bag_rounded,
+                  const Color(0xFF3B82F6)),
+              _buildStatItem(
+                  apiDataUser.totalBelumDikonfirmasi.value.toString(),
+                  'Pesanan\nPending',
+                  Icons.pending_actions_rounded,
+                  const Color(0xFFF59E0B)), // Amber
+              _buildStatItem(
+                  apiDataUser.totalSedangDisewa.value.toString(),
+                  'Sedang\nDisewa',
+                  Icons.local_shipping_rounded,
+                  const Color(0xFF10B981)),
+              _buildStatItem(
+                  apiDataUser.totalProdukBelumDikonfirmasi.value.toString(),
+                  'Produk\nPending',
+                  Icons.inventory_2_rounded,
+                  const Color(0xFF8B5CF6)), // Purple
+              if (isMitra) ...[
+                _buildStatItem(
+                    user.ratingToko.toStringAsFixed(1),
+                    'Rating\n(${user.totalUlasanToko} Ulasan)',
+                    Icons.star_rounded,
+                    const Color(0xFFED6723)),
+              ],
+            ],
           ),
-        ],
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceEvenly,
-        spacing: 15,
-        runSpacing: 20,
-        children: [
-          _buildStatItem(
-              apiDataUser.totalSemuaPesanan.value.toString(),
-              'Total\nPesanan',
-              Icons.shopping_bag_rounded,
-              const Color(0xFF3B82F6)),
-          _buildStatItem(
-              apiDataUser.totalBelumDikonfirmasi.value.toString(),
-              'Pesanan\nPending',
-              Icons.pending_actions_rounded,
-              const Color(0xFFF59E0B)), // Amber
-          _buildStatItem(
-              apiDataUser.totalSedangDisewa.value.toString(),
-              'Sedang\nDisewa',
-              Icons.local_shipping_rounded,
-              const Color(0xFF10B981)),
-          _buildStatItem(
-              apiDataUser.totalProdukBelumDikonfirmasi.value.toString(),
-              'Produk\nPending',
-              Icons.inventory_2_rounded,
-              const Color(0xFF8B5CF6)), // Purple
-          if (isMitra) ...[
-            _buildStatItem(
-                user.ratingToko.toStringAsFixed(1),
-                'Rating\n(${user.totalUlasanToko} Ulasan)',
-                Icons.star_rounded,
-                const Color(0xFFED6723)),
-          ],
-        ],
-      ),
+        ),
+
+        // ── Stats Followers & Following (clickable) ────────────────────────
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  elevation: 0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: userId > 0
+                        ? () => Get.to(() => LayoutFollowList(
+                              idUser: userId,
+                              type: FollowListType.followers,
+                            ))
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14, horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 24,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 10),
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFF2C4E40).withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.people_alt_rounded,
+                              size: 20,
+                              color: Color(0xFF3B82F6),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.totalFollowers.toString(),
+                                  style: AppColors.fontStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF2F2828),
+                                  ),
+                                ),
+                                Text(
+                                  'Followers',
+                                  style: AppColors.fontStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF9E9E9E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: Color(0xFFBDBDBD),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  elevation: 0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: userId > 0
+                        ? () => Get.to(() => LayoutFollowList(
+                              idUser: userId,
+                              type: FollowListType.following,
+                            ))
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14, horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 24,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 10),
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFF2C4E40).withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.account_circle_rounded,
+                              size: 20,
+                              color: Color(0xFF10B981),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.totalFollowing.toString(),
+                                  style: AppColors.fontStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF2F2828),
+                                  ),
+                                ),
+                                Text(
+                                  'Following',
+                                  style: AppColors.fontStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF9E9E9E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: Color(0xFFBDBDBD),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -726,37 +911,33 @@ class _LayoutProfileState extends State<LayoutProfile> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Banner KYC (jika belum lengkap) ────────────────────────────
           if (needsKYC) _buildKYCBanner(),
-          Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 12),
-            child: Text(
-              "Pengaturan Akun",
-              style: AppColors.fontStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF2F2828),
-              ),
-            ),
+
+          // ════════════════════════════════════════════════════════════════
+          // SECTION 1 — Bantuan & Chat  (paling atas, paling penting)
+          // ════════════════════════════════════════════════════════════════
+          _buildSectionLabel("Bantuan & Chat"),
+          _buildMenuItem(
+            icon: MdiIcons.chatProcessingOutline,
+            title: 'Masukan & Chat Admin',
+            subtitle: 'Kirim keluhan atau saran, chat langsung',
+            iconColor: const Color(0xFF2C4E40),
+            iconBgColor: const Color(0xFFE8F5E9),
+            onTap: () => Get.to(() => const LayoutFeedbackList()),
           ),
-          if (needsKYC)
-            _buildMenuItem(
-              icon: MdiIcons.shieldLockOutline,
-              title: 'Lengkapi Identitas',
-              subtitle: 'Verifikasi NIK KTP Anda',
-              iconColor: const Color(0xFF2C4E40),
-              iconBgColor: const Color(0xFFE8F5E9), // Hijau muda
-              onTap: () {
-                Get.to(() => const LayoutInputKYC())?.then((_) {
-                  if (mounted) apiDataUser.getDataUser(context);
-                });
-              },
-            ),
+
+          // ════════════════════════════════════════════════════════════════
+          // SECTION 2 — Aktivitas Saya (produk & alamat)
+          // ════════════════════════════════════════════════════════════════
+          const SizedBox(height: 24),
+          _buildSectionLabel("Aktivitas Saya"),
           _buildMenuItem(
             icon: MdiIcons.packageVariantClosed,
             title: 'Produk Saya',
-            subtitle: 'Lihat daftar produk Anda',
+            subtitle: 'Lihat & kelola daftar produk Anda',
             iconColor: const Color(0xFF407BFF),
-            iconBgColor: const Color(0xFFE3EFFF), // Biru muda
+            iconBgColor: const Color(0xFFE3EFFF),
             onTap: () {
               if (user.isToko == true) {
                 Get.to(() => const LayoutUserProducts());
@@ -773,75 +954,63 @@ class _LayoutProfileState extends State<LayoutProfile> {
           ),
           _buildMenuItem(
             icon: MdiIcons.mapMarkerOutline,
-            title: 'Alamat',
-            subtitle: 'Atur alamat pengiriman',
+            title: 'Alamat Saya',
+            subtitle: 'Atur alamat pengiriman & penjemputan',
             iconColor: const Color(0xFFFF9800),
-            iconBgColor: const Color(0xFFFFF3E0), // Orange muda
-            onTap: () {
-              Get.to(() => const LayoutAlamat());
-            },
+            iconBgColor: const Color(0xFFFFF3E0),
+            onTap: () => Get.to(() => const LayoutAlamat()),
           ),
-          _buildMenuItem(
-            icon: MdiIcons.lockOutline,
-            title: 'Ubah Password',
-            subtitle: 'Amankan akun Anda',
-            iconColor: const Color(0xFF9C27B0),
-            iconBgColor: const Color(0xFFF3E5F5), // Ungu muda
-            onTap: () {
-              Get.to(
-                () => const LayoutLupaPasswordNewPass(),
-                arguments: {
-                  'nomor_telephone': user.nomorTelephone ?? '',
-                  'lupa_password': false,
-                },
-              );
-            },
-          ),
+
+          // ════════════════════════════════════════════════════════════════
+          // SECTION 3 — Kelola Toko / Mulai Menyewakan
+          // ════════════════════════════════════════════════════════════════
+          const SizedBox(height: 24),
+          _buildSectionLabel(
+              user.isToko == true ? "Kelola Toko" : "Menjadi Mitra"),
           if (user.isToko == true) ...[
-            _buildMenuItem(
-              icon: MdiIcons.storeSearchOutline,
-              title: 'Lihat Toko Publik',
-              subtitle: 'Tampilan profil toko untuk pelanggan',
-              iconColor: const Color(0xFF2196F3),
-              iconBgColor: const Color(0xFFE3F2FD), // Biru muda
-              onTap: () {
-                Get.to(() => LayoutPublicStoreProfile(
-                  idUser: user.id ?? 0, 
-                  initialStoreName: user.namaStore,
-                ));
-              },
-            ),
-            _buildMenuItem(
-              icon: MdiIcons.storeEditOutline,
-              title: 'Informasi Toko',
-              subtitle: 'Atur profil & banner toko Anda',
-              iconColor: const Color(0xFF009688),
-              iconBgColor: const Color(0xFFE0F2F1), // Teal muda
-              onTap: () {
-                Get.to(() => const LayoutInformasiToko());
-              },
-            ),
             _buildMenuItem(
               icon: MdiIcons.openInNew,
               title: 'Dashboard Web',
-              subtitle: user.namaStore ?? 'Manajemen Toko Anda',
-              iconColor: const Color(0xFF009688),
-              iconBgColor: const Color(0xFFE0F2F1), // Teal muda
+              subtitle: user.namaStore ?? 'Manajemen lengkap toko Anda',
+              iconColor: Colors.white,
+              iconBgColor: const Color(0xFF2C4E40),
+              isHighlighted: true,
               onTap: () async {
                 final Uri url = Uri.parse(ApiEndpoints.baseUrl);
                 if (!await launchUrl(url)) {
                   Get.snackbar("Error", "Gagal membuka web browser");
                 }
               },
-            )
+            ),
+            _buildMenuItem(
+              icon: MdiIcons.storeSearchOutline,
+              title: 'Lihat Toko Publik',
+              subtitle: 'Tampilan profil toko untuk pelanggan',
+              iconColor: const Color(0xFF2196F3),
+              iconBgColor: const Color(0xFFE3F2FD),
+              onTap: () {
+                Get.to(() => LayoutPublicStoreProfile(
+                      idUser: user.id ?? 0,
+                      initialStoreName: user.namaStore,
+                    ));
+              },
+            ),
+            _buildMenuItem(
+              icon: MdiIcons.storeEditOutline,
+              title: 'Informasi Toko',
+              subtitle: 'Edit profil, banner & deskripsi toko',
+              iconColor: const Color(0xFF009688),
+              iconBgColor: const Color(0xFFE0F2F1),
+              onTap: () => Get.to(() => const LayoutInformasiToko()),
+            ),
           ] else
             _buildMenuItem(
               icon: MdiIcons.storefrontOutline,
               title: 'Mulai Menyewakan',
-              subtitle: 'Buka peluang baru hari ini',
+              subtitle: 'Daftarkan toko & mulai berjualan',
               iconColor: Colors.white,
-              iconBgColor: const Color(0xFF407BFF), // Biru solid agar standout
-              isHighlighted: true, // Custom flag
+              iconBgColor: const Color(0xFF407BFF),
+              isHighlighted: true,
               onTap: () {
                 if (needsKYC) {
                   CustomSnackBar.show(
@@ -854,25 +1023,52 @@ class _LayoutProfileState extends State<LayoutProfile> {
                   Get.to(() => const LayoutInstruksiKYC());
                 } else {
                   Get.to(() => const LayoutTambahDataToko())?.then((_) {
-                    if (mounted) {
-                      apiDataUser.getDataUser(context);
-                    }
+                    if (mounted) apiDataUser.getDataUser(context);
                   });
                 }
               },
             ),
+
+          // ════════════════════════════════════════════════════════════════
+          // SECTION 4 — Pengaturan Akun (keamanan & identitas)
+          // ════════════════════════════════════════════════════════════════
           const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 12),
-            child: Text(
-              "Lainnya",
-              style: AppColors.fontStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF2F2828),
-              ),
+          _buildSectionLabel("Pengaturan Akun"),
+          if (needsKYC)
+            _buildMenuItem(
+              icon: MdiIcons.shieldLockOutline,
+              title: 'Lengkapi Identitas',
+              subtitle: 'Verifikasi NIK KTP untuk akses penuh',
+              iconColor: const Color(0xFF2C4E40),
+              iconBgColor: const Color(0xFFE8F5E9),
+              onTap: () {
+                Get.to(() => const LayoutInputKYC())?.then((_) {
+                  if (mounted) apiDataUser.getDataUser(context);
+                });
+              },
             ),
+          _buildMenuItem(
+            icon: MdiIcons.lockOutline,
+            title: 'Ubah Password',
+            subtitle: 'Ganti kata sandi untuk keamanan akun',
+            iconColor: const Color(0xFF9C27B0),
+            iconBgColor: const Color(0xFFF3E5F5),
+            onTap: () {
+              Get.to(
+                () => const LayoutLupaPasswordNewPass(),
+                arguments: {
+                  'nomor_telephone': user.nomorTelephone ?? '',
+                  'lupa_password': false,
+                },
+              );
+            },
           ),
+
+          // ════════════════════════════════════════════════════════════════
+          // SECTION 5 — Lainnya (keluar)
+          // ════════════════════════════════════════════════════════════════
+          const SizedBox(height: 24),
+          _buildSectionLabel("Lainnya"),
           _buildMenuItem(
             icon: MdiIcons.logout,
             title: 'Keluar',
@@ -888,8 +1084,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
                 builder: (_) => Dialog(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28)),
-                  backgroundColor: Colors
-                      .transparent, // Transparan agar bayangan bisa dari Container
+                  backgroundColor: Colors.transparent,
                   elevation: 0,
                   child: Container(
                     decoration: BoxDecoration(
@@ -1028,6 +1223,34 @@ class _LayoutProfileState extends State<LayoutProfile> {
                 Get.offAll(() => const LoginScreen());
               }
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Helper: judul section dengan garis aksen kiri
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2C4E40),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: AppColors.fontStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF2F2828),
+            ),
           ),
         ],
       ),

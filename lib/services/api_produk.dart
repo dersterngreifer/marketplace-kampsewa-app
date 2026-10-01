@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
+import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/models/detail_produk_model.dart';
@@ -62,6 +63,7 @@ class ApiProduk extends GetxController {
         listProdukRekomendasi.clear();
       }
     } catch (error) {
+      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
       if (error is DioException)
         msg = error.message ?? msg;
@@ -118,6 +120,7 @@ class ApiProduk extends GetxController {
         listProdukHome.clear();
       }
     } catch (error) {
+      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
       if (error is DioException)
         msg = error.message ?? msg;
@@ -189,6 +192,7 @@ class ApiProduk extends GetxController {
         listProduk.clear();
       }
     } catch (error) {
+      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
       if (error is DioException)
         msg = error.message ?? msg;
@@ -253,6 +257,7 @@ class ApiProduk extends GetxController {
         listUserProduk.clear();
       }
     } catch (error) {
+      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
       if (error is DioException)
         msg = error.message ?? msg;
@@ -342,6 +347,7 @@ class ApiProduk extends GetxController {
         );
       }
     } catch (error) {
+      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
       if (error is DioException)
         msg = error.message ?? msg;
@@ -471,6 +477,7 @@ class ApiProduk extends GetxController {
         );
       }
     } catch (error) {
+      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
       if (error is DioException)
         msg = error.message ?? msg;

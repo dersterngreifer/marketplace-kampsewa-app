@@ -1,11 +1,13 @@
-import 'package:flutter/services.dart';
-import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart'; // Wajib ditambahkan untuk Cupertino Icons
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:project_camp_sewa/layouts/layout_chat_list.dart';
 import 'package:project_camp_sewa/layouts/layout_dashboard.dart';
 import 'package:project_camp_sewa/layouts/layout_product.dart';
 import 'package:project_camp_sewa/layouts/layout_profile.dart';
 import 'package:project_camp_sewa/screens/screen_riwayat.dart';
+import 'package:project_camp_sewa/services/api_chat.dart';
 import 'package:project_camp_sewa/services/controller_dashboard.dart';
 
 class ScreenDashboard extends StatefulWidget {
@@ -16,20 +18,27 @@ class ScreenDashboard extends StatefulWidget {
 }
 
 class _ScreenDashboardState extends State<ScreenDashboard> {
-  DashboardController pageController = Get.put(DashboardController());
-  List pages = const [
+  final DashboardController pageController = Get.put(DashboardController());
+  final ApiChat apiChat = Get.put(ApiChat());
+
+  final List<Widget> _pages = const [
     LayoutDashboard(),
     LayoutProduct(),
+    LayoutChatList(),
     RiwayatScreen(),
-    LayoutProfile()
+    LayoutProfile(),
   ];
 
-  final List<_NavItem> _navItems = const [
-    _NavItem(icon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.grid_view_rounded, label: 'Produk'),
-    _NavItem(icon: Icons.receipt_long_rounded, label: 'Riwayat'),
-    _NavItem(icon: Icons.person_rounded, label: 'Profile'),
-  ];
+  static const Color _activeColor = Color(0xFF2C4E40);
+  static const Color _inactiveColor = Colors.black;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      apiChat.getUnreadSummary();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,96 +50,133 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
         systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: Colors.white,
+        body: Obx(() => _pages[pageController.pageIndex.value]),
         bottomNavigationBar: _buildBottomNav(),
-        body: Obx(() => pages[pageController.pageIndex.value]),
       ),
     );
   }
 
+  // ── BOTTOM NAVIGATION BAR NORMAL ──
   Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
+    return Obx(() {
+      final int selected = pageController.pageIndex.value;
+      // Menambahkan padding bawah untuk perangkat dengan safe area (misal: iPhone dengan garis gestur)
+      final double bottomPadding = MediaQuery.of(context).padding.bottom;
+
+      return Container(
+        height: 64 + bottomPadding,
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(
+                  0.06), // Shadow tipis agar tidak menyatu dengan background
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Obx(() {
-            final selectedIndex = pageController.pageIndex.value;
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(_navItems.length, (index) {
-                final item = _navItems[index];
-                final isSelected = selectedIndex == index;
-                return GestureDetector(
-                  onTap: () =>
-                      setState(() => pageController.setPageIndex(index)),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Dot indicator
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 4,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 4),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFF2C4E40)
-                              : Colors.transparent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Icon(
-                        item.icon,
-                        color: isSelected
-                            ? const Color(0xFF2C4E40)
-                            : const Color(0xFFBDBDBD),
-                        size: 26,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: AppColors.fontStyle(
-                          color: isSelected
-                              ? const Color(0xFF2C4E40)
-                              : const Color(0xFFBDBDBD),
-                          fontSize: 11.5,
-                          fontWeight:
-                              isSelected ? FontWeight.w800 : FontWeight.w600,
-                        ),
-                      ),
-                    ],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(
+                0, CupertinoIcons.house, CupertinoIcons.house_fill, selected),
+            _buildNavItem(1, CupertinoIcons.square_grid_2x2,
+                CupertinoIcons.square_grid_2x2_fill, selected),
+
+            // Menu Chat (Index 2) dengan penanda isChat = true untuk menampilkan Badge Unread
+            _buildNavItem(2, CupertinoIcons.chat_bubble_2,
+                CupertinoIcons.chat_bubble_2_fill, selected,
+                isChat: true),
+
+            _buildNavItem(3, CupertinoIcons.doc_plaintext,
+                CupertinoIcons.doc_text_fill, selected),
+            _buildNavItem(
+                4, CupertinoIcons.person, CupertinoIcons.person_fill, selected),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ── MENU ITEM DENGAN CUPERTINO ICONS ──
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    IconData activeIcon,
+    int selected, {
+    bool isChat = false,
+  }) {
+    final bool isActive = selected == index;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => pageController.setPageIndex(index),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              // Background lingkaran sempurna saat aktif
+              color: isActive
+                  ? _activeColor.withOpacity(0.12)
+                  : Colors.transparent,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, anim) =>
+                      ScaleTransition(scale: anim, child: child),
+                  child: Icon(
+                    isActive ? activeIcon : icon,
+                    key: ValueKey(isActive),
+                    color: isActive ? _activeColor : _inactiveColor,
+                    size:
+                        26, // Ukuran sedikit diperkecil agar terlihat lebih modern/rapi
                   ),
-                );
-              }),
-            );
-          }),
+                ),
+
+                // Menampilkan Badge Merah HANYA jika ini adalah menu Chat dan ada pesan belum dibaca
+                if (isChat)
+                  Obx(() {
+                    final int count = apiChat.totalUnread.value;
+                    if (count <= 0) return const SizedBox.shrink();
+
+                    return Positioned(
+                      top: 6,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-  const _NavItem({required this.icon, required this.label});
-}
-

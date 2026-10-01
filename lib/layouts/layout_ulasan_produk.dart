@@ -13,7 +13,12 @@ class LayoutUlasanProduk extends StatefulWidget {
 
 class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
   String selectedFilter = 'Terbaru';
-  final List<String> filterOptions = ['Terbaru', 'Terlama', 'Tertinggi', 'Terendah'];
+  final List<String> filterOptions = [
+    'Terbaru',
+    'Terlama',
+    'Tertinggi',
+    'Terendah'
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -73,12 +78,17 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF2C4E40) : Colors.transparent,
+                      color: isSelected
+                          ? const Color(0xFF2C4E40)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF2C4E40) : Colors.grey.shade300,
+                        color: isSelected
+                            ? const Color(0xFF2C4E40)
+                            : Colors.grey.shade300,
                       ),
                     ),
                     child: Center(
@@ -86,8 +96,11 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
                         filter,
                         style: AppColors.fontStyle(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                          color: isSelected ? Colors.white : const Color(0xFF8E8E8E),
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF8E8E8E),
                         ),
                       ),
                     ),
@@ -98,93 +111,94 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
           ),
           Expanded(
             child: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: dummyReviews.length,
-        separatorBuilder: (_, __) => const Divider(height: 32, thickness: 1),
-        itemBuilder: (context, index) {
-          final review = dummyReviews[index];
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.grey.shade300,
-                    child: const Icon(Icons.person,
-                        size: 20, color: Colors.white),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.all(16),
+              itemCount: dummyReviews.length,
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 32, thickness: 1),
+              itemBuilder: (context, index) {
+                final review = dummyReviews[index];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Text(
-                          review['user'] as String,
-                          style: AppColors.fontStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF2F2828),
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.grey.shade300,
+                          child: const Icon(Icons.person,
+                              size: 20, color: Colors.white),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                review['user'] as String,
+                                style: AppColors.fontStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF2F2828),
+                                ),
+                              ),
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (starIndex) => Icon(
+                                    Icons.star_rounded,
+                                    size: 14,
+                                    color: starIndex < (review['rating'] as int)
+                                        ? const Color(0xFFFFC107)
+                                        : Colors.grey.shade300,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        Row(
-                          children: List.generate(
-                            5,
-                            (starIndex) => Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: starIndex < (review['rating'] as int)
-                                  ? const Color(0xFFFFC107)
-                                  : Colors.grey.shade300,
-                            ),
+                        Text(
+                          review['date'] as String,
+                          style: AppColors.fontStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF8E8E8E),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Text(
-                    review['date'] as String,
-                    style: AppColors.fontStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF8E8E8E),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                review['comment'] as String,
-                style: AppColors.fontStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF2F2828),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: (review['photos'] as List<String>)
-                    .map(
-                      (photo) => Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: NetworkImage(photo),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                    const SizedBox(height: 12),
+                    Text(
+                      review['comment'] as String,
+                      style: AppColors.fontStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF2F2828),
+                        height: 1.5,
                       ),
-                    )
-                    .toList(),
-              ),
-            ],
-          );
-        },
-      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: (review['photos'] as List<String>)
+                          .map(
+                            (photo) => Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              width: 70,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                image: DecorationImage(
+                                  image: NetworkImage(photo),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),

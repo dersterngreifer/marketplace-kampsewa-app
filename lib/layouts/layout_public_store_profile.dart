@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:project_camp_sewa/layouts/layout_chat_room.dart' as project_camp_sewa_chat;
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/models/produk_model.dart';
 import 'package:project_camp_sewa/models/store_model.dart';
+import 'package:project_camp_sewa/models/user.dart';
 import 'package:project_camp_sewa/services/api_store.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart';
+import 'package:project_camp_sewa/services/api_follow.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_product.dart';
+import 'package:project_camp_sewa/layouts/layout_informasi_toko.dart';
 import 'package:project_camp_sewa/components/card/produk_card.dart';
 import 'package:project_camp_sewa/components/bottomsheet/bottom_sheet_produk.dart';
+import 'package:project_camp_sewa/components/bottomsheet/bottom_sheet_share_toko.dart';
+import 'package:project_camp_sewa/layouts/layout_follow_list.dart';
 
 class PublicStoreController extends GetxController {
   final int idUser;
   PublicStoreController(this.idUser);
 
   final ApiStore _apiStore = Get.put(ApiStore());
+  final ApiFollow _apiFollow = Get.put(ApiFollow());
 
   // Controller untuk Text Field agar bisa di-clear
   final TextEditingController searchController = TextEditingController();
@@ -39,6 +47,28 @@ class PublicStoreController extends GetxController {
   var joinDate = ''.obs;
   var location = ''.obs;
 
+  // ── Follow stats ──────────────────────────────────────────────────────────
+  var totalFollowers = 0.obs;
+  var totalFollowing = 0.obs;
+
+  /// True jika user yang sedang login sudah mem-follow profil ini.
+  var isFollowedByMe = false.obs;
+
+  /// True saat sedang memproses request follow/unfollow (mencegah double tap).
+  var isFollowLoading = false.obs;
+
+  /// True jika user ini memiliki toko (mitra).
+  var isToko = true.obs;
+
+  // ── Share & kepemilikan profil ────────────────────────────────────────────
+  /// Email pemilik toko, dipakai untuk URL share profil.
+  var storeEmail = ''.obs;
+
+  /// True kalau profil toko yang dibuka adalah milik user yang sedang login.
+  /// Mengganti tombol "Ikuti" menjadi "Edit Profile".
+  final isOwner = false.obs;
+  Worker? _ownerWorker;
+
   // ── Products + filter ─────────────────────────────────────────────────────
   var products = <ProdukModel>[].obs;
   var categories = <String>['Semua'].obs;
@@ -51,6 +81,17 @@ class PublicStoreController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _syncOwnership();
+
+    // Data user bisa termuat setelah halaman ini dibuka, jadi ownership
+    // perlu ikut diperbarui setiap kali dataUser berubah.
+    if (Get.isRegistered<ApiDataUser>()) {
+      _ownerWorker = ever<User?>(
+        Get.find<ApiDataUser>().dataUser,
+        (_) => _syncOwnership(),
+      );
+    }
+
     fetchStoreProfile();
 
     // FIX BUG: Gunakan Debounce dari GetX untuk mencegah spam API saat mengetik
@@ -62,8 +103,16 @@ class PublicStoreController extends GetxController {
 
   @override
   void onClose() {
+    _ownerWorker?.dispose();
     searchController.dispose();
     super.onClose();
+  }
+
+  void _syncOwnership() {
+    final int? currentUserId = Get.isRegistered<ApiDataUser>()
+        ? Get.find<ApiDataUser>().dataUser.value?.id
+        : null;
+    isOwner.value = currentUserId != null && currentUserId == idUser;
   }
 
   Future<void> fetchStoreProfile() async {
@@ -84,8 +133,21 @@ class PublicStoreController extends GetxController {
       totalTransactions.value = store.totalTransaksiSelesai;
       joinDate.value = store.formattedJoinDate;
       location.value = store.alamat?.displayLocation ?? '';
+      storeEmail.value = store.email ?? '';
 
-      await fetchStoreProducts();
+      // Follow stats dari response
+      totalFollowers.value = store.totalFollowers;
+      totalFollowing.value = store.totalFollowing;
+      isFollowedByMe.value = store.isFollowedByMe;
+      isToko.value = store.isToko;
+
+      if (isToko.value) {
+        await fetchStoreProducts();
+      } else {
+        // Jika bukan toko, tidak usah fetch produk. Kosongkan list.
+        products.clear();
+        isLoadingProducts.value = false;
+      }
     } else {
       errorMessage.value = result.errorMessage;
     }
@@ -133,6 +195,83 @@ class PublicStoreController extends GetxController {
   }
 
   void retry() => fetchStoreProfile();
+
+  // ── Aksi: Follow / Unfollow ───────────────────────────────────────────────
+
+  /// Toggle follow/unfollow profil ini.
+  /// Menggunakan optimistic UI — stat & state diubah langsung, di-rollback jika gagal.
+  Future<void> toggleFollow() async {
+    if (isFollowLoading.value) return;
+    isFollowLoading.value = true;
+
+    final bool willFollow = !isFollowedByMe.value;
+
+    // Optimistic update
+    isFollowedByMe.value = willFollow;
+    totalFollowers.value =
+        willFollow ? totalFollowers.value + 1 : totalFollowers.value - 1;
+
+    final result = willFollow
+        ? await _apiFollow.followUser(idUser)
+        : await _apiFollow.unfollowUser(idUser);
+
+    if (!result.success) {
+      // Rollback
+      isFollowedByMe.value = !willFollow;
+      totalFollowers.value =
+          willFollow ? totalFollowers.value - 1 : totalFollowers.value + 1;
+      Get.snackbar(
+        'Gagal',
+        result.errorMessage ?? 'Terjadi kesalahan.',
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+    }
+
+    isFollowLoading.value = false;
+  }
+
+  // ── Navigasi List Followers / Following ───────────────────────────────────
+
+  void openFollowers() {
+    Get.to(() => LayoutFollowList(
+          idUser: idUser,
+          type: FollowListType.followers,
+        ));
+  }
+
+  void openFollowing() {
+    Get.to(() => LayoutFollowList(
+          idUser: idUser,
+          type: FollowListType.following,
+        ));
+  }
+
+  // ── Aksi: Share & Edit Profil ─────────────────────────────────────────────
+
+  /// URL profil toko yang dibagikan:
+  /// `https://abbmamarketplacekampsewa.com/{emailUser}`
+  String get shareUrl => getShareProfileTokoUrl(
+        storeEmail.value.isNotEmpty ? storeEmail.value : storeName.value,
+      );
+
+  /// Buka bottom sheet khusus share profil toko.
+  void shareProfile() {
+    BottomSheetShareToko.show(
+      namaToko: storeName.value,
+      emailPemilik: storeEmail.value,
+      logoUrl: storeLogo.value,
+    );
+  }
+
+  /// Tombol "Ikuti" berubah jadi "Edit Profile" bila profil ini milik sendiri.
+  /// Profil dimuat ulang setelah selesai mengedit supaya data yang tampil baru.
+  Future<void> goToEditProfile() async {
+    await Get.to(() => const LayoutInformasiToko());
+    await fetchStoreProfile();
+  }
 }
 
 class LayoutPublicStoreProfile extends StatelessWidget {
@@ -176,17 +315,43 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                 child: _buildStoreProfileInfo(controller),
               ),
               // Search & Filter Category dibuat STICKY
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _StickyFilterDelegate(
-                  controller: controller,
-                  // Search bar lebih tinggi & lega + jarak ke kategori lebih proporsional
-                  maxExtentHeight: 132,
-                  minExtentHeight: 132,
+              if (controller.isToko.value)
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyFilterDelegate(
+                    controller: controller,
+                    // Search bar lebih tinggi & lega + jarak ke kategori lebih proporsional
+                    maxExtentHeight: 132,
+                    minExtentHeight: 132,
+                  ),
                 ),
-              ),
-              _buildProductGrid(controller, context),
-              const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              if (controller.isToko.value)
+                _buildProductGrid(controller, context)
+              else
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 32, bottom: 80, left: 20, right: 20),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.person_search_rounded, size: 64, color: Colors.grey.shade300),
+                          const SizedBox(height: 16),
+                          Text(
+                            "Belum ada produk yang disewakan.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (controller.isToko.value)
+                const SliverToBoxAdapter(child: SizedBox(height: 80)),
             ],
           );
         }),
@@ -220,6 +385,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
       ),
       actions: [
         IconButton(
+          tooltip: 'Bagikan Profil Toko',
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -229,7 +395,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
             child:
                 const Icon(Icons.share_rounded, color: Colors.white, size: 18),
           ),
-          onPressed: () {},
+          onPressed: () => controller.shareProfile(),
         ),
         const SizedBox(width: 8),
       ],
@@ -332,60 +498,141 @@ class LayoutPublicStoreProfile extends StatelessWidget {
           ),
 
           const SizedBox(height: 16),
-          // Tombol Follow (70%) & Kirim Pesan (30%)
-          Row(
-            children: [
-              Expanded(
-                flex: 7,
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.mainColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 42),
-                  ),
-                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 17),
-                  label: const Text("Ikuti",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          // Tombol aksi: Ikuti/Mengikuti/Edit Profile (70%) & Kirim Pesan (30%)
+          Obx(() {
+            final bool isOwner = controller.isOwner.value;
+            final bool isFollowed = controller.isFollowedByMe.value;
+            final bool isLoading = controller.isFollowLoading.value;
+
+            return Row(
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: isOwner
+                      ? ElevatedButton.icon(
+                          onPressed: controller.goToEditProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.mainColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 42),
+                          ),
+                          icon: const Icon(MdiIcons.storeEditOutline, size: 17),
+                          label: const Text(
+                            'Edit Profile',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        )
+                      // ── Tombol Ikuti / Mengikuti ──────────────────────────
+                      : isFollowed
+                          ? OutlinedButton.icon(
+                              onPressed:
+                                  isLoading ? null : controller.toggleFollow,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.mainColor,
+                                side: const BorderSide(
+                                    color: AppColors.mainColor, width: 1.5),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 42),
+                              ),
+                              icon: isLoading
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.mainColor),
+                                    )
+                                  : const Icon(Icons.check_rounded, size: 17),
+                              label: const Text(
+                                'Mengikuti',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            )
+                          : ElevatedButton.icon(
+                              onPressed:
+                                  isLoading ? null : controller.toggleFollow,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.mainColor,
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: AppColors.mainColor
+                                    .withOpacity(0.6),
+                                disabledForegroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 42),
+                              ),
+                              icon: isLoading
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white),
+                                    )
+                                  : const Icon(
+                                      Icons.person_add_alt_1_rounded,
+                                      size: 17,
+                                    ),
+                              label: const Text(
+                                'Ikuti',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.mainColor,
-                    side: const BorderSide(color: AppColors.mainColor),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 42),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Get.to(() => project_camp_sewa_chat.LayoutChatRoom(
+                        targetUserId: controller.idUser,
+                        chatData: {
+                          'name': controller.storeName.value,
+                          'avatar': controller.storeLogo.value,
+                          'isToko': true,
+                        },
+                      ));
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.mainColor,
+                      side: const BorderSide(color: AppColors.mainColor),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 42),
+                    ),
+                    icon: const Icon(Icons.chat_bubble_outline_rounded,
+                        size: 15),
+                    label: const Text('Pesan',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 15),
-                  label: const Text("Pesan",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          }),
 
           if (controller.storeDesc.value.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Text(
-              "Deskripsi Toko",
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E1E1E),
-              ),
-            ),
+            Obx(() => Text(
+                  controller.isToko.value ? "Deskripsi Toko" : "Informasi",
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E1E1E),
+                  ),
+                )),
             const SizedBox(height: 8),
             Text(
               controller.storeDesc.value,
@@ -418,33 +665,188 @@ class LayoutPublicStoreProfile extends StatelessWidget {
 
           const SizedBox(height: 20),
           // Statistik Toko
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FA),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStatItem(controller.rating.value.toStringAsFixed(1),
-                    "Rating", Icons.star_rounded, const Color(0xFFFFC107)),
-                Container(height: 24, width: 1, color: Colors.grey.shade300),
-                _buildStatItem(
-                    controller.totalProducts.value.toString(),
-                    "Produk",
-                    Icons.inventory_2_rounded,
-                    const Color(0xFF407BFF)),
-                Container(height: 24, width: 1, color: Colors.grey.shade300),
-                _buildStatItem(
-                    controller.totalTransactions.value.toString(),
-                    "Terjual",
-                    Icons.shopping_bag_rounded,
-                    const Color(0xFF10B981)),
-              ],
-            ),
-          ),
+          Obx(() => controller.isToko.value
+              ? Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildStatItem(controller.rating.value.toStringAsFixed(1),
+                          "Rating", Icons.star_rounded, const Color(0xFFFFC107)),
+                      Container(
+                          height: 24, width: 1, color: Colors.grey.shade300),
+                      _buildStatItem(
+                          controller.totalProducts.value.toString(),
+                          "Produk",
+                          Icons.inventory_2_rounded,
+                          const Color(0xFF407BFF)),
+                      Container(
+                          height: 24, width: 1, color: Colors.grey.shade300),
+                      _buildStatItem(
+                          controller.totalTransactions.value.toString(),
+                          "Terjual",
+                          Icons.shopping_bag_rounded,
+                          const Color(0xFF10B981)),
+                    ],
+                  ),
+                )
+              : const SizedBox()),
+
+
+          const SizedBox(height: 12),
+          // Statistik Followers & Following (clickable)
+          Obx(() => Row(
+                children: [
+                  Expanded(
+                    child: Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: controller.openFollowers,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 16,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.people_alt_rounded,
+                                  size: 16,
+                                  color: Color(0xFF3B82F6),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      controller.totalFollowers.value.toString(),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF1E1E1E),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Followers',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: Colors.grey.shade400,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: controller.openFollowing,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 16,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.account_circle_rounded,
+                                  size: 16,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      controller.totalFollowing.value.toString(),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF1E1E1E),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Following',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: Colors.grey.shade400,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )),
         ],
       ),
     );
@@ -620,8 +1022,11 @@ class LayoutPublicStoreProfile extends StatelessWidget {
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               ProdukModel produk = controller.products[index];
+              final currentUserId = Get.find<ApiDataUser>().dataUser.value?.id;
+              final isOwner =
+                  (currentUserId != null && produk.idUser == currentUserId);
               return ProdukCard(
-                badgeLabel: produk.kategori,
+                badgeLabel: isOwner ? "Milik Anda" : produk.kategori,
                 images: produk.images,
                 namaProduk: produk.namaProduk,
                 namaToko: produk.namaToko,
@@ -892,3 +1297,4 @@ class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
     return oldDelegate.controller != controller;
   }
 }
+

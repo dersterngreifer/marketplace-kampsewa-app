@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
+import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/models/iklan_model.dart';
@@ -46,6 +47,7 @@ class ApiIklan extends GetxController {
               teks: errorMessage,);
       }
     } on DioException catch (dioError) {
+      if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
             context: context,

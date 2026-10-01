@@ -39,6 +39,23 @@ class StoreModel {
   final StoreAlamatModel? alamat;
   final String? tanggalBergabung;
 
+  /// Email pemilik toko — dipakai untuk menyusun URL share profil toko
+  /// (`abbmamarketplacekampsewa.com/{email}`).
+  final String? email;
+
+  /// Jumlah akun yang mem-follow toko/user ini.
+  final int totalFollowers;
+
+  /// Jumlah akun yang di-follow oleh toko/user ini.
+  final int totalFollowing;
+
+  /// True jika user yang sedang login sudah mem-follow profil ini.
+  /// Digunakan untuk menentukan state tombol "Ikuti" / "Mengikuti".
+  final bool isFollowedByMe;
+
+  /// True jika profil ini adalah mitra/toko. False jika pengguna reguler.
+  final bool isToko;
+
   StoreModel({
     required this.idUser,
     required this.namaStore,
@@ -51,6 +68,11 @@ class StoreModel {
     required this.totalTransaksiSelesai,
     this.alamat,
     this.tanggalBergabung,
+    this.email,
+    this.totalFollowers = 0,
+    this.totalFollowing = 0,
+    this.isFollowedByMe = false,
+    this.isToko = true, // Default true untuk legacy data
   });
 
   factory StoreModel.fromJson(Map<String, dynamic> json) {
@@ -83,6 +105,15 @@ class StoreModel {
               0,
       alamat: alamat,
       tanggalBergabung: json['tanggal_bergabung']?.toString(),
+      email: json['email']?.toString(),
+      totalFollowers: json['total_followers'] is int
+          ? json['total_followers']
+          : int.tryParse(json['total_followers']?.toString() ?? '0') ?? 0,
+      totalFollowing: json['total_following'] is int
+          ? json['total_following']
+          : int.tryParse(json['total_following']?.toString() ?? '0') ?? 0,
+      isFollowedByMe: json['is_followed_by_me'] == true,
+      isToko: json['is_toko'] == null ? true : json['is_toko'] == true,
     );
   }
 

@@ -4,8 +4,14 @@ import 'package:get/get.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 
 class LoadingDialog {
+  /// Track status tampil agar loading dialog tidak pernah menutup dialog lain
+  /// (mis. NetworkErrorDialog) yang berada di atasnya.
+  static bool isShowing = false;
+
   void showLoadingDialog() {
+    if (isShowing) return;
     if (Get.isDialogOpen != true) {
+      isShowing = true;
       Get.dialog(
         PopScope(
           canPop: false,
@@ -56,11 +62,13 @@ class LoadingDialog {
         ),
         barrierDismissible: false,
         barrierColor: Colors.black.withValues(alpha: 0.4),
-      );
+      ).then((_) => isShowing = false);
     }
   }
 
   void hideLoadingDialog() {
+    if (!isShowing) return;
+    isShowing = false;
     if (Get.isDialogOpen == true) {
       Get.back();
     }

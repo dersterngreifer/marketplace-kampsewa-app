@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:project_camp_sewa/components/dialog/loading_dialog.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 
 class NetworkErrorDialog extends StatelessWidget {
@@ -17,22 +19,93 @@ class NetworkErrorDialog extends StatelessWidget {
 
   static bool isShowing = false;
 
-  static void show({required String title, required String message, bool isServerError = false}) {
+  static const String _serverTitle = "Server Error";
+  static const String _serverMessage =
+      "Terjadi kesalahan pada server. Data tidak dapat dimuat saat ini. Sistem sedang mencoba kembali...";
+  static const String _networkTitle = "Koneksi Terputus";
+  static const String _networkMessage =
+      "Tidak ada koneksi internet atau jaringan tidak stabil. Sedang memuat ulang...";
+
+  /// Satu-satunya tempat yang menentukan apakah sebuah error termasuk
+  /// masalah koneksi / jaringan / server.
+  ///
+  /// Dipakai juga oleh service sebagai guard supaya tidak ada dialog
+  /// kedua yang muncul di atas [NetworkErrorDialog].
+  static bool isNetworkOrServerError(Object? error) {
+    if (error is! DioException) return false;
+
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.connectionError:
+      case DioExceptionType.transformTimeout:
+        return true;
+      case DioExceptionType.badResponse:
+        return (error.response?.statusCode ?? 0) >= 500;
+      case DioExceptionType.unknown:
+        return error.error != null;
+      case DioExceptionType.cancel:
+      case DioExceptionType.badCertificate:
+        return false;
+    }
+  }
+
+  /// Dipanggil dari interceptor Dio.
+  /// Menampilkan dialog HANYA untuk error koneksi / server.
+  static void showForError(Object? error) {
+    if (!isNetworkOrServerError(error)) return;
+
+    final bool isServer =
+        error is DioException && (error.response?.statusCode ?? 0) >= 500;
+    show(
+      title: isServer ? _serverTitle : _networkTitle,
+      message: isServer ? _serverMessage : _networkMessage,
+      isServerError: isServer,
+    );
+  }
+
+  static void showServerError() {
+    show(
+      title: _serverTitle,
+      message: _serverMessage,
+      isServerError: true,
+    );
+  }
+
+  static void showConnectionError() {
+    show(
+      title: _networkTitle,
+      message: _networkMessage,
+      isServerError: false,
+    );
+  }
+
+  static void show({
+    required String title,
+    required String message,
+    bool isServerError = false,
+  }) {
     if (isShowing) return;
+    if (Get.context == null) return;
+
+    // Tutup loading dialog dulu supaya tidak ada dua dialog yang bertumpuk.
+    LoadingDialog().hideLoadingDialog();
+
     isShowing = true;
     Get.dialog(
       NetworkErrorDialog(title: title, message: message, isServerError: isServerError),
       barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       useSafeArea: true,
     ).then((_) => isShowing = false);
   }
 
   static void hide() {
-    if (isShowing) {
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
-      isShowing = false;
+    if (!isShowing) return;
+    isShowing = false;
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
     }
   }
 

@@ -1,4 +1,4 @@
-﻿import 'package:project_camp_sewa/constants/api_endpoint.dart';
+import 'package:project_camp_sewa/constants/api_endpoint.dart';
 
 class User {
   int? id;
@@ -21,6 +21,12 @@ class User {
   double ratingToko;
   int totalUlasanToko;
 
+  /// Jumlah akun yang mem-follow user ini.
+  int totalFollowers;
+
+  /// Jumlah akun yang di-follow oleh user ini.
+  int totalFollowing;
+
   User(
       {this.id,
       this.name,
@@ -40,7 +46,9 @@ class User {
       this.background,
       this.jenisKelamin,
       this.ratingToko = 0.0,
-      this.totalUlasanToko = 0});
+      this.totalUlasanToko = 0,
+      this.totalFollowers = 0,
+      this.totalFollowing = 0});
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
@@ -63,7 +71,8 @@ class User {
       jenisKelamin: json['jenis_kelamin'],
       ratingToko: double.tryParse(json['rating_toko']?.toString() ?? '0') ?? 0.0,
       totalUlasanToko: int.tryParse(json['total_ulasan_toko']?.toString() ?? '0') ?? 0,
+      totalFollowers: int.tryParse(json['total_followers']?.toString() ?? '0') ?? 0,
+      totalFollowing: int.tryParse(json['total_following']?.toString() ?? '0') ?? 0,
     );
   }
 }
-

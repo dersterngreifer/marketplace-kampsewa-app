@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:project_camp_sewa/components/dialog/loading_dialog.dart';
+import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/screens/screen_login.dart';
@@ -102,6 +103,7 @@ class ApiRegistrasi extends GetxController {
     } on DioException catch (dioError) {
         if (context.mounted) {
           loading.hideLoadingDialog();
+          if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
           CustomSnackBar.show(
             context,
             sukses: false,
