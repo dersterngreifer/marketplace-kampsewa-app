@@ -230,7 +230,7 @@ class ApiProduk extends GetxController {
       if (filter != null && filter.isNotEmpty && filter != 'Semua') {
         queryParams['filter'] = filter;
       }
-      
+
       if (queryParams.isNotEmpty) {
         url += "?${Uri(queryParameters: queryParams).query}";
       }
@@ -442,29 +442,23 @@ class ApiProduk extends GetxController {
           if (detailProduk.value!.fotoArray.isNotEmpty) {
             rawImages.addAll(detailProduk.value!.fotoArray);
           }
-          
-          // Deduplicate by filename
-          List<String> uniqueImages = [];
-          for (var img in rawImages) {
-            String filename = img.split('/').last;
-            if (!uniqueImages.any((e) => e.split('/').last == filename)) {
-              uniqueImages.add(img);
-            }
+          if (detailProduk.value!.images.isNotEmpty) {
+            rawImages.addAll(detailProduk.value!.images);
           }
-          rawImages = uniqueImages;
 
-          imageDetailProduk.assignAll(rawImages
+          // Resolve full URLs first, then deduplicate
+          List<String> resolvedImages = rawImages
               .map((url) {
-                if (url.startsWith('[') && url.endsWith(']')) {
-                  return url
-                      .replaceAll(RegExp(r'[\[\]\"]'), '')
-                      .split(',')
-                      .first;
-                }
-                return url;
+                if (url.isEmpty) return '';
+                return resolveFullUrl(
+                    url, ApiEndpoints.authendpoints.getImageProduk);
               })
               .where((url) => url.isNotEmpty)
-              .toList());
+              .toList();
+
+          rawImages = resolvedImages.toSet().toList();
+
+          imageDetailProduk.assignAll(rawImages);
         } else {
           detailProduk.value = null;
           imageDetailProduk.clear();
@@ -534,14 +528,17 @@ class ApiProduk extends GetxController {
       Authorization auth = Authorization();
       String? token = await auth.getToken();
       if (token == null) {
-        return {'success': false, 'message': 'Anda harus login untuk menyukai produk'};
+        return {
+          'success': false,
+          'message': 'Anda harus login untuk menyukai produk'
+        };
       }
 
       var header = {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      
+
       var url = "${ApiEndpoints.baseUrl}/api/produk/$idProduk/toggle-like";
 
       final response = await dio.post(
@@ -580,7 +577,7 @@ class ApiProduk extends GetxController {
         print("\x1B[31mStatus Code: ${e.response?.statusCode}\x1B[0m");
         print("\x1B[31mResponse Data: ${e.response?.data}\x1B[0m");
         print("\x1B[31m=========================================\x1B[0m");
-        
+
         if (e.response != null && e.response!.data != null) {
           try {
             var responseData = e.response!.data;
@@ -588,7 +585,8 @@ class ApiProduk extends GetxController {
               errorMessage = responseData['message'].toString();
             } else if (responseData is String) {
               if (responseData.toLowerCase().contains("<!doctype html>")) {
-                errorMessage = "Terjadi kesalahan internal server (500). Cek console debug untuk detail lengkapnya.";
+                errorMessage =
+                    "Terjadi kesalahan internal server (500). Cek console debug untuk detail lengkapnya.";
               } else {
                 errorMessage = responseData;
               }
@@ -606,10 +604,107 @@ class ApiProduk extends GetxController {
       };
     }
   }
+
+  Future<Map<String, dynamic>> submitReview(String idProduk, double rating, String ulasan, {String? fotoPath}) async {
+    try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'Anda harus login untuk mengirim ulasan'
+        };
+      }
+
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      var url = "${ApiEndpoints.baseUrl}/api/produk/$idProduk/review";
+      
+      FormData formData = FormData.fromMap({
+        "rating": rating.toInt(),
+        "ulasan": ulasan,
+      });
+
+      if (fotoPath != null && fotoPath.isNotEmpty) {
+        formData.files.add(MapEntry(
+          "foto",
+          await MultipartFile.fromFile(fotoPath),
+        ));
+      }
+
+      final response = await dio.post(
+        url,
+        data: formData,
+        options: Options(
+          headers: header,
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      final Map<String, dynamic> data =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Ulasan berhasil dikirim',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Gagal mengirim ulasan',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Gagal: ${e.toString()}',
+      };
+    }
+  }
+
+  Future<List<dynamic>> getProductReviews(String idProduk) async {
+    try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      
+      var header = {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      var url = "${ApiEndpoints.baseUrl}/api/produk/$idProduk/reviews";
+
+      final response = await dio.get(
+        url,
+        options: Options(
+          headers: header,
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      var data;
+      if (response.data is String) {
+        try {
+          data = jsonDecode(response.data);
+        } catch (_) {
+          return [];
+        }
+      } else {
+        data = response.data;
+      }
+
+      if (data is Map && response.statusCode == 200 && data['data'] != null) {
+        if (data['data'] is List) {
+          return data['data'];
+        }
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 }
-
-
-
-
-
-

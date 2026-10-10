@@ -19,6 +19,16 @@ class _LayoutLoginState extends State<LayoutLogin> {
   ApiLogin apiLoginController = Get.put(ApiLogin());
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.arguments != null && Get.arguments['email'] != null) {
+        apiLoginController.emailController.text = Get.arguments['email'];
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

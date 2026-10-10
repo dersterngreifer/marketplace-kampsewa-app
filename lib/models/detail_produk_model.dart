@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 
 class DetailProdukModel {
@@ -50,11 +50,14 @@ class DetailProdukModel {
         try {
           arr = jsonDecode(arr);
         } catch (_) {
-          if (arr.toString().contains(',') &&
-              !arr.toString().trim().startsWith('[')) {
-            arr = arr.toString().split(',').map((e) => e.trim()).toList();
+          String strArr = arr.toString().trim();
+          if (strArr.startsWith('[') && strArr.endsWith(']')) {
+            strArr = strArr.substring(1, strArr.length - 1);
+          }
+          if (strArr.contains(',')) {
+            arr = strArr.split(',').map((e) => e.replaceAll('"', '').replaceAll("'", "").trim()).toList();
           } else {
-            arr = [arr.toString()];
+            arr = [strArr.replaceAll('"', '').replaceAll("'", "").trim()];
           }
         }
       }
@@ -74,15 +77,36 @@ class DetailProdukModel {
     }
 
     List<String> parsedImages = [];
-    if (json['images'] is List) {
-      parsedImages = (json['images'] as List).map((e) {
-        if (e is Map) return e['url']?.toString() ?? '';
-        return e.toString();
-      }).where((url) {
-        return url.toString().isNotEmpty &&
-            url.toString() != 'null' &&
-            url.toString() != 'Belum di isi';
-      }).toList();
+    if (json['images'] != null) {
+      var arr = json['images'];
+      if (arr is String) {
+        try {
+          arr = jsonDecode(arr);
+        } catch (_) {
+          String strArr = arr.toString().trim();
+          if (strArr.startsWith('[') && strArr.endsWith(']')) {
+            strArr = strArr.substring(1, strArr.length - 1);
+          }
+          if (strArr.contains(',')) {
+            arr = strArr.split(',').map((e) => e.replaceAll('"', '').replaceAll("'", "").trim()).toList();
+          } else {
+            arr = [strArr.replaceAll('"', '').replaceAll("'", "").trim()];
+          }
+        }
+      }
+      if (arr is Map) {
+        arr = arr.values.toList();
+      }
+      if (arr is List) {
+        parsedImages = (arr).map((e) {
+          if (e is Map) return e['url']?.toString() ?? '';
+          return e.toString().trim();
+        }).where((url) {
+          return url.toString().isNotEmpty &&
+              url.toString() != 'null' &&
+              url.toString() != 'Belum di isi';
+        }).toList();
+      }
     }
 
     String cleanPhoto(dynamic val) {

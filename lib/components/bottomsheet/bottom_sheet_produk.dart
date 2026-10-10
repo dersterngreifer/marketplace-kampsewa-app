@@ -41,6 +41,32 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
 
   int _qtyInCart = 0;
   int get _sisaStokTersedia => (int.tryParse(stok ?? '0') ?? 0) - _qtyInCart;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProductData();
+  }
+
+  Future<void> _fetchProductData() async {
+    if (widget.idProduk != null) {
+      await apiProduk.getDetailProduk(context, widget.idProduk.toString());
+      if (apiProduk.colors.isNotEmpty) {
+        selectedWarna = apiProduk.colors.first;
+        apiProduk.updateAllUniqueSizes(color: selectedWarna);
+        if (apiProduk.uniqueSizes.isNotEmpty) {
+          selectedUkuran = apiProduk.uniqueSizes.first;
+        }
+      }
+      await _updateState();
+    }
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   Future<void> _updateState() async {
     if (selectedWarna != null && selectedUkuran != null) {
@@ -85,7 +111,7 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
     if (img.startsWith('assets/')) {
       return Image.asset(img, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey));
     }
-    final url = img.startsWith('http') ? img : ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getImageProduk + img;
+    final url = resolveFullUrl(img, ApiEndpoints.authendpoints.getImageProduk);
     return Image.network(
       url,
       fit: BoxFit.cover,
@@ -102,9 +128,10 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Drag Handle
             Center(
@@ -194,16 +221,22 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
             
             const SizedBox(height: 24),
             
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                "Warna",
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: CircularProgressIndicator(color: Color(0xFF2C4E40))),
+              )
+            else ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  "Warna",
                 style: AppColors.fontStyle(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF2F2828)),
               ),
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 36,
+              height: 42,
               child: Obx(() {
                 List<String> listWarna = apiProduk.colors;
                 return ListView.separated(
@@ -239,7 +272,7 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 36,
+              height: 42,
               child: Obx(() {
                 List<String> listUkuran = apiProduk.uniqueSizes;
                 return ListView.separated(
@@ -426,7 +459,7 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     alignment: Alignment.center,
                     child: Text(
-                      "Tambahkan ke Keranjang",
+                      "Tambahkan - Rp ${formatCurrency(((int.tryParse(harga ?? widget.harga?.replaceAll(RegExp(r'[^0-9]'), '') ?? '0') ?? 0) * qty).toString())}",
                       style: AppColors.fontStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -437,7 +470,9 @@ class _BottomSheetProdukState extends State<BottomSheetProduk> {
                 ),
               ),
             ),
+            ],
           ],
+        ),
         ),
       ),
     );

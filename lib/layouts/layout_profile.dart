@@ -13,6 +13,7 @@ import 'package:project_camp_sewa/layouts/layout_edit_profile.dart';
 import 'package:project_camp_sewa/layouts/layout_lupa_password_new_pass.dart';
 import 'package:project_camp_sewa/layouts/layout_tambah_data_toko.dart';
 import 'package:project_camp_sewa/layouts/layout_user_products.dart';
+import 'package:project_camp_sewa/layouts/layout_likes_history.dart';
 import 'package:project_camp_sewa/screens/screen_login.dart';
 import 'package:project_camp_sewa/services/authorization_token.dart';
 import 'package:project_camp_sewa/services/controller_dashboard.dart';
@@ -924,7 +925,43 @@ class _LayoutProfileState extends State<LayoutProfile> {
             subtitle: 'Kirim keluhan atau saran, chat langsung',
             iconColor: const Color(0xFF2C4E40),
             iconBgColor: const Color(0xFFE8F5E9),
-            onTap: () => Get.to(() => const LayoutFeedbackList()),
+            onTap: () async {
+              await Get.to(() => const LayoutFeedbackList());
+              if (context.mounted) {
+                apiDataUser.getUnreadFeedbackCount(context);
+              }
+            },
+            trailing: apiDataUser.totalUnreadFeedback.value > 0
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          apiDataUser.totalUnreadFeedback.value > 99
+                              ? '99+'
+                              : apiDataUser.totalUnreadFeedback.value.toString(),
+                          style: AppColors.fontStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        MdiIcons.chevronRight,
+                        color: Color(0xFFBDBDBD),
+                        size: 24,
+                      ),
+                    ],
+                  )
+                : null,
           ),
 
           // ════════════════════════════════════════════════════════════════
@@ -959,6 +996,16 @@ class _LayoutProfileState extends State<LayoutProfile> {
             iconColor: const Color(0xFFFF9800),
             iconBgColor: const Color(0xFFFFF3E0),
             onTap: () => Get.to(() => const LayoutAlamat()),
+          ),
+          _buildMenuItem(
+            icon: MdiIcons.heartOutline,
+            title: 'Likes & Ulasan',
+            subtitle: 'Daftar produk disukai dan riwayat ulasan',
+            iconColor: const Color(0xFFE91E63),
+            iconBgColor: const Color(0xFFFCE4EC),
+            onTap: () {
+              Get.to(() => const LayoutLikesHistory());
+            },
           ),
 
           // ════════════════════════════════════════════════════════════════
@@ -1266,6 +1313,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
     Color? iconColor,
     Color? iconBgColor,
     bool isHighlighted = false,
+    Widget? trailing,
   }) {
     final Color actualIconColor = iconColor ?? const Color(0xFF2C4E40);
     final Color actualIconBgColor = iconBgColor ?? const Color(0xFFE8F5E9);
@@ -1349,7 +1397,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
                     ],
                   ),
                 ),
-                Icon(
+                trailing ?? Icon(
                   MdiIcons.chevronRight,
                   color: isHighlighted ? Colors.white : const Color(0xFFBDBDBD),
                   size: 24,

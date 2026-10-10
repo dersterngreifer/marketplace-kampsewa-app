@@ -282,11 +282,25 @@ class ApiTransaksi extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 201) {
-        pageController.setPageIndex(2);
-          Get.to(const ScreenDashboard());
-        CustomSnackBar.show(context, sukses: true,
-              title: "Pembayaran Berhasil",
-              teks: "Tunggu Pembayaran Anda Dikonfirmasi Pihak Toko",);
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return const AlertDialog(
+                backgroundColor: Colors.transparent,
+                content: CustomAlertDialog(
+                  sukses: true,
+                  title: "Menunggu Verifikasi",
+                  teks: "Pembayaran berhasil dikirim. Bukti transfer dan KTP Anda sedang diverifikasi oleh pihak toko. Mohon tunggu beberapa saat, pesanan Anda akan segera diproses.",
+                ),
+              );
+            },
+          ).then((_) {
+            pageController.setPageIndex(2);
+            Get.offAll(() => const ScreenDashboard());
+          });
+        }
       } else {
         CustomSnackBar.show(context, sukses: false,
               title: "Error",

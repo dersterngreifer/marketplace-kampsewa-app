@@ -1,5 +1,5 @@
 class ApiEndpoints {
-  static const String baseUrl = "http://192.168.0.2:8000";
+  static const String baseUrl = "http://192.168.1.2:8000";
 
   /// Domain publik KampSewa Marketplace, dipakai untuk link yang dibagikan
   /// (share/deep-link) profil toko.
@@ -161,7 +161,8 @@ class AuthEndPoints {
 
   /// GET  /api/chat-room/{feedback_id}/{admin_id}/messages      — Ambil isi chat + mark-as-read
   /// POST /api/chat-room/{feedback_id}/{admin_id}/messages      — Kirim pesan
-  String chatRoomMessages(int feedbackId, int adminId) => "/api/chat-room/$feedbackId/$adminId/messages";
+  String chatRoomMessages(int feedbackId, int adminId) =>
+      "/api/chat-room/$feedbackId/$adminId/messages";
 
   // ── Follow / Unfollow Endpoints ─────────────────────────────────────────────
   /// POST /api/follow/{user_id} — Follow akun user
@@ -176,5 +177,3 @@ class AuthEndPoints {
   /// GET /api/user/{user_id}/following — List user yang difollow oleh user tersebut
   String getFollowing(int userId) => "/api/user/$userId/following";
 }
-
-

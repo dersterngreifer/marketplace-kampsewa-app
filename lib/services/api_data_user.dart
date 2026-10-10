@@ -40,6 +40,7 @@ class ApiDataUser extends GetxController {
   final RxInt totalSedangDisewa = 0.obs;
   final RxInt totalBelumDikonfirmasi = 0.obs;
   final RxInt totalProdukBelumDikonfirmasi = 0.obs;
+  final RxInt totalUnreadFeedback = 0.obs;
 
   Future<void> getStatistikPesanan(BuildContext context) async {
     try {
@@ -75,10 +76,41 @@ class ApiDataUser extends GetxController {
               responseData['data']['total_belum_dikonfirmasi'] ?? 0;
           totalProdukBelumDikonfirmasi.value =
               responseData['data']['total_produk_belum_dikonfirmasi'] ?? 0;
+
         }
       }
     } catch (e) {
       debugPrint("Error fetching statistik: $e");
+    }
+  }
+
+  Future<void> getUnreadFeedbackCount([BuildContext? context]) async {
+    try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      if (token == null) return;
+      var header = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      var url = '${ApiEndpoints.baseUrl}/api/chat-room/unread-count';
+
+      final response = await dio.get(url,
+          options: Options(
+            headers: header,
+            validateStatus: (status) => status! < 500,
+          ));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData =
+            response.data is String ? jsonDecode(response.data) : response.data;
+        if (responseData['data'] != null) {
+          totalUnreadFeedback.value =
+              responseData['data']['total_unread_feedback_chat'] ?? 0;
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching unread feedback count: $e");
     }
   }
 
@@ -131,6 +163,7 @@ class ApiDataUser extends GetxController {
 
         // Ambil statistik setelah berhasil dapat data user
         await getStatistikPesanan(context);
+        await getUnreadFeedbackCount(context);
       } else {
         String errorMessage = data['message'];
         CustomSnackBar.show(
@@ -664,9 +697,11 @@ class ApiDataUser extends GetxController {
 
   Future<bool> verifyKTP(BuildContext context, String filePath) async {
     try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
       var header = {
         'Accept': 'application/json',
-        'Authorization': 'Bearer ',
+        'Authorization': 'Bearer $token',
       };
 
       var url = ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.verifyKTP;

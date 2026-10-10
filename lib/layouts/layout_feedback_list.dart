@@ -7,6 +7,7 @@ import 'package:project_camp_sewa/layouts/layout_feedback_chat.dart';
 import 'package:project_camp_sewa/layouts/layout_feedback_kirim.dart';
 import 'package:project_camp_sewa/models/feedback_model.dart';
 import 'package:project_camp_sewa/services/feedback_chat_service.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:intl/intl.dart';
 
@@ -24,8 +25,8 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
   late final TabController _tabCtrl;
   final ScrollController _scrollCtrl = ScrollController();
 
-  static const _tabs = ['Semua', 'Belum Dibalas', 'Dibalas'];
-  static const _tabFilters = ['', 'Belum Dibalas', 'Dibalas'];
+  static const _tabs = ['Semua', 'Belum Dibaca', 'Belum Dibalas', 'Dibalas'];
+  static const _tabFilters = ['', 'Belum Dibaca', 'Belum Dibalas', 'Dibalas'];
 
   int _activeTab = 0;
 
@@ -190,7 +191,7 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
               ),
               // Badge total unread
               Obx(() {
-                final unread = _service.totalUnread.value;
+                final unread = Get.find<ApiDataUser>().totalUnreadFeedback.value;
                 if (unread == 0) return const SizedBox.shrink();
                 return Container(
                   padding:
@@ -219,8 +220,44 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
     return Container(
       color: const Color(0xFF2C4E40),
       child: TabBar(
+        isScrollable: true,
         controller: _tabCtrl,
-        tabs: _tabs.map((t) => Tab(text: t)).toList(),
+        tabs: _tabs.asMap().entries.map((entry) {
+          int idx = entry.key;
+          String t = entry.value;
+          if (idx == 0 || idx == 1) { // Semua atau Belum Dibaca
+            return Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(t),
+                  Obx(() {
+                    final unread = Get.find<ApiDataUser>().totalUnreadFeedback.value;
+                    if (unread == 0) return const SizedBox.shrink();
+                    return Container(
+                      margin: const EdgeInsets.only(left: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        unread > 99 ? '99+' : unread.toString(),
+                        style: AppColors.fontStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+          }
+          return Tab(text: t);
+        }).toList(),
         labelStyle: AppColors.fontStyle(
             fontSize: 13, fontWeight: FontWeight.w700),
         unselectedLabelStyle: AppColors.fontStyle(
@@ -312,12 +349,14 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            Get.to(() => LayoutFeedbackChat(
+          onTap: () async {
+            await Get.to(() => LayoutFeedbackChat(
                   feedbackId: item.id,
                   adminId: item.adminId,
                   initialKriteria: item.kriteria,
                 ));
+            _service.loadFeedbackList(statusFilter: _tabFilters[_activeTab]);
+            if (context.mounted) Get.find<ApiDataUser>().getUnreadFeedbackCount(context);
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -472,11 +511,12 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
       onPressed: () async {
         final result = await Get.to(() => const LayoutFeedbackKirim());
         if (result != null && result is FeedbackItem) {
-          Get.to(() => LayoutFeedbackChat(
+          await Get.to(() => LayoutFeedbackChat(
                 feedbackId: result.id,
                 initialKriteria: result.kriteria,
               ));
-          _service.loadFeedbackList();
+          _service.loadFeedbackList(statusFilter: _tabFilters[_activeTab]);
+          if (context.mounted) Get.find<ApiDataUser>().getUnreadFeedbackCount(context);
         }
       },
       backgroundColor: const Color(0xFF2C4E40),
@@ -543,11 +583,12 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
                   final result =
                       await Get.to(() => const LayoutFeedbackKirim());
                   if (result != null && result is FeedbackItem) {
-                    Get.to(() => LayoutFeedbackChat(
+                    await Get.to(() => LayoutFeedbackChat(
                           feedbackId: result.id,
                           initialKriteria: result.kriteria,
                         ));
-                    _service.loadFeedbackList();
+                    _service.loadFeedbackList(statusFilter: _tabFilters[_activeTab]);
+                    if (context.mounted) Get.find<ApiDataUser>().getUnreadFeedbackCount(context);
                   }
                 },
                 icon: const Icon(MdiIcons.plus),

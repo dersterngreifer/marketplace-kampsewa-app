@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
+import 'package:project_camp_sewa/constants/api_endpoint.dart';
+import 'package:project_camp_sewa/services/api_produk.dart';
+import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
+import 'package:shimmer/shimmer.dart';
 
 class LayoutUlasanProduk extends StatefulWidget {
   final String namaProduk;
+  final String idProduk;
 
-  const LayoutUlasanProduk({super.key, required this.namaProduk});
+  const LayoutUlasanProduk({super.key, required this.namaProduk, required this.idProduk});
 
   @override
   State<LayoutUlasanProduk> createState() => _LayoutUlasanProdukState();
@@ -20,24 +25,56 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
     'Terendah'
   ];
 
+  final ApiProduk apiProduk = Get.put(ApiProduk());
+  List<dynamic> reviews = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchReviews();
+  }
+
+  Future<void> fetchReviews() async {
+    final fetchedReviews = await apiProduk.getProductReviews(widget.idProduk);
+    if (mounted) {
+      setState(() {
+        reviews = fetchedReviews;
+        isLoading = false;
+        applyFilter();
+      });
+    }
+  }
+
+  double _getRating(dynamic r) {
+    if (r == null) return 0.0;
+    if (r is num) return r.toDouble();
+    return double.tryParse(r.toString()) ?? 0.0;
+  }
+
+  String _getDate(dynamic d) {
+    return d?.toString() ?? '';
+  }
+
+  void applyFilter() {
+    try {
+      if (selectedFilter == 'Terbaru') {
+        reviews.sort((a, b) => _getDate(b['tanggal_ulasan']).compareTo(_getDate(a['tanggal_ulasan'])));
+      } else if (selectedFilter == 'Terlama') {
+        reviews.sort((a, b) => _getDate(a['tanggal_ulasan']).compareTo(_getDate(b['tanggal_ulasan'])));
+      } else if (selectedFilter == 'Tertinggi') {
+        reviews.sort((a, b) => _getRating(b['rating']).compareTo(_getRating(a['rating'])));
+      } else if (selectedFilter == 'Terendah') {
+        reviews.sort((a, b) => _getRating(a['rating']).compareTo(_getRating(b['rating'])));
+      }
+    } catch (e) {
+      debugPrint('Error applying filter: $e');
+    }
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Data dummy 15 ulasan untuk halaman ulasan lengkap
-    final dummyReviews = List.generate(
-      15,
-      (index) => {
-        'user': 'User ${index + 1}',
-        'rating': 5 - (index % 2),
-        'date': '${15 - index} Sep 2023',
-        'comment':
-            'Barangnya sangat bagus, pengiriman cepat dan seller ramah. Bakal langganan terus di sini!',
-        'photos': [
-          'https://picsum.photos/200/200?random=${index * 2}',
-          'https://picsum.photos/200/200?random=${index * 2 + 1}',
-        ],
-      },
-    );
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -75,6 +112,7 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
                   onTap: () {
                     setState(() {
                       selectedFilter = filter;
+                      applyFilter();
                     });
                   },
                   child: Container(
@@ -110,95 +148,183 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
             ),
           ),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: dummyReviews.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(height: 32, thickness: 1),
-              itemBuilder: (context, index) {
-                final review = dummyReviews[index];
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.grey.shade300,
-                          child: const Icon(Icons.person,
-                              size: 20, color: Colors.white),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                review['user'] as String,
-                                style: AppColors.fontStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF2F2828),
+            child: isLoading
+                ? ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: 6,
+                    separatorBuilder: (_, __) => const Divider(height: 32, thickness: 1),
+                    itemBuilder: (context, index) {
+                      return Shimmer.fromColors(
+                        baseColor: Colors.grey.shade300,
+                        highlightColor: Colors.grey.shade100,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.white,
                                 ),
-                              ),
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (starIndex) => Icon(
-                                    Icons.star_rounded,
-                                    size: 14,
-                                    color: starIndex < (review['rating'] as int)
-                                        ? const Color(0xFFFFC107)
-                                        : Colors.grey.shade300,
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 100,
+                                        height: 14,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        width: 80,
+                                        height: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ],
                                   ),
                                 ),
+                                Container(
+                                  width: 50,
+                                  height: 12,
+                                  color: Colors.white,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              height: 14,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              width: 250,
+                              height: 14,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  )
+                : reviews.isEmpty
+                    ? Center(
+                        child: Text(
+                          "Belum ada ulasan.",
+                          style: AppColors.fontStyle(color: Colors.grey),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: reviews.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 32, thickness: 1),
+                        itemBuilder: (context, index) {
+                          final review = reviews[index];
+                          final idUser = review['id_user']?.toString();
+                          final fotoUserRaw = review['foto_user']?.toString() ?? '';
+                          final fotoUser = fotoUserRaw.isNotEmpty ? resolveFullUrl(fotoUserRaw, ApiEndpoints.authendpoints.getFotoProfile) : '';
+                          final namaUser = review['nama_user']?.toString() ?? 'Pengguna';
+                          final ulasanText = review['ulasan']?.toString() ?? '';
+                          final fotoUlasanRaw = review['foto_ulasan']?.toString() ?? '';
+                          final fotoUlasan = fotoUlasanRaw.isNotEmpty ? resolveFullUrl(fotoUlasanRaw, ApiEndpoints.baseUrl) : '';
+                          final ratingVal = review['rating'] != null ? double.tryParse(review['rating'].toString())?.toInt() ?? 0 : 0;
+                          final dateVal = review['tanggal_ulasan']?.toString() ?? '';
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (idUser != null) {
+                                        Get.to(() => LayoutPublicStoreProfile(idUser: int.parse(idUser)));
+                                      }
+                                    },
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 16,
+                                          backgroundColor: Colors.grey.shade300,
+                                          backgroundImage: fotoUser.isNotEmpty ? NetworkImage(fotoUser) : null,
+                                          child: fotoUser.isEmpty ? const Icon(Icons.person, size: 20, color: Colors.white) : null,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              namaUser,
+                                              style: AppColors.fontStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF2F2828),
+                                              ),
+                                            ),
+                                            Row(
+                                              children: List.generate(
+                                                5,
+                                                (starIndex) => Icon(
+                                                  Icons.star_rounded,
+                                                  size: 14,
+                                                  color: starIndex < ratingVal
+                                                      ? const Color(0xFFFFC107)
+                                                      : Colors.grey.shade300,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    dateVal,
+                                    style: AppColors.fontStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w400,
+                                      color: const Color(0xFF8E8E8E),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          review['date'] as String,
-                          style: AppColors.fontStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF8E8E8E),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      review['comment'] as String,
-                      style: AppColors.fontStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF2F2828),
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: (review['photos'] as List<String>)
-                          .map(
-                            (photo) => Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                image: DecorationImage(
-                                  image: NetworkImage(photo),
-                                  fit: BoxFit.cover,
+                              const SizedBox(height: 12),
+                              Text(
+                                ulasanText,
+                                style: AppColors.fontStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFF2F2828),
+                                  height: 1.5,
                                 ),
                               ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
-                );
-              },
-            ),
+                              if (fotoUlasan.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    fotoUlasan,
+                                    height: 80,
+                                    width: 80,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        Container(
+                                          height: 80,
+                                          width: 80,
+                                          color: Colors.grey.shade200,
+                                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
           ),
         ],
       ),

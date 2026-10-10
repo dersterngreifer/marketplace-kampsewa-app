@@ -9,6 +9,11 @@ import 'package:project_camp_sewa/services/controller_keranjang.dart';
 
 const _green = Color(0xFF2C4E40);
 const _dark = Color(0xFF2F2828);
+const _red = Color(0xFFEE2737);
+
+/// Warna latar halaman keranjang yang disarankan.
+/// Pakai di Scaffold.backgroundColor supaya card terlihat terpisah dari latar.
+const kKeranjangBg = Color(0xFFF2F5F3);
 
 /// Checkbox bulat modern, dipakai di card item, header toko, dan footer.
 class AppCheck extends StatelessWidget {
@@ -57,7 +62,6 @@ Future<bool> konfirmasiHapusProduk(
         teks: 'Yakin Ingin Menghapus Produk ${item.namaProduk} ?',
         hapus: () {
           confirmed = true;
-          Get.back();
         },
       ),
     ),
@@ -65,147 +69,337 @@ Future<bool> konfirmasiHapusProduk(
   return confirmed;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  GROUP TOKO — satu card putih berisi header toko + daftar item di dalamnya
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Pembungkus per-toko. Header toko punya latar hijau tipis, dipisah garis
+/// dari item, dan seluruh grup berada di dalam satu card bersudut membulat
+/// dengan bayangan sehingga tidak menyatu dengan latar halaman.
+///
+/// Contoh pemakaian:
+/// ```dart
+/// TokoGroupCard(
+///   namaToko: toko.namaToko,
+///   selected: semuaTerpilih,
+///   onToggle: () => ...,
+///   children: items
+///       .map((e) => ItemKeranjangCard(item: e, grouped: true))
+///       .toList(),
+/// )
+/// ```
+class TokoGroupCard extends StatelessWidget {
+  final String namaToko;
+  final bool selected;
+  final VoidCallback onToggle;
+  final List<Widget> children;
+
+  const TokoGroupCard({
+    super.key,
+    required this.namaToko,
+    required this.selected,
+    required this.onToggle,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Sisipkan divider tipis antar item
+    final rows = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      rows.add(children[i]);
+      if (i != children.length - 1) {
+        rows.add(Divider(
+          height: 1,
+          thickness: 1,
+          indent: 16,
+          endIndent: 16,
+          color: Colors.grey.shade200,
+        ));
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 7, 14, 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _green.withValues(alpha: 0.10)),
+        boxShadow: [
+          BoxShadow(
+            color: _green.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Header toko ──
+            Container(
+              color: _green.withValues(alpha: 0.06),
+              padding: const EdgeInsets.fromLTRB(8, 8, 14, 8),
+              child: Row(
+                children: [
+                  AppCheck(value: selected, onTap: onToggle),
+                  const SizedBox(width: 2),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: _green,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Icon(Icons.storefront_rounded,
+                        color: Colors.white, size: 17),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      namaToko,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppColors.fontStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: _dark,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${children.length} produk',
+                      style: AppColors.fontStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: _green,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(
+                height: 1, thickness: 1, color: _green.withValues(alpha: 0.10)),
+            ...rows,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ITEM KERANJANG
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// [grouped] = true  → dipakai di dalam [TokoGroupCard] (tanpa card sendiri).
+/// [grouped] = false → tampil sebagai card mandiri bersudut membulat.
 class ItemKeranjangCard extends StatelessWidget {
   final KeranjangModel item;
-  const ItemKeranjangCard({super.key, required this.item});
+  final bool grouped;
+  const ItemKeranjangCard(
+      {super.key, required this.item, this.grouped = false});
 
   @override
   Widget build(BuildContext context) {
     final c = Get.find<KeranjangController>();
 
-    return Dismissible(
+    final dismissible = Dismissible(
       key: ValueKey('keranjang_${item.id}'),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (_) => konfirmasiHapusProduk(context, item),
-      onDismissed: (_) => c.hapusItem(item.id!),
+      // Konfirmasi dulu; penghapusan dilakukan lewat controller sehingga
+      // item hilang dari list secara reaktif.
+      confirmDismiss: (_) async {
+        final ok = await konfirmasiHapusProduk(context, item);
+        if (ok) c.hapusItem(item.id!);
+        return false;
+      },
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        color: const Color(0xFFEE2737),
+        color: _red,
         child: const Icon(MdiIcons.trashCanOutline, color: Colors.white),
       ),
-      child: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.fromLTRB(8, 14, 14, 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            AppCheck(
-              value: item.isSelected,
-              onTap: () => c.toggleItem(item.id!, !item.isSelected),
-            ),
-            const SizedBox(width: 4),
-            // Foto
-            ClipRRect(
+      child: _buildContent(context, c),
+    );
+
+    if (grouped) return dismissible;
+
+    // Card mandiri
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 7, 14, 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: item.isSelected
+              ? _green.withValues(alpha: 0.35)
+              : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _green.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: dismissible,
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, KeranjangController c) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      color: item.isSelected
+          ? Color.alphaBlend(_green.withValues(alpha: 0.04), Colors.white)
+          : Colors.white,
+      padding: const EdgeInsets.fromLTRB(8, 14, 14, 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          AppCheck(
+            value: item.isSelected,
+            onTap: () => c.toggleItem(item.id!, !item.isSelected),
+          ),
+          const SizedBox(width: 4),
+          // Foto
+          Container(
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(13),
               child: Container(
-                width: 84,
-                height: 84,
+                width: 82,
+                height: 82,
                 color: Colors.grey.shade100,
                 child: item.fotoProduk.startsWith('assets/')
-                  ? Image.asset(
-                      item.fotoProduk,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400),
-                    )
-                  : Image.network(
-                      item.fotoProduk.startsWith('http')
-                          ? item.fotoProduk
-                          : ApiEndpoints.baseUrl + ApiEndpoints.authendpoints.getImageProduk + item.fotoProduk,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400),
-                    ),
+                    ? Image.asset(
+                        item.fotoProduk,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                            Icons.image_not_supported_outlined,
+                            color: Colors.grey.shade400),
+                      )
+                    : Image.network(
+                        resolveFullUrl(item.fotoProduk,
+                            ApiEndpoints.authendpoints.getImageProduk),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                            Icons.image_not_supported_outlined,
+                            color: Colors.grey.shade400),
+                      ),
               ),
             ),
-            const SizedBox(width: 12),
-            // Konten
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.namaProduk,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppColors.fontStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: _dark,
+          ),
+          const SizedBox(width: 12),
+          // Konten
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.namaProduk,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppColors.fontStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _dark,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () async {
+                        final ok = await konfirmasiHapusProduk(context, item);
+                        if (ok) c.hapusItem(item.id!);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: _red.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(MdiIcons.trashCanOutline,
+                            color: _red, size: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _green.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${item.variantWarna} • ${item.variantUkuran}',
+                    style: AppColors.fontStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _green,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Rp ${rupiah(item.subtotal)}',
+                            style: AppColors.fontStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: _green,
+                            ),
                           ),
-                        ),
-                      ),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () async {
-                          final ok = await konfirmasiHapusProduk(context, item);
-                          if (ok) c.hapusItem(item.id!);
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.only(left: 6, bottom: 4),
-                          child: Icon(MdiIcons.trashCanOutline,
-                              color: Color(0xFFEE2737), size: 19),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: _green.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${item.variantWarna} • ${item.variantUkuran}',
-                      style: AppColors.fontStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _green,
+                          Text(
+                            'Rp ${rupiah(item.harga)} /hari',
+                            style: AppColors.fontStyle(
+                              fontSize: 10.5,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Rp ${rupiah(item.subtotal)}',
-                              style: AppColors.fontStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: _green,
-                              ),
-                            ),
-                            Text(
-                              'Rp ${rupiah(item.harga)} /hari',
-                              style: AppColors.fontStyle(
-                                fontSize: 10.5,
-                                color: Colors.black45,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _QtyStepper(
-                        qty: item.qty,
-                        onMinus: () => c.changeQty(item.id!, -1),
-                        onPlus: () => c.changeQty(item.id!, 1),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    _QtyStepper(
+                      qty: item.qty,
+                      onMinus: () => c.changeQty(item.id!, -1),
+                      onPlus: () => c.changeQty(item.id!, 1),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -223,7 +417,7 @@ class _QtyStepper extends StatelessWidget {
     final canMinus = qty > 1;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: _green.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.all(3),
@@ -284,4 +478,3 @@ class _RoundBtn extends StatelessWidget {
     );
   }
 }
-

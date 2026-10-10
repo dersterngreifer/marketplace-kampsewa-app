@@ -17,25 +17,26 @@ class _RiwayatScreenState extends State<RiwayatScreen>
   late TabController _tabController;
 
   final List<Tab> _tabs = const [
-    Tab(text: 'Belum Bayar'),
+    Tab(text: 'Pembayaran'),
     Tab(text: 'Pengambilan'),
     Tab(text: 'Berlangsung'),
     Tab(text: 'Selesai'),
+    Tab(text: 'Denda Belum Lunas'),
     Tab(text: 'Dibatalkan'),
   ];
 
-  final List<Widget> _bodyTabs = [
-    LayoutRiwayat(riwayatData: DummyProductApiResponse.getRiwayatBelumBayar()),
-    LayoutRiwayat(
-        riwayatData: DummyProductApiResponse.getRiwayatPengambilanData()),
-    LayoutRiwayat(riwayatData: DummyProductApiResponse.getRiwayatBerlangsung()),
-    LayoutRiwayat(riwayatData: DummyProductApiResponse.getRiwayatSelesai()),
-    const LayoutRiwayat(riwayatData: []),
+  final List<Widget> _bodyTabs = const [
+    LayoutRiwayat(status: 'belum-bayar'),
+    LayoutRiwayat(status: 'Pengambilan'),
+    LayoutRiwayat(status: 'Berlangsung'),
+    LayoutRiwayat(status: 'Selesai'),
+    LayoutRiwayat(status: 'Denda Belum Lunas'),
+    LayoutRiwayat(status: 'Dibatalkan'),
   ];
 
   @override
   void initState() {
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     super.initState();
   }
 
@@ -87,21 +88,7 @@ class _RiwayatScreenState extends State<RiwayatScreen>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFFFFF),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                size: 18,
-                                color: Color(0xFF2C4E40),
-                              ),
-                            ),
-                          ),
+                          const SizedBox(width: 48), // Spacer to balance the search icon
                           Text(
                             "Riwayat",
                             style: AppColors.fontStyle(

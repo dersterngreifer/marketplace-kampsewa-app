@@ -81,7 +81,8 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
       apiProduk.getListKategori();
       // getFeaturedProduk (rekomendasi endpoint) supaya produk selalu tampil di Home.
       apiProduk.getFeaturedProduk(context);
-      keranjangController.updateTotalItemKeranjang(context);
+      // Load keranjang agar badge icon langsung terupdate
+      keranjangController.loadKeranjang(context);
     });
   }
 
@@ -254,9 +255,9 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
 
           // Ikon keranjang + badge jumlah
           Obx(() {
-            final itemCount = keranjangController.totalItemKeranjang.value;
+            final itemCount = keranjangController.items.length;
             return InkWell(
-              onTap: () => Get.to(const LayoutKeranjang()),
+              onTap: () => Get.to(() => const LayoutKeranjang()),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 width: 48,

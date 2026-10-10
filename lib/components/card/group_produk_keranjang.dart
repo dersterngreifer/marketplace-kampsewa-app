@@ -42,7 +42,7 @@ class GroupProdukKeranjang extends StatelessWidget {
           children: [
             // Header toko
             Container(
-              color: _green.withValues(alpha: 0.05),
+              color: _green.withOpacity(0.12),
               padding: const EdgeInsets.fromLTRB(8, 10, 14, 10),
               child: Row(
                 children: [
@@ -107,7 +107,7 @@ class GroupProdukKeranjang extends StatelessWidget {
                   ? const SizedBox(width: double.infinity)
                   : Container(
                       width: double.infinity,
-                      color: Colors.grey.shade50,
+                      color: _green.withOpacity(0.06),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                       child: Row(

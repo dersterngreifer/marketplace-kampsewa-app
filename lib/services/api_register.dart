@@ -77,22 +77,26 @@ class ApiRegistrasi extends GetxController {
       loading.hideLoadingDialog();
 
       if (response.statusCode == 201) {
-        CustomSnackBar.show(
-          context,
-          sukses: true,
-          teks: json['message'],
-        );
-
+        String registeredEmail = emailController.text.trim();
         namaController.clear();
         emailController.clear();
         phoneNumberController.clear();
         passwordController.clear();
         tanggalLahirController.clear();
         jenisKelaminController.clear();
-        if (context.mounted) {
-          Get.to(const LoginScreen());
-        }
-      } else{
+
+        Get.off(() => const LoginScreen(), arguments: {'email': registeredEmail});
+
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (Get.context != null) {
+            CustomSnackBar.show(
+              Get.context!,
+              sukses: true,
+              teks: json['message'],
+            );
+          }
+        });
+      } else {
         String errorMessage = json['error'];
         CustomSnackBar.show(
           context,

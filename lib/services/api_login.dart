@@ -20,6 +20,16 @@ class ApiLogin extends GetxController {
   final LoadingDialog loading = Get.put(LoadingDialog());
   Authorization auth = Authorization();
 
+  @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.arguments != null && Get.arguments['email'] != null) {
+        emailController.text = Get.arguments['email'];
+      }
+    });
+  }
+
   Future<void> login(BuildContext context) async {
     if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
       CustomSnackBar.show(context, sukses: false,

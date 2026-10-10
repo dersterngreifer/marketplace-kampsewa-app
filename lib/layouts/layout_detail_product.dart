@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:shimmer/shimmer.dart';
@@ -39,6 +41,19 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   String? fotoProduk;
 
   bool isLoading = true;
+  List<dynamic> productReviews = [];
+  bool isLoadingReviews = true;
+
+  int reviewRating = 0;
+  TextEditingController reviewController = TextEditingController();
+  File? reviewImage;
+  bool isSubmittingReview = false;
+
+  @override
+  void dispose() {
+    reviewController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -54,6 +69,15 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (idProduk != null) {
+        apiProduk.getProductReviews(idProduk.toString()).then((reviews) {
+          if (mounted) {
+            setState(() {
+              productReviews = reviews;
+              isLoadingReviews = false;
+            });
+          }
+        });
+        
         // Fetch product info
         await apiProduk.getDetailProduk(context, idProduk.toString());
         if (!mounted) return;
@@ -1035,6 +1059,63 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
     });
   }
 
+  Future<void> _pickReviewImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        reviewImage = File(image.path);
+      });
+    }
+  }
+
+  Future<void> _submitReview() async {
+    if (reviewRating == 0) {
+      CustomSnackBar.show(context, sukses: false, title: "Peringatan", teks: "Harap berikan rating bintang terlebih dahulu.");
+      return;
+    }
+    if (reviewController.text.trim().isEmpty) {
+      CustomSnackBar.show(context, sukses: false, title: "Peringatan", teks: "Harap tulis ulasan Anda.");
+      return;
+    }
+    
+    setState(() => isSubmittingReview = true);
+    
+    // Kirim review dengan foto (jika ada) menggunakan FormData
+    final res = await apiProduk.submitReview(
+      idProduk.toString(), 
+      reviewRating.toDouble(), 
+      reviewController.text.trim(),
+      fotoPath: reviewImage?.path,
+    );
+    
+    if (mounted) {
+      setState(() => isSubmittingReview = false);
+      if (res['success']) {
+        CustomSnackBar.show(context, sukses: true, title: "Berhasil", teks: res['message']);
+        setState(() {
+          reviewRating = 0;
+          reviewController.clear();
+          reviewImage = null;
+          isLoadingReviews = true;
+        });
+        
+        // Refresh ulasan & data produk
+        apiProduk.getProductReviews(idProduk.toString()).then((reviews) {
+          if (mounted) {
+            setState(() {
+              productReviews = reviews;
+              isLoadingReviews = false;
+            });
+          }
+        });
+        apiProduk.getDetailProduk(context, idProduk.toString());
+      } else {
+        CustomSnackBar.show(context, sukses: false, title: "Gagal", teks: res['message']);
+      }
+    }
+  }
+
   Widget _buildReviewForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1071,10 +1152,20 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                   Row(
                     children: List.generate(
                       5,
-                      (index) => const Padding(
-                        padding: EdgeInsets.only(right: 4),
-                        child: Icon(Icons.star_border_rounded,
-                            color: Color(0xFFBDBDBD), size: 28),
+                      (index) => GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            reviewRating = index + 1;
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Icon(
+                            index < reviewRating ? Icons.star_rounded : Icons.star_border_rounded,
+                            color: index < reviewRating ? const Color(0xFFFFC107) : const Color(0xFFBDBDBD), 
+                            size: 28
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1082,6 +1173,7 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: reviewController,
                 maxLines: 3,
                 style: AppColors.fontStyle(fontSize: 14),
                 decoration: InputDecoration(
@@ -1106,17 +1198,49 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                   contentPadding: const EdgeInsets.all(16),
                 ),
               ),
+              if (reviewImage != null) ...[
+                const SizedBox(height: 12),
+                Stack(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                        image: DecorationImage(
+                          image: FileImage(reviewImage!),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: -8,
+                      top: -8,
+                      child: IconButton(
+                        icon: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            reviewImage = null;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 children: [
                   InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: () {
-                      CustomSnackBar.show(context,
-                          sukses: true,
-                          title: "Info",
-                          teks: "Fitur upload foto segera hadir");
-                    },
+                    onTap: _pickReviewImage,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
@@ -1144,12 +1268,7 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                   ),
                   const Spacer(),
                   ElevatedButton(
-                    onPressed: () {
-                      CustomSnackBar.show(context,
-                          sukses: true,
-                          title: "Berhasil",
-                          teks: "Ulasan berhasil dikirim!");
-                    },
+                    onPressed: isSubmittingReview ? null : _submitReview,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.mainColor,
                       foregroundColor: Colors.white,
@@ -1160,11 +1279,17 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
-                      "Kirim",
-                      style: AppColors.fontStyle(
-                          fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
+                    child: isSubmittingReview 
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text(
+                          "Kirim",
+                          style: AppColors.fontStyle(
+                              fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
                   ),
                 ],
               ),
@@ -1176,16 +1301,102 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   }
 
   Widget _buildUlasanList() {
-    final dummyReviews = List.generate(
-        3,
-        (index) => {
-              'user': 'Pembeli ${index + 1}',
-              'rating': 5,
-              'date': '12 Sep 2023',
-              'comment':
-                  'Barang sangat bagus dan berkualitas. Cocok untuk camping keluarga.',
-              'photos': ['https://picsum.photos/200/200?random=$index'],
-            });
+    if (isLoadingReviews) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Ulasan Pembeli",
+            style: AppColors.fontStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF2F2828),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
+            child: Column(
+              children: List.generate(3, (index) => Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.white,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 100,
+                                height: 14,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                width: 80,
+                                height: 12,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 50,
+                          height: 12,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      height: 14,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: 200,
+                      height: 14,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              )),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final reviewsToShow = productReviews.take(3).toList();
+    if (reviewsToShow.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Ulasan Pembeli",
+            style: AppColors.fontStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF2F2828),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Belum ada ulasan untuk produk ini.",
+            style: AppColors.fontStyle(fontSize: 13, color: Colors.grey),
+          ),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1204,7 +1415,10 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
             InkWell(
               borderRadius: BorderRadius.circular(4),
               onTap: () => Get.to(
-                  () => LayoutUlasanProduk(namaProduk: namaProduk ?? 'Produk')),
+                  () => LayoutUlasanProduk(
+                        namaProduk: namaProduk ?? 'Produk',
+                        idProduk: idProduk.toString(), // We need to pass idProduk
+                      )),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: Text(
@@ -1224,55 +1438,79 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
-          itemCount: dummyReviews.length,
+          itemCount: reviewsToShow.length,
           separatorBuilder: (_, __) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Divider(color: Colors.grey.shade200, thickness: 1),
           ),
           itemBuilder: (context, index) {
-            final review = dummyReviews[index];
+            final review = reviewsToShow[index];
+            final idUser = review['id_user']?.toString();
+            final fotoUserRaw = review['foto_user']?.toString() ?? '';
+            final fotoUser = fotoUserRaw.isNotEmpty ? resolveFullUrl(fotoUserRaw, ApiEndpoints.authendpoints.getFotoProfile) : '';
+            final namaUser = review['nama_user']?.toString() ?? 'Pengguna';
+            final ulasanText = review['ulasan']?.toString() ?? '';
+            final fotoUlasanRaw = review['foto_ulasan']?.toString() ?? '';
+            final fotoUlasan = fotoUlasanRaw.isNotEmpty ? resolveFullUrl(fotoUlasanRaw, ApiEndpoints.baseUrl) : '';
+            final ratingVal = review['rating'] != null ? double.tryParse(review['rating'].toString())?.toInt() ?? 0 : 0;
+            final dateVal = review['tanggal_ulasan']?.toString() ?? '';
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.grey.shade200,
-                      child: const Icon(Icons.person,
-                          size: 20, color: Colors.grey),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    GestureDetector(
+                      onTap: () {
+                        if (idUser != null) {
+                          Get.to(() => LayoutPublicStoreProfile(idUser: int.parse(idUser)));
+                        }
+                      },
+                      child: Row(
                         children: [
-                          Text(
-                            review['user'] as String,
-                            style: AppColors.fontStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF2F2828),
-                            ),
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage: fotoUser.isNotEmpty 
+                              ? NetworkImage(fotoUser) 
+                              : null,
+                            child: fotoUser.isEmpty 
+                              ? const Icon(Icons.person, size: 20, color: Colors.grey)
+                              : null,
                           ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: List.generate(
-                              5,
-                              (starIndex) => Icon(
-                                Icons.star_rounded,
-                                size: 14,
-                                color: starIndex < (review['rating'] as int)
-                                    ? const Color(0xFFFFC107)
-                                    : Colors.grey.shade300,
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                namaUser,
+                                style: AppColors.fontStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF2F2828),
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (starIndex) => Icon(
+                                    Icons.star_rounded,
+                                    size: 14,
+                                    color: starIndex < ratingVal
+                                        ? const Color(0xFFFFC107)
+                                        : Colors.grey.shade300,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
+                    const Spacer(),
                     Text(
-                      review['date'] as String,
+                      dateVal,
                       style: AppColors.fontStyle(
                         fontSize: 12,
                         color: const Color(0xFF8E8E8E),
@@ -1281,32 +1519,34 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                   ],
                 ),
                 const SizedBox(height: 12),
+
                 Text(
-                  review['comment'] as String,
+                  ulasanText,
                   style: AppColors.fontStyle(
                     fontSize: 13,
                     color: const Color(0xFF424242),
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: (review['photos'] as List<String>)
-                      .map((photo) => Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade200),
-                              image: DecorationImage(
-                                image: NetworkImage(photo),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ))
-                      .toList(),
-                ),
+                if (fotoUlasan.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      fotoUlasan,
+                      height: 80,
+                      width: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(
+                            height: 80,
+                            width: 80,
+                            color: Colors.grey.shade200,
+                            child: const Icon(Icons.broken_image, color: Colors.grey),
+                          ),
+                    ),
+                  ),
+                ],
               ],
             );
           },
@@ -1314,7 +1554,6 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
       ],
     );
   }
-
   Widget _buildSyaratKetentuan() {
     return Container(
       padding: const EdgeInsets.all(20),

@@ -1,10 +1,8 @@
 import 'package:project_camp_sewa/theme_colors.dart';
-// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
-import 'package:project_camp_sewa/components/button/alamat_opsi_pengiriman.dart';
-import 'package:project_camp_sewa/components/button/opsi_pengiriman.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/models/alamat_model.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
@@ -20,14 +18,6 @@ class LayoutOpsiPengiriman extends StatefulWidget {
 class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
   ApiTransaksi apiTransaksi = Get.put(ApiTransaksi());
   ApiDataUser apiDataUser = Get.put(ApiDataUser());
-  String selectedImageAntar = "assets/icons/selected-opsi-antar.png";
-  String defaultImageAntar = "assets/icons/default-opsi-antar.png";
-  String selectedImageAmbil = "assets/icons/selected-opsi-ambil.png";
-  String defaultImageAmbil = "assets/icons/default-opsi-ambil.png";
-  Color selectedBgColor = const Color(0xFF2F2828);
-  Color defaultBgColor = Colors.white;
-  Color selectedTextColor = Colors.white;
-  Color defaultTextColor = Colors.black;
   String selectedOption = "ambil";
   RxString alamatUser = "Sedang Mengambil Alamat...".obs;
   RxString alamatToko = "Sedang Mengambil Alamat...".obs;
@@ -55,16 +45,19 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
 
   Future<void> getAlamatUserOpsiPengiriman() async {
     await apiDataUser.getListAlamatUser(context);
-    AlamatUserModel alamat = apiDataUser.listAlamatUser[0];
-    double longitude = double.parse(alamat.longitude);
-    double latitude = double.parse(alamat.latitude);
-    String convertedAlamat = await convertAlamat(latitude, longitude);
-    alamatUser.value = convertedAlamat;
+    if(apiDataUser.listAlamatUser.isNotEmpty) {
+      AlamatUserModel alamat = apiDataUser.listAlamatUser[0];
+      double longitude = double.parse(alamat.longitude);
+      double latitude = double.parse(alamat.latitude);
+      String convertedAlamat = await convertAlamat(latitude, longitude);
+      alamatUser.value = convertedAlamat;
+    } else {
+      alamatUser.value = "Alamat belum diatur";
+    }
   }
 
   Future<String> convertAlamat(double latitude, double longitude) async {
-    List<Placemark> placemarks =
-        await Geocoding().placemarkFromCoordinates(latitude, longitude);
+    List<Placemark> placemarks = await Geocoding().placemarkFromCoordinates(latitude, longitude);
 
     if (placemarks.isNotEmpty) {
       Placemark placemark = placemarks.first;
@@ -76,209 +69,242 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
       String alamat = "$jalan, $kecamatan, $kabupaten, $provinsi, $postalCode";
       return alamat;
     } else {
-      CustomSnackBar.show(context, sukses: false,
-            teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+      CustomSnackBar.show(context, sukses: false, teks: "Tidak bisa Mengkonversi koordinat alamat anda");
       return "";
     }
+  }
+
+  Widget _buildOptionCard({
+    required String title,
+    required String subtitle,
+    required String price,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Widget addressWidget,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: isSelected ? Colors.blue[700] : Colors.grey[600], size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppColors.fontStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        price,
+                        style: AppColors.fontStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Icon(Icons.check_circle_rounded, color: Colors.blue[700], size: 24)
+                else
+                  Icon(Icons.radio_button_unchecked, color: Colors.grey[400], size: 24),
+              ],
+            ),
+            if (isSelected) ...[
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              addressWidget,
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 24),
+          onPressed: () => Get.back(),
+        ),
+        title: Text(
+          "Opsi Pengiriman",
+          style: AppColors.fontStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
+        ),
+      ),
       body: SafeArea(
-          child: Container(
-        color: Colors.white,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 5, bottom: 15),
-              child: Row(children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 3),
-                  child: IconButton(
-                      onPressed: () {
-                        Get.back();
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.black,
-                        size: 28,
-                      )),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width / 4 - 45,
-                ),
-                Text(
-                  "Opsi Pengiriman",
-                  style: AppColors.fontStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black),
-                ),
-              ]),
-            ),
-            Container(
-              color: Colors.black.withValues(alpha: 0.25),
-              height: 2,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                  left: 15, right: 15, top: 20, bottom: 5),
-              child: Text(
-                "Pilih Jasa Pengiriman",
-                style: AppColors.fontStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width / 1.3,
-                child: Text(
-                  "Barang akan dikirim sesuai dengan alamat yang anda tentukan atau barang anda ambil di store penyewa",
-                  style: AppColors.fontStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 12, right: 12, top: 18),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
                 children: [
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        selectedOption = "antar";
-                      });
-                    },
-                    child: ButtonOpsiPengiriman(
-                      image: selectedOption == "antar"
-                          ? selectedImageAntar
-                          : defaultImageAntar,
-                      bgColor: selectedOption == "antar"
-                          ? selectedBgColor
-                          : defaultBgColor,
-                      borderColor: selectedOption == "antar"
-                          ? selectedBgColor
-                          : defaultTextColor,
-                      teksColor: selectedOption == "antar"
-                          ? selectedTextColor
-                          : defaultTextColor,
-                      teksOpsi: "Antar Ke Alamatmu",
-                      teksHarga: "Dari IDR.5.000,00",
+                  Text(
+                    "Pilih Jasa Pengiriman",
+                    style: AppColors.fontStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
                     ),
                   ),
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        selectedOption = "ambil";
-                      });
-                    },
-                    child: ButtonOpsiPengiriman(
-                      image: selectedOption == "ambil"
-                          ? selectedImageAmbil
-                          : defaultImageAmbil,
-                      bgColor: selectedOption == "ambil"
-                          ? selectedBgColor
-                          : defaultBgColor,
-                      borderColor: selectedOption == "ambil"
-                          ? selectedBgColor
-                          : defaultTextColor,
-                      teksColor: selectedOption == "ambil"
-                          ? selectedTextColor
-                          : defaultTextColor,
-                      teksOpsi: "Ambil Ditempat",
-                      teksHarga: "Dari IDR.0,00",
+                  const SizedBox(height: 8),
+                  Text(
+                    "Barang akan dikirim ke alamat Anda atau diambil langsung di store penyewa.",
+                    style: AppColors.fontStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black54,
                     ),
-                  )
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  _buildOptionCard(
+                    title: "Ambil Ditempat",
+                    subtitle: "Ambil langsung ke lokasi store",
+                    price: "Gratis (Rp 0)",
+                    icon: MdiIcons.storefrontOutline,
+                    isSelected: selectedOption == "ambil",
+                    onTap: () => setState(() => selectedOption = "ambil"),
+                    addressWidget: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(MdiIcons.mapMarkerOutline, color: Colors.grey[600], size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Alamat Store", style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              const SizedBox(height: 4),
+                              Obx(() => Text(
+                                alamatToko.value,
+                                style: AppColors.fontStyle(fontSize: 13, color: Colors.black54),
+                              )),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _buildOptionCard(
+                    title: "Antar Ke Alamatmu",
+                    subtitle: "Dikirim oleh kurir",
+                    price: "Mulai dari Rp 5.000",
+                    icon: MdiIcons.truckDeliveryOutline,
+                    isSelected: selectedOption == "antar",
+                    onTap: () => setState(() => selectedOption = "antar"),
+                    addressWidget: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(MdiIcons.mapMarkerOutline, color: Colors.grey[600], size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Alamat Pengiriman", style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              const SizedBox(height: 4),
+                              Obx(() => Text(
+                                alamatUser.value,
+                                style: AppColors.fontStyle(fontSize: 13, color: Colors.black54),
+                              )),
+                            ],
+                          ),
+                        ),
+                        // IconButton(
+                        //   icon: Icon(Icons.edit_outlined, color: Colors.blue[700], size: 20),
+                        //   onPressed: () {},
+                        // ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(
-              height: 25,
-            ),
-            Obx(
-              () => AlamatOpsiPengiriman(
-                opsi: "Alamat Pengiriman",
-                alamat: alamatUser.value,
-                keteranganKirim:
-                    "Barang akan dikirim sesuai dengan tanggal yang ditentukan",
-                opacity: selectedOption == "antar" ? 1 : 0.5,
-                edit: selectedOption == "antar" ? true : false,
-                checklist: selectedOption == "antar" ? true : false,
-              ),
-            ),
-            Obx(
-              () => AlamatOpsiPengiriman(
-                opsi: "Alamat Store",
-                alamat: alamatToko.value,
-                keteranganKirim:
-                    "Barang akan dikirim sesuai dengan tanggal yang ditentukan",
-                opacity: selectedOption == "ambil" ? 1 : 0.5,
-                edit: false,
-                checklist: selectedOption == "ambil" ? true : false,
-              ),
-            ),
+            
             Container(
-              height: 1.2,
-              color: Colors.black.withValues(alpha: 0.25),
-            ),
-            const Spacer(),
-            Container(
-              height: 2,
-              color: Colors.black.withValues(alpha: 0.3),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-              child: InkWell(
-                onTap: () {
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    offset: const Offset(0, -4),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () {
                   if (selectedOption == "antar") {
-                    CustomSnackBar.show(context, sukses: false,
-                          title: "Fitur Segera Tersedia",
-                          teks: "Maaf Fitur Pengantaran Belum Tersedia",);
+                    CustomSnackBar.show(context, sukses: false, title: "Fitur Segera Tersedia", teks: "Maaf Fitur Pengantaran Belum Tersedia");
                   } else {
                     Get.back(
-                        result: selectedOption ==
-                                "antar" //ini nanti alamatnya ngambil dari api lalu dimasukin disini
-                            ? {
-                                'selectedOption': "Antar Ke Alamatmu",
-                                'alamat': alamatUser.value
-                              }
-                            : {
-                                'selectedOption': "Ambil di Tempat",
-                                'alamat': alamatToko.value
-                              });
+                      result: selectedOption == "antar"
+                        ? {'selectedOption': "Antar Ke Alamatmu", 'alamat': alamatUser.value}
+                        : {'selectedOption': "Ambil Ditempat", 'alamat': alamatToko.value}
+                    );
                   }
                 },
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: const Color(0xFF2F2828),
-                  ),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        "Konfirmasi",
-                        style: AppColors.fontStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white),
-                      ),
-                    ),
-                  ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2F2828),
+                  minimumSize: const Size(double.infinity, 54),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  "Konfirmasi",
+                  style: AppColors.fontStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
                 ),
               ),
-            )
+            ),
           ],
         ),
-      )),
+      ),
     );
   }
 }

@@ -24,17 +24,14 @@ class LayoutCheckout extends StatefulWidget {
 class _LayoutCheckoutState extends State<LayoutCheckout> {
   KeranjangController keranjangController = Get.put(KeranjangController());
   ApiTransaksi apiTransaksi = Get.put(ApiTransaksi());
-  String metodeBayar = "Bayar Ditempat";
-  String opsiPengiriman =
-      "Ambil Ditempat"; //untuk alamat pengirimannya nanti isi alamat store langsung dari API
+  String? metodeBayar;
+  String opsiPengiriman = "Ambil Ditempat";
   String? jenisBank;
   DateTime? tanggalAwal;
   DateTime? tanggalAkhir;
-  DateTimeRange durasiSewa =
-      DateTimeRange(start: DateTime.now(), end: DateTime.now());
+  DateTimeRange durasiSewa = DateTimeRange(start: DateTime.now(), end: DateTime.now());
   String? formatedTanggalAwal;
   String? formatedTanggalAkhir;
-  int? totalPembayaran;
   double? longitudeToko;
   double? latitudeToko;
   RxString alamatPengiriman = "sedang mendapatkan alamat...".obs;
@@ -58,8 +55,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
         keranjangController.selectedProdukCheckout.toList();
 
     if (produkCheckout.isNotEmpty) {
-      final KeranjangModel keranjang =
-          KeranjangModel.fromMap(produkCheckout[0]);
+      final KeranjangModel keranjang = KeranjangModel.fromMap(produkCheckout[0]);
       idToko = keranjang.idToko;
       namaToko.value = keranjang.namaToko;
       // ignore: use_build_context_synchronously
@@ -68,16 +64,14 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
       if (alamat != null) {
         longitudeToko = double.parse(alamat.longitude);
         latitudeToko = double.parse(alamat.latitude);
-        String convertedAlamat =
-            await convertAlamat(latitudeToko!, longitudeToko!);
+        String convertedAlamat = await convertAlamat(latitudeToko!, longitudeToko!);
         alamatPengiriman.value = convertedAlamat;
       }
     }
   }
 
   Future<String> convertAlamat(double latitude, double longitude) async {
-    List<Placemark> placemarks =
-        await Geocoding().placemarkFromCoordinates(latitude, longitude);
+    List<Placemark> placemarks = await Geocoding().placemarkFromCoordinates(latitude, longitude);
 
     if (placemarks.isNotEmpty) {
       Placemark placemark = placemarks.first;
@@ -90,8 +84,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
       return alamat;
     } else {
       if (mounted) {
-        CustomSnackBar.show(context, sukses: false,
-              teks: "Tidak bisa Mengkonversi koordinat alamat anda",);
+        CustomSnackBar.show(context, sukses: false, teks: "Tidak bisa Mengkonversi koordinat alamat anda");
       }
       return "";
     }
@@ -99,717 +92,711 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
 
   String formatCurrency(String numberString) {
     final number = int.parse(numberString);
-    final formatter =
-        NumberFormat.decimalPattern('id'); // Use 'id' for Indonesian locale
+    final formatter = NumberFormat.decimalPattern('id');
     return formatter.format(number);
+  }
+
+  Widget _buildSection({required Widget child, bool isError = false}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isError ? Border.all(color: Colors.red.shade400, width: 1.5) : null,
+        boxShadow: [
+          BoxShadow(
+            color: isError ? Colors.red.withOpacity(0.15) : Colors.grey.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 24),
+          onPressed: () => Get.back(),
+        ),
+        title: Text(
+          "Checkout",
+          style: AppColors.fontStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
+        ),
+      ),
       body: SafeArea(
-          child: Container(
-        color: Colors.white,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 5, bottom: 15),
-              child: Row(children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 3),
-                  child: IconButton(
-                      onPressed: () {
-                        Get.back();
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.black,
-                        size: 28,
-                      )),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width / 4 - 10,
-                ),
-                Text(
-                  "Checkout",
-                  style: AppColors.fontStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black),
-                ),
-              ]),
-            ),
-            Container(
-              color: Colors.black.withValues(alpha: 0.25),
-              height: 2,
-            ),
             Expanded(
               child: ListView(
+                padding: const EdgeInsets.only(top: 8, bottom: 20),
                 children: [
-                  Container(
-                    color: const Color(0xFF2F2828),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(
-                                left: 10, right: 5, top: 3, bottom: 3),
-                            child: Image.asset(
-                              "assets/icons/icon-store.png",
-                              scale: 2,
+                  // Store & Product Section
+                  _buildSection(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Store Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2F2828).withOpacity(0.06),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
                             ),
                           ),
-                          Obx(
-                            () => Text(
-                              namaToko.value,
-                              style: AppColors.fontStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white),
-                            ),
-                          )
-                        ],
-                      ),
+                          child: Row(
+                            children: [
+                              Icon(MdiIcons.storefrontOutline, color: const Color(0xFF2F2828), size: 22),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Obx(() => Text(
+                                  namaToko.value,
+                                  style: AppColors.fontStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF2F2828),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // Product List
+                        Obx(() {
+                          final List<Map<String, dynamic>> produkCheckout =
+                              keranjangController.selectedProdukCheckout.toList();
+                          return ListView.builder(
+                              itemCount: produkCheckout.length,
+                              physics: const NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              itemBuilder: (context, index) {
+                                final KeranjangModel keranjang =
+                                    KeranjangModel.fromMap(produkCheckout[index]);
+                                return CheckoutProdukCard(
+                                  image: keranjang.fotoProduk,
+                                  namaProduk: keranjang.namaProduk,
+                                  variasiWarna: keranjang.variantWarna,
+                                  variasiUkuran: keranjang.variantUkuran,
+                                  hargaProduk: keranjang.harga.toString(),
+                                  qtyProduk: keranjang.qty.toString(),
+                                );
+                              });
+                        }),
+                      ],
                     ),
                   ),
-                  Obx(() {
-                    final List<Map<String, dynamic>> produkCheckout =
-                        keranjangController.selectedProdukCheckout.toList();
-                    return ListView.builder(
-                        itemCount: produkCheckout.length,
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemBuilder: (context, index) {
-                          final KeranjangModel keranjang =
-                              KeranjangModel.fromMap(produkCheckout[index]);
-                          return CheckoutProdukCard(
-                            image: keranjang.fotoProduk,
-                            namaProduk: keranjang.namaProduk,
-                            variasiWarna: keranjang.variantWarna,
-                            variasiUkuran: keranjang.variantUkuran,
-                            hargaProduk: keranjang.harga.toString(),
-                            qtyProduk: keranjang.qty.toString(),
-                          );
-                        });
-                  }),
-                  InkWell(
-                    onTap: () async {
-                      final tanggalSewa = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime.now(),
-                          lastDate:
-                              DateTime.now().add(const Duration(days: 90)));
 
-                      if (tanggalSewa != null) {
-                        setState(() {
-                          durasiSewa = tanggalSewa;
-                          tanggalAwal = tanggalSewa.start;
-                          tanggalAkhir = tanggalSewa.end;
-                          formatedTanggalAwal =
-                              DateFormat('yyyy-MM-dd').format(tanggalAwal!);
-                          formatedTanggalAkhir =
-                              DateFormat('yyyy-MM-dd').format(tanggalAkhir!);
-                        });
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.symmetric(
-                            horizontal: BorderSide(
-                                color: Colors.black.withValues(alpha: 0.3))),
-                        color: Colors.white,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.only(left: 10, bottom: 2),
-                              child: Text(
-                                "Tentukan Tanggal Sewa",
-                                style: AppColors.fontStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black),
-                              ),
-                            ),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 10, right: 6, top: 5, bottom: 5),
-                                  child: Image.asset(
-                                    "assets/icons/calendar-icon.png",
-                                    scale: 1.5,
+                  const SizedBox(height: 12),
+
+                  // Date Picker Section
+                  _buildSection(
+                    isError: tanggalAwal == null,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final tanggalSewa = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 90)),
+                            helpText: 'PILIH RENTANG TANGGAL SEWA',
+                            cancelText: 'BATAL',
+                            confirmText: 'SIMPAN',
+                            saveText: 'SIMPAN',
+                            fieldStartHintText: 'Tanggal Mulai',
+                            fieldEndHintText: 'Tanggal Berakhir',
+                            fieldStartLabelText: 'Mulai',
+                            fieldEndLabelText: 'Berakhir',
+                            builder: (context, child) {
+                              return Theme(
+                                data: ThemeData.light().copyWith(
+                                  primaryColor: const Color(0xFF2C4E40),
+                                  scaffoldBackgroundColor: Colors.white,
+                                  colorScheme: const ColorScheme.light(
+                                    primary: Color(0xFF2C4E40), 
+                                    onPrimary: Colors.white, 
+                                    onSurface: Colors.black87,
+                                    surface: Colors.white,
+                                  ),
+                                  appBarTheme: const AppBarTheme(
+                                    backgroundColor: Color(0xFF2C4E40),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    iconTheme: IconThemeData(color: Colors.white),
+                                  ),
+                                  textButtonTheme: TextButtonThemeData(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF2C4E40),
+                                      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                    ),
+                                  ),
+                                  inputDecorationTheme: InputDecorationTheme(
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: Color(0xFF2C4E40), width: 2),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                    labelStyle: const TextStyle(color: Color(0xFF2C4E40), fontWeight: FontWeight.w600),
+                                  ),
+                                  datePickerTheme: DatePickerThemeData(
+                                    backgroundColor: Colors.white,
+                                    surfaceTintColor: Colors.transparent,
+                                    headerBackgroundColor: const Color(0xFF2C4E40),
+                                    headerForegroundColor: Colors.white,
+                                    dividerColor: Colors.grey.shade200,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    dayStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                                    weekdayStyle: TextStyle(fontWeight: FontWeight.w700, color: Colors.black54, fontSize: 13),
+                                    rangePickerBackgroundColor: Colors.white,
+                                    rangePickerElevation: 0,
+                                    rangePickerHeaderBackgroundColor: const Color(0xFF2C4E40),
+                                    rangePickerHeaderForegroundColor: Colors.white,
                                   ),
                                 ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "Tanggal Mulai : ",
-                                          style: AppColors.fontStyle(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black),
-                                        ),
-                                        Text(
-                                          tanggalAwal != null
-                                              ? formatedTanggalAwal!
-                                              : "-", //teks tanggal awal
-                                          style: AppColors.fontStyle(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.black),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "Tanggal Akhir : ",
-                                          style: AppColors.fontStyle(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black),
-                                        ),
-                                        Text(
-                                          tanggalAkhir != null
-                                              ? formatedTanggalAkhir!
-                                              : "-", //teks tanggal akhir
-                                          style: AppColors.fontStyle(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.black),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const Spacer(),
-                                const Icon(
-                                  Icons.navigate_next_rounded,
-                                  color: Colors.black,
-                                  size: 25,
-                                )
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () async {
-                      final pilihanPengiriman = await Get.to(
-                          const LayoutOpsiPengiriman(),
-                          arguments: {'idToko': idToko.toString()});
-                      setState(() {
-                        if (pilihanPengiriman != null) {
-                          opsiPengiriman = pilihanPengiriman['selectedOption'];
-                          alamatPengiriman.value = pilihanPengiriman['alamat'];
+                                child: child!,
+                              );
+                            },
+                        );
+
+                        if (tanggalSewa != null) {
+                          setState(() {
+                            durasiSewa = tanggalSewa;
+                            tanggalAwal = tanggalSewa.start;
+                            tanggalAkhir = tanggalSewa.end;
+                            formatedTanggalAwal = DateFormat('yyyy-MM-dd').format(tanggalAwal!);
+                            formatedTanggalAkhir = DateFormat('yyyy-MM-dd').format(tanggalAkhir!);
+                          });
                         }
-                      });
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                          border: Border.symmetric(
-                              horizontal: BorderSide(
-                                  color: Colors.black.withValues(alpha: 0.25))),
-                          color: Colors.white),
+                      },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 3, bottom: 4),
-                              child: Text(
-                                "Opsi Pengiriman",
-                                style: AppColors.fontStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black),
-                              ),
-                            ),
                             Row(
                               children: [
+                                Icon(MdiIcons.calendarRange, color: tanggalAwal == null ? Colors.red[600] : Colors.blue[700], size: 22),
+                                const SizedBox(width: 8),
                                 Text(
-                                  //opsi pengiriman
-                                  opsiPengiriman,
+                                  "Tentukan Tanggal Sewa",
                                   style: AppColors.fontStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: tanggalAwal == null ? Colors.red[600] : Colors.black87,
+                                  ),
                                 ),
-                                const Spacer(),
-                                Image.asset(
-                                  "assets/icons/tiket-icon.png",
-                                  scale: 2.1,
-                                ),
-                                Text(
-                                  "IDR. 0,00",
-                                  style: AppColors.fontStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black),
-                                ),
-                                const Icon(
-                                  Icons.navigate_next_rounded,
-                                  color: Colors.black,
-                                  size: 25,
-                                )
+                                if (tanggalAwal == null) ...[
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      "Wajib",
+                                      style: AppColors.fontStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.red[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
-                            SizedBox(
-                              width: MediaQuery.of(context).size.width / 1.4,
-                              child: Obx(
-                                () => Text(
-                                  //alamat
-                                  alamatPengiriman.value,
-                                  style: AppColors.fontStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 5,
-                            ),
+                            const SizedBox(height: 16),
                             Row(
                               children: [
-                                Image.asset(
-                                  "assets/icons/box-kirim.png",
-                                  scale: 2,
+                                // Box Tanggal Mulai
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.grey.shade200),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Tanggal Mulai", style: AppColors.fontStyle(fontSize: 11, color: Colors.black54)),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          tanggalAwal != null ? DateFormat('dd MMM yyyy').format(tanggalAwal!) : "Pilih Tanggal",
+                                          style: AppColors.fontStyle(
+                                            fontSize: 13,
+                                            fontWeight: tanggalAwal != null ? FontWeight.w700 : FontWeight.w500,
+                                            color: tanggalAwal != null ? Colors.black87 : Colors.grey,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                                Text(
-                                  "Ambil barang sesuai dengan tanggal yang ditentukan",
-                                  style: AppColors.fontStyle(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: const Color(0xFFEE2737)),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  child: Icon(Icons.arrow_forward_rounded, color: Colors.grey.shade400, size: 20),
+                                ),
+                                // Box Tanggal Akhir
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.grey.shade200),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Tanggal Berakhir", style: AppColors.fontStyle(fontSize: 11, color: Colors.black54)),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          tanggalAkhir != null ? DateFormat('dd MMM yyyy').format(tanggalAkhir!) : "Pilih Tanggal",
+                                          style: AppColors.fontStyle(
+                                            fontSize: 13,
+                                            fontWeight: tanggalAkhir != null ? FontWeight.w700 : FontWeight.w500,
+                                            color: tanggalAkhir != null ? Colors.black87 : Colors.grey,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
-                            )
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                        border: Border.symmetric(
-                            horizontal: BorderSide(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                width: 1.2)),
-                        color: Colors.white),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      child: Row(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Text(
-                              "Pesan : ",
+
+                  // Delivery Option Section
+                  _buildSection(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final pilihanPengiriman = await Get.to(
+                            () => const LayoutOpsiPengiriman(),
+                            arguments: {'idToko': idToko.toString()});
+                        setState(() {
+                          if (pilihanPengiriman != null) {
+                            opsiPengiriman = pilihanPengiriman['selectedOption'];
+                            alamatPengiriman.value = pilihanPengiriman['alamat'];
+                          }
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Opsi Pengiriman",
                               style: AppColors.fontStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black),
-                            ),
-                          ),
-                          const Spacer(),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 5),
-                            child: SizedBox(
-                              height: 45,
-                              width: MediaQuery.of(context).size.width / 1.3,
-                              child: TextField(
-                                controller: apiTransaksi.pesanController,
-                                textAlign: TextAlign.end,
-                                style: AppColors.fontStyle(
-                                    fontSize: 11, fontWeight: FontWeight.w400),
-                                decoration: InputDecoration(
-                                  hintText:
-                                      "Silahkan tinggalkan pesan tambahan jika ada",
-                                  hintStyle: AppColors.fontStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w400),
-                                  border: InputBorder.none,
-                                ),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
                               ),
                             ),
-                          )
-                        ],
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(MdiIcons.truckDeliveryOutline, color: Colors.green[700], size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        opsiPengiriman,
+                                        style: AppColors.fontStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Obx(() => Text(
+                                        alamatPengiriman.value,
+                                        style: AppColors.fontStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                          color: Colors.black54,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      )),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Rp 0",
+                                  style: AppColors.fontStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.navigate_next_rounded, color: Colors.grey, size: 28),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                        border: Border.symmetric(
-                            horizontal: BorderSide(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                width: 0.5)),
-                        color: Colors.white),
+
+                  // Message Section
+                  _buildSection(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 5, horizontal: 10),
-                      child: Row(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Total Produk : ",
-                            style: AppColors.fontStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black),
-                          ),
-                          const Spacer(),
-                          Obx(
-                            () => Text(
-                              keranjangController.totalItemKeranjang.value
-                                  .toString(), //total produk
-                              style: AppColors.fontStyle(
-                                  fontSize: 13,
+                          Row(
+                            children: [
+                              Icon(MdiIcons.messageTextOutline, color: Colors.black87, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Pesan untuk Toko",
+                                style: AppColors.fontStyle(
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.black),
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: TextField(
+                              controller: apiTransaksi.pesanController,
+                              maxLines: 2,
+                              minLines: 1,
+                              style: AppColors.fontStyle(fontSize: 14, fontWeight: FontWeight.w400),
+                              decoration: InputDecoration(
+                                hintText: "Silakan tinggalkan pesan (opsional)...",
+                                hintStyle: AppColors.fontStyle(fontSize: 13, color: Colors.grey.shade400),
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
                             ),
                           ),
-                          Text(
-                            " Produk",
-                            style: AppColors.fontStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black),
-                          ),
                         ],
                       ),
                     ),
                   ),
-                  InkWell(
-                    onTap: () async {
-                      final pilihanPembayaran = await Get.to(
-                          const LayoutMetodePembayaran(),
-                          arguments: {'idToko': idToko.toString()});
-                      setState(() {
-                        if (pilihanPembayaran != null) {
-                          metodeBayar = pilihanPembayaran["metodeBayar"];
-                          jenisBank = pilihanPembayaran["jenisBank"];
-                          rekeningBank = pilihanPembayaran["rekeningBank"];
-                        }
-                      });
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                          border: Border.symmetric(
-                              horizontal: BorderSide(
-                                  color: Colors.black.withValues(alpha: 0.25),
-                                  width: 1.2)),
-                          color: Colors.white),
+
+                  // Payment Method Section
+                  _buildSection(
+                    isError: metodeBayar == null,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () async {
+                        final pilihanPembayaran = await Get.to(
+                            () => const LayoutMetodePembayaran(),
+                            arguments: {'idToko': idToko.toString()});
+                        setState(() {
+                          if (pilihanPembayaran != null) {
+                            metodeBayar = pilihanPembayaran["metodeBayar"];
+                            jenisBank = pilihanPembayaran["jenisBank"];
+                            rekeningBank = pilihanPembayaran["rekeningBank"];
+                          }
+                        });
+                      },
                       child: Padding(
-                        padding: const EdgeInsets.only(
-                            left: 10, right: 2, top: 10, bottom: 10),
+                        padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            Image.asset(
-                              "assets/icons/coin-icon.png",
-                              scale: 2,
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(MdiIcons.walletOutline, color: Colors.orange[700], size: 24),
                             ),
-                            const SizedBox(
-                              width: 2,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                "Metode Pembayaran",
+                                style: AppColors.fontStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: metodeBayar == null ? Colors.red[600] : Colors.black87,
+                                ),
+                              ),
                             ),
-                            Text(
-                              "Metode Pembayaran",
-                              style: AppColors.fontStyle(
-                                  fontSize: 13.5,
+                            if (metodeBayar == null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  "Wajib pilih",
+                                  style: AppColors.fontStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.red[700],
+                                  ),
+                                ),
+                              )
+                            else
+                              Text(
+                                jenisBank != null ? "$metodeBayar - ${jenisBank!}" : metodeBayar!,
+                                style: AppColors.fontStyle(
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.black),
-                            ),
-                            const Spacer(),
-                            Text(
-                              jenisBank != null
-                                  ? "$metodeBayar - ${jenisBank!}"
-                                  : metodeBayar, //metode pembayaran
-                              style: AppColors.fontStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black),
-                            ),
-                            const Icon(
-                              Icons.navigate_next_rounded,
-                              size: 25,
-                            )
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.navigate_next_rounded, color: Colors.grey, size: 28),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 15),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          MdiIcons.calendarText,
-                          size: 25,
-                        ),
-                        const SizedBox(
-                          width: 3,
-                        ),
-                        Text(
-                          "Rincian Pembayaran",
-                          style: AppColors.fontStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                      ],
+
+                  // Payment Details Section
+                  _buildSection(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(MdiIcons.receiptTextOutline, color: Colors.black87, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Rincian Pembayaran",
+                                style: AppColors.fontStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Total Produk", style: AppColors.fontStyle(fontSize: 13, color: Colors.black54)),
+                              Obx(() => Text("${keranjangController.totalItemKeranjang.value} Produk", style: AppColors.fontStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Durasi Sewa", style: AppColors.fontStyle(fontSize: 13, color: Colors.black54)),
+                              Text("${durasiSewa.duration.inDays} Hari", style: AppColors.fontStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Sub Total Produk", style: AppColors.fontStyle(fontSize: 13, color: Colors.black54)),
+                              Obx(() {
+                                int subTotal = keranjangController.totalHargaKeranjang.value;
+                                int durasi = durasiSewa.duration.inDays == 0 ? 1 : durasiSewa.duration.inDays;
+                                int grandTotal = subTotal * durasi;
+                                return Text("Rp ${formatCurrency(grandTotal.toString())}", style: AppColors.fontStyle(fontSize: 13, fontWeight: FontWeight.w600));
+                              }),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Biaya Layanan", style: AppColors.fontStyle(fontSize: 13, color: Colors.black54)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text("Free", style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.green[700])),
+                              ),
+                            ],
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(height: 1, thickness: 1),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Total Pembayaran", style: AppColors.fontStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black87)),
+                              Obx(() {
+                                int subTotal = keranjangController.totalHargaKeranjang.value;
+                                int durasi = durasiSewa.duration.inDays == 0 ? 1 : durasiSewa.duration.inDays;
+                                int grandTotal = subTotal * durasi;
+                                int total = grandTotal;
+                                return Text(
+                                  "Rp ${formatCurrency(total.toString())}",
+                                  style: AppColors.fontStyle(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFFEE2737)),
+                                );
+                              }),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 0, 20, 6),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Durasi Sewa",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                        const Spacer(),
-                        Text(
-                          "${durasiSewa.duration.inDays}", //durasi sewa
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                        Text(
-                          " Hari",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 0, 20, 6),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Sub Total Produk",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                        const Spacer(),
-                        Text(
-                          "IDR. ",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                        Obx(
-                          () {
-                            int subTotal =
-                                keranjangController.totalHargaKeranjang.value;
-                            int durasi = durasiSewa.duration.inDays == 0
-                                ? 1
-                                : durasiSewa.duration.inDays;
-                            int grandTotal = subTotal * durasi;
-                            return Text(
-                              formatCurrency(
-                                  grandTotal.toString()), //sub total harga
-                              style: AppColors.fontStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black),
-                            );
-                          },
-                        ),
-                        Text(
-                          ",00",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 0, 20, 6),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Biaya Layanan",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                        const Spacer(),
-                        Text(
-                          "IDR. ",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                        Text(
-                          "1.000", //sub total harga
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                        Text(
-                          ",00",
-                          style: AppColors.fontStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 0, 20, 6),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Total Pembayaran",
-                          style: AppColors.fontStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black),
-                        ),
-                        const Spacer(),
-                        Text(
-                          "IDR. ",
-                          style: AppColors.fontStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black),
-                        ),
-                        Obx(() {
-                          int subTotal =
-                              keranjangController.totalHargaKeranjang.value;
-                          int durasi = durasiSewa.duration.inDays == 0
-                              ? 1
-                              : durasiSewa.duration.inDays;
-                          int grandTotal = subTotal * durasi;
-                          totalPembayaran = grandTotal + 1000;
-                          return Text(
-                            totalPembayaran != null
-                                ? formatCurrency(totalPembayaran.toString())
-                                : "0.00", //total pembayaran
-                            style: AppColors.fontStyle(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black),
-                          );
-                        }),
-                        Text(
-                          ",00",
-                          style: AppColors.fontStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  Container(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    height: 2,
-                  ),
-                  const SizedBox(
-                    height: 15,
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 15),
-              child: InkWell(
-                onTap: () {
-                  // Cek KYC sebelum checkout
-                  final apiDataUser = Get.find<import_api_data_user.ApiDataUser>();
-                  final user = apiDataUser.dataUser.value;
-                  bool needsKYC = user != null && user.type == 0 && 
-                      (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty || 
-                       user.fotoIdentitas == null || user.fotoIdentitas.toString().isEmpty);
-
-                  if (needsKYC) {
-                    CustomSnackBar.show(context, sukses: false,
-                          title: "Perhatian",
-                          teks: "Harap lengkapi identitas (KTP) Anda sebelum menyewa barang.",);
-                    
-                    Get.to(() => const import_instruksi_kyc.LayoutInstruksiKYC());
-                    return;
-                  }
-
-                  //button checkout
-                  //jangan lupa ngecek apakah udah menginputkan tanggal sewanya
-                  if (tanggalAwal != null && tanggalAkhir != null) {
-                    String metode =
-                        metodeBayar == "Bayar Ditempat" ? "COD" : "Transfer";
-                    apiTransaksi.transaksiCheckout(
-                        context,
-                        formatedTanggalAwal!,
-                        formatedTanggalAkhir!,
-                        metode,
-                        totalPembayaran.toString(),
-                        jenisBank,
-                        rekeningBank!,
-                        idToko);
-                  } else {
-                    CustomSnackBar.show(context, sukses: false,
-                          title: "Notifikasi",
-                          teks: "Masukkan Tanggal Sewa Terlebih Dahulu",);
-                  }
-                },
-                child: Container(
-                  height: 58,
-                  width: MediaQuery.of(context).size.width - 30,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: const Color(0xFF2F2828)),
-                  child: Center(
-                    child: Text(
-                      "Lanjut Pembayaran",
-                      style: AppColors.fontStyle(
-                          fontSize: 17.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
+            
+            // Bottom Action Bar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    offset: const Offset(0, -4),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Total Pembayaran",
+                          style: AppColors.fontStyle(fontSize: 12, color: Colors.black54),
+                        ),
+                        Obx(() {
+                          int subTotal = keranjangController.totalHargaKeranjang.value;
+                          int durasi = durasiSewa.duration.inDays == 0 ? 1 : durasiSewa.duration.inDays;
+                          int total = (subTotal * durasi);
+                          return Text(
+                            "Rp ${formatCurrency(total.toString())}",
+                            style: AppColors.fontStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.w700, 
+                              color: const Color(0xFFEE2737)
+                            ),
+                          );
+                        }),
+                      ],
                     ),
                   ),
-                ),
+                  ElevatedButton(
+                    onPressed: () {
+                      final apiDataUser = Get.find<import_api_data_user.ApiDataUser>();
+                      final user = apiDataUser.dataUser.value;
+                      bool needsKYC = user != null && user.type == 0 && 
+                          (user.nomorIdentitas == null || user.nomorIdentitas.toString().isEmpty || 
+                           user.fotoIdentitas == null || user.fotoIdentitas.toString().isEmpty);
+
+                      if (needsKYC) {
+                        CustomSnackBar.show(context, sukses: false, title: "Perhatian", teks: "Harap lengkapi identitas (KTP) Anda sebelum menyewa barang.");
+                        Get.to(() => const import_instruksi_kyc.LayoutInstruksiKYC());
+                        return;
+                      }
+
+                      if (tanggalAwal == null) {
+                        CustomSnackBar.show(context, sukses: false, title: "Notifikasi", teks: "Masukkan Tanggal Sewa Terlebih Dahulu");
+                        return;
+                      }
+                      if (metodeBayar == null) {
+                        CustomSnackBar.show(context, sukses: false, title: "Notifikasi", teks: "Pilih Metode Pembayaran Terlebih Dahulu");
+                        return;
+                      }
+                      
+                      String metode = metodeBayar == "Bayar Ditempat" ? "COD" : "Transfer";
+                      int subTotal = keranjangController.totalHargaKeranjang.value;
+                      int durasi = durasiSewa.duration.inDays == 0 ? 1 : durasiSewa.duration.inDays;
+                      int finalTotal = (subTotal * durasi);
+                      apiTransaksi.transaksiCheckout(
+                          context,
+                          formatedTanggalAwal!,
+                          formatedTanggalAkhir!,
+                          metode,
+                          finalTotal.toString(),
+                          jenisBank,
+                          rekeningBank ?? '',
+                          idToko);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2C4E40),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      "Checkout",
+                      style: AppColors.fontStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      )),
+      ),
     );
   }
 }

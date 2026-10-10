@@ -7,6 +7,7 @@ import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/models/feedback_model.dart';
 import 'package:project_camp_sewa/services/authorization_token.dart';
+import 'package:project_camp_sewa/services/api_data_user.dart';
 
 /// Service untuk fitur Chat Admin–Customer — Arsitektur v2 (Per-Admin Session).
 ///
@@ -80,9 +81,14 @@ class FeedbackChatService extends GetxController {
       final queryParams = <String, dynamic>{
         'page': page,
         'per_page': 15,
-        if (statusFilter != null && statusFilter.isNotEmpty)
-          'status': statusFilter,
       };
+      if (statusFilter != null && statusFilter.isNotEmpty) {
+        if (statusFilter == 'Belum Dibaca') {
+          queryParams['filter'] = 'belum_dibaca';
+        } else {
+          queryParams['status'] = statusFilter;
+        }
+      }
 
       final response = await _dio.get(
         '${ApiEndpoints.baseUrl}/api/chat-room',
@@ -129,8 +135,7 @@ class FeedbackChatService extends GetxController {
         currentPage.value = currentPageNumber;
         hasMorePages.value = currentPage.value < lastPageNumber;
 
-        totalUnread.value = feedbackList
-            .fold(0, (sum, item) => sum + item.unreadAdminMessagesCount);
+        Get.find<ApiDataUser>().getUnreadFeedbackCount();
       }
     } catch (e) {
       debugPrint('[FeedbackChat] loadList error: $e');
