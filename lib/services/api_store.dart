@@ -69,6 +69,8 @@ class ApiStore extends GetxController {
   ///
   /// [kategori] — filter berdasarkan nama kategori (opsional)
   /// [search]   — pencarian nama/deskripsi produk (opsional)
+  /// [sort]     — sorting produk: 'discount_desc', 'discount_asc', 'price_asc', 'price_desc', 'latest' (opsional)
+  /// [isPromo]  — filter hanya produk diskon/promo (opsional)
   ///
   /// Mengembalikan list [ProdukModel] jika berhasil, atau list kosong beserta
   /// pesan error.
@@ -76,6 +78,8 @@ class ApiStore extends GetxController {
     int idUser, {
     String? kategori,
     String? search,
+    String? sort,
+    bool? isPromo,
   }) async {
     try {
       final Authorization auth = Authorization();
@@ -93,6 +97,12 @@ class ApiStore extends GetxController {
       }
       if (search != null && search.isNotEmpty) {
         queryParams['search'] = search;
+      }
+      if (sort != null && sort.isNotEmpty) {
+        queryParams['sort'] = sort;
+      }
+      if (isPromo == true) {
+        queryParams['is_promo'] = '1';
       }
 
       String url =
@@ -132,6 +142,45 @@ class ApiStore extends GetxController {
       return (products: <ProdukModel>[], errorMessage: message);
     } catch (e) {
       return (products: <ProdukModel>[], errorMessage: e.toString());
+    }
+  }
+
+  /// Mengambil daftar diskon produk aktif milik toko.
+  ///
+  /// Endpoint: GET /api/diskon/toko/{id_toko}
+  /// Auth: Tidak diperlukan (public endpoint).
+  ///
+  /// Mengembalikan list kosong jika toko tidak punya diskon aktif atau terjadi
+  /// error — informasi diskon bersifat pelengkap, sehingga kegagalannya tidak
+  /// boleh menghalangi tampilnya profil toko.
+  Future<List<DiskonTokoModel>> getDiskonToko(int idToko) async {
+    try {
+      final String url =
+          '${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getDiskonToko}$idToko';
+
+      final response = await _dio.get(
+        url,
+        options: Options(
+          headers: const {'Accept': 'application/json'},
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      final dynamic raw =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200 &&
+          raw is Map &&
+          raw['status'] == 'success' &&
+          raw['data'] is List) {
+        return (raw['data'] as List)
+            .whereType<Map>()
+            .map((e) => DiskonTokoModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      return <DiskonTokoModel>[];
+    } catch (_) {
+      return <DiskonTokoModel>[];
     }
   }
 }

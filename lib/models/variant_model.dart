@@ -23,15 +23,25 @@ class VariantProductModel {
 
   factory VariantProductModel.fromJson(Map<String, dynamic> json) {
     return VariantProductModel(
-      idProduk: json['id_produk'],
-      namaProduk: json['nama_produk'],
-      fotoDepan: json['foto_depan'],
-      idVariantProduk: json['id_variant_produk'],
-      warna: json['warna'],
-      idDetailVariantProduk: json['id_detail_variant_produk'],
-      ukuran: json['ukuran'],
-      stok: json['stok'],
-      hargaSewa: json['harga_sewa'],
+      idProduk: json['id_produk'] is int
+          ? json['id_produk']
+          : int.tryParse(json['id_produk']?.toString() ?? '0') ?? 0,
+      namaProduk: json['nama_produk']?.toString() ?? '',
+      fotoDepan: json['foto_depan']?.toString() ?? '',
+      idVariantProduk: json['id_variant_produk'] is int
+          ? json['id_variant_produk']
+          : int.tryParse(json['id_variant_produk']?.toString() ?? '0') ?? 0,
+      warna: json['warna']?.toString() ?? 'Standar',
+      idDetailVariantProduk: json['id_detail_variant_produk'] is int
+          ? json['id_detail_variant_produk']
+          : int.tryParse(json['id_detail_variant_produk']?.toString() ?? '0') ?? 0,
+      ukuran: json['ukuran']?.toString() ?? 'All Size',
+      stok: json['stok'] is int
+          ? json['stok']
+          : int.tryParse(json['stok']?.toString() ?? '0') ?? 0,
+      hargaSewa: json['harga_sewa'] is int
+          ? json['harga_sewa']
+          : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0,
     );
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 
 class ProdukModel {
@@ -13,6 +13,13 @@ class ProdukModel {
   final List<String> images;
   final String rating;
   final int harga;
+  final int hargaAsli;
+  final bool isDiskon;
+  final int persentaseDiskon;
+  final int potonganHarga;
+  final String? namaPromo;
+  final String? tanggalMulai;
+  final String? tanggalSelesai;
   final int stok;
   final int jumlahReview;
   final bool isFavorite;
@@ -31,6 +38,13 @@ class ProdukModel {
     required this.images,
     required this.rating,
     required this.harga,
+    this.hargaAsli = 0,
+    this.isDiskon = false,
+    this.persentaseDiskon = 0,
+    this.potonganHarga = 0,
+    this.namaPromo,
+    this.tanggalMulai,
+    this.tanggalSelesai,
     this.stok = 0,
     this.jumlahReview = 0,
     this.isFavorite = false,
@@ -134,9 +148,62 @@ class ProdukModel {
       image: getImageUrl(rawImage),
       images: parsedImages,
       rating: json['rata_rating']?.toString() ?? '0.0',
-      harga: json['harga_sewa'] is int
-          ? json['harga_sewa']
-          : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0,
+      harga: () {
+        final int rawHarga = (json['harga'] is int
+                ? json['harga']
+                : int.tryParse(json['harga']?.toString() ?? '')) ??
+            (json['harga_sewa'] is int
+                ? json['harga_sewa']
+                : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0);
+        return rawHarga;
+      }(),
+      hargaAsli: () {
+        final int rawHarga = (json['harga'] is int
+                ? json['harga']
+                : int.tryParse(json['harga']?.toString() ?? '')) ??
+            (json['harga_sewa'] is int
+                ? json['harga_sewa']
+                : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0);
+        int rawHargaAsli = json['harga_asli'] is int
+            ? json['harga_asli']
+            : (num.tryParse(json['harga_asli']?.toString() ?? '0')?.toInt() ?? 0);
+        final bool isD = json['is_diskon'] == true ||
+            json['is_diskon'] == 1 ||
+            json['is_diskon'] == '1' ||
+            json['is_diskon']?.toString().toLowerCase() == 'true';
+        final int persentase = json['persentase_diskon'] is int
+            ? json['persentase_diskon']
+            : (num.tryParse(json['persentase_diskon']?.toString() ?? '0')?.toInt() ?? 0);
+        final int potongan = json['potongan_harga'] is int
+            ? json['potongan_harga']
+            : (num.tryParse(json['potongan_harga']?.toString() ?? '0')?.toInt() ?? 0);
+
+        if ((isD || persentase > 0 || potongan > 0) && rawHargaAsli <= rawHarga) {
+          if (potongan > 0) {
+            rawHargaAsli = rawHarga + potongan;
+          } else if (persentase > 0 && persentase < 100) {
+            rawHargaAsli = (rawHarga / (1 - (persentase / 100))).round();
+          }
+        }
+        return rawHargaAsli;
+      }(),
+      isDiskon: json['is_diskon'] == true ||
+          json['is_diskon'] == 1 ||
+          json['is_diskon'] == '1' ||
+          json['is_diskon']?.toString().toLowerCase() == 'true' ||
+          ((json['persentase_diskon'] is num && json['persentase_diskon'] > 0) ||
+              (num.tryParse(json['persentase_diskon']?.toString() ?? '0') ?? 0) > 0) ||
+          ((json['potongan_harga'] is num && json['potongan_harga'] > 0) ||
+              (num.tryParse(json['potongan_harga']?.toString() ?? '0') ?? 0) > 0),
+      persentaseDiskon: json['persentase_diskon'] is int
+          ? json['persentase_diskon']
+          : (num.tryParse(json['persentase_diskon']?.toString() ?? '0')?.toInt() ?? 0),
+      potonganHarga: json['potongan_harga'] is int
+          ? json['potongan_harga']
+          : (num.tryParse(json['potongan_harga']?.toString() ?? '0')?.toInt() ?? 0),
+      namaPromo: json['nama_diskon']?.toString() ?? json['nama_promo']?.toString(),
+      tanggalMulai: json['tanggal_mulai']?.toString(),
+      tanggalSelesai: json['tanggal_selesai']?.toString(),
       stok: json['stok'] is int
           ? json['stok']
           : int.tryParse(json['stok']?.toString() ?? '0') ?? 0,

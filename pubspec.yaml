@@ -38,7 +38,6 @@ dependencies:
   google_fonts: ^8.2.1
   page_transition: ^2.0.9
   lottie: ^2.4.0
-  swipeable_button_view: ^0.0.2
   http: ^1.2.1
   shared_preferences: ^2.2.3
   intl: ^0.18.1
@@ -61,6 +60,7 @@ dependencies:
   flutter_material_design_icons: ^3.1.0+7447
   shimmer: ^3.0.0
   image_cropper: ^12.2.1
+  action_slider: ^0.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -71,6 +71,22 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/favicons/android-chrome-512x512.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/favicons/android-chrome-512x512.png"
+    background_color: "#ffffff"
+    theme_color: "#ffffff"
+  windows:
+    generate: true
+    image_path: "assets/favicons/android-chrome-512x512.png"
+    icon_size: 48
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

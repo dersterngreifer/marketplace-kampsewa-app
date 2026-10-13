@@ -655,6 +655,71 @@ class LayoutDetailPesanan extends StatelessWidget {
               ),
             ),
 
+            if (data.opsiPengiriman != null && data.opsiPengiriman!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Pengiriman",
+                        style: AppColors.fontStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(MdiIcons.truckDeliveryOutline,
+                                size: 20, color: Color(0xFF757575)),
+                            const SizedBox(width: 12),
+                            Text("Opsi Pengiriman",
+                                style: AppColors.fontStyle(
+                                    fontSize: 14,
+                                    color: const Color(0xFF2F2828))),
+                          ],
+                        ),
+                        Text(data.opsiPengiriman!,
+                            style: AppColors.fontStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    if (data.alamatPengiriman != null &&
+                        data.alamatPengiriman!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(MdiIcons.mapMarkerOutline,
+                              size: 20, color: Color(0xFF757575)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Alamat Pengantaran",
+                                    style: AppColors.fontStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600)),
+                                const SizedBox(height: 2),
+                                Text(data.alamatPengiriman!,
+                                    style: AppColors.fontStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF2F2828))),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 12),
 
             // Payment Summary
@@ -689,6 +754,20 @@ class LayoutDetailPesanan extends StatelessWidget {
                       Text(_formatRupiah(totalHarga), style: AppColors.fontStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                     ],
                   ),
+                  if (data.biayaAntar != null && data.biayaAntar! > 0) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Biaya Pengantaran",
+                            style: AppColors.fontStyle(
+                                fontSize: 13, color: Colors.grey.shade600)),
+                        Text(_formatRupiah(data.biayaAntar.toString()),
+                            style: AppColors.fontStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ],
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(color: Color(0xFFEEEEEE), height: 1),

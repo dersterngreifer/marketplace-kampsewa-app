@@ -62,7 +62,7 @@ class _LayoutInputKYCState extends State<LayoutInputKYC> {
       _isSubmitting = true;
     });
 
-    apiDataUser.inputKYC(context, nik, pickedFotoIdentitas).then((_) {
+    apiDataUser.inputKYC(context, nik, pickedFotoIdentitas).whenComplete(() {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -135,15 +135,17 @@ class _LayoutInputKYCState extends State<LayoutInputKYC> {
         // Panggil endpoint /api/user/verify-ktp sebagai gatekeeper AI
         bool isValid = await apiDataUser.verifyKTP(context, finalFile.path);
         
-        if (isValid) {
-          setState(() {
-            pickedFotoIdentitas = finalFile;
-          });
-        } else {
-          // Jika tidak valid, kosongkan foto
-          setState(() {
-            pickedFotoIdentitas = null;
-          });
+        if (mounted) {
+          if (isValid) {
+            setState(() {
+              pickedFotoIdentitas = finalFile;
+            });
+          } else {
+            // Jika tidak valid, kosongkan foto
+            setState(() {
+              pickedFotoIdentitas = null;
+            });
+          }
         }
       }
     }

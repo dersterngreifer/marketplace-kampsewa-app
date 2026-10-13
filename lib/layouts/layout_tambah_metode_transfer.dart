@@ -21,6 +21,18 @@ class _LayoutTambahMetodeTransferState
   ApiDataUser apiDataUser = Get.put(ApiDataUser());
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.edit) {
+      apiDataUser.noRekController.text = widget.noRek ?? '';
+      apiDataUser.jenisBankController.text = widget.jenisBank ?? '';
+    } else {
+      apiDataUser.noRekController.clear();
+      apiDataUser.jenisBankController.clear();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),

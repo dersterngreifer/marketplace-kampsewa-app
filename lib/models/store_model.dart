@@ -26,6 +26,92 @@ class StoreAlamatModel {
   }
 }
 
+class ActivePromoModel {
+  final int idPromo;
+  final String judulPromo;
+  final String deskripsi;
+  final String tipeDiskon;
+  final double nilaiDiskon;
+  final String cakupan;
+  final String? tanggalSelesai;
+
+  ActivePromoModel({
+    required this.idPromo,
+    required this.judulPromo,
+    required this.deskripsi,
+    required this.tipeDiskon,
+    required this.nilaiDiskon,
+    required this.cakupan,
+    this.tanggalSelesai,
+  });
+
+  factory ActivePromoModel.fromJson(Map<String, dynamic> json) {
+    return ActivePromoModel(
+      idPromo: json['id_promo'] is int
+          ? json['id_promo']
+          : int.tryParse(json['id_promo']?.toString() ?? '0') ?? 0,
+      judulPromo: json['judul_promo']?.toString() ?? '',
+      deskripsi: json['deskripsi']?.toString() ?? '',
+      tipeDiskon: json['tipe_diskon']?.toString() ?? 'persen',
+      nilaiDiskon:
+          double.tryParse(json['nilai_diskon']?.toString() ?? '0') ?? 0.0,
+      cakupan: json['cakupan']?.toString() ?? 'all_products',
+      tanggalSelesai: json['tanggal_selesai']?.toString(),
+    );
+  }
+}
+
+/// Program diskon produk aktif milik sebuah toko.
+///
+/// Sumber: `GET /api/diskon/toko/{id_toko}`. Terpisah dari fitur iklan
+/// (banner promosi berbayar) — ini murni potongan harga sewa produk.
+class DiskonTokoModel {
+  final int idDiskon;
+  final String namaDiskon;
+  final String tipeDiskon;
+  final double nilaiDiskon;
+  final String labelDiskon;
+  final String cakupan;
+  final String? tanggalMulai;
+  final String? tanggalSelesai;
+
+  DiskonTokoModel({
+    required this.idDiskon,
+    required this.namaDiskon,
+    required this.tipeDiskon,
+    required this.nilaiDiskon,
+    required this.labelDiskon,
+    required this.cakupan,
+    this.tanggalMulai,
+    this.tanggalSelesai,
+  });
+
+  bool get isSemuaProduk => cakupan == 'all_products';
+
+  factory DiskonTokoModel.fromJson(Map<String, dynamic> json) {
+    final double nilai =
+        double.tryParse(json['nilai_diskon']?.toString() ?? '0') ?? 0.0;
+    final String tipe = json['tipe_diskon']?.toString() ?? 'persen';
+    final String? label = json['label_diskon']?.toString();
+
+    return DiskonTokoModel(
+      idDiskon: json['id_diskon'] is int
+          ? json['id_diskon']
+          : int.tryParse(json['id_diskon']?.toString() ?? '0') ?? 0,
+      namaDiskon: json['nama_diskon']?.toString() ?? '',
+      tipeDiskon: tipe,
+      nilaiDiskon: nilai,
+      // Fallback jika label tidak dikirim backend.
+      labelDiskon: (label != null && label.isNotEmpty)
+          ? label
+          : (tipe == 'persen' ? '${nilai.toInt()}%' : 'Rp ${nilai.toInt()}'),
+      cakupan: json['cakupan']?.toString() ?? 'all_products',
+      tanggalMulai: json['tanggal_mulai']?.toString(),
+      tanggalSelesai: json['tanggal_selesai']?.toString(),
+    );
+  }
+}
+
 class StoreModel {
   final int idUser;
   final String namaStore;
@@ -38,6 +124,7 @@ class StoreModel {
   final int totalTransaksiSelesai;
   final StoreAlamatModel? alamat;
   final String? tanggalBergabung;
+  final ActivePromoModel? activePromo;
 
   /// Email pemilik toko — dipakai untuk menyusun URL share profil toko
   /// (`abbmamarketplacekampsewa.com/{email}`).
@@ -68,6 +155,7 @@ class StoreModel {
     required this.totalTransaksiSelesai,
     this.alamat,
     this.tanggalBergabung,
+    this.activePromo,
     this.email,
     this.totalFollowers = 0,
     this.totalFollowing = 0,
@@ -80,6 +168,12 @@ class StoreModel {
     if (json['alamat'] != null && json['alamat'] is Map) {
       alamat = StoreAlamatModel.fromJson(
           json['alamat'] as Map<String, dynamic>);
+    }
+
+    ActivePromoModel? activePromo;
+    if (json['active_promo'] != null && json['active_promo'] is Map) {
+      activePromo = ActivePromoModel.fromJson(
+          Map<String, dynamic>.from(json['active_promo'] as Map));
     }
 
     return StoreModel(
@@ -105,6 +199,7 @@ class StoreModel {
               0,
       alamat: alamat,
       tanggalBergabung: json['tanggal_bergabung']?.toString(),
+      activePromo: activePromo,
       email: json['email']?.toString(),
       totalFollowers: json['total_followers'] is int
           ? json['total_followers']

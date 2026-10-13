@@ -55,11 +55,14 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
   }
 
   Future<void> getListBank() async {
+    apiTransaksi.listBankMetodeBayar.clear();
     Authorization auth = Authorization();
     int? id = await auth.getId();
+    if (id == null) return;
     String idStr = id.toString();
-    // ignore: use_build_context_synchronously
-    await apiTransaksi.getBankOpsiPembayaran(context, idStr);
+    if (mounted) {
+      await apiTransaksi.getBankOpsiPembayaran(context, idStr);
+    }
   }
 
   void getLocation() async {
@@ -476,6 +479,32 @@ class _LayoutTambahDataTokoState extends State<LayoutTambahDataToko> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Obx(() {
                       var listBank = apiTransaksi.listBankMetodeBayar;
+                      if (listBank.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline_rounded, size: 20, color: Colors.grey.shade400),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  "Belum ada metode transfer bank. Klik '+ Tambah' untuk menambahkan rekening toko Anda.",
+                                  style: AppColors.fontStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                       return ListView.separated(
                           physics: const NeverScrollableScrollPhysics(),
                           shrinkWrap: true,

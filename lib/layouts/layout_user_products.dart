@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:project_camp_sewa/components/card/produk_card.dart';
@@ -7,6 +7,7 @@ import 'package:project_camp_sewa/models/produk_model.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
+import 'package:project_camp_sewa/layouts/layout_kelola_diskon.dart';
 import 'package:shimmer/shimmer.dart';
 
 class LayoutUserProducts extends StatefulWidget {
@@ -80,7 +81,25 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
               color: const Color(0xFF2F2828),
             ),
           ),
-          const SizedBox(width: 48), // Spacer to balance the back button
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF2C4E40).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              tooltip: 'Kelola Diskon Produk',
+              icon: const Icon(Icons.local_offer_rounded,
+                  color: Color(0xFF2C4E40), size: 20),
+              onPressed: () {
+                Get.to(() => const LayoutKelolaDiskon())?.then((_) {
+                  if (mounted) {
+                    apiProduk.getUserProducts(context,
+                        filter: filterKategoriParam);
+                  }
+                });
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -156,7 +175,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisExtent: 340,
+        mainAxisExtent: 356,
         crossAxisSpacing: 8,
         mainAxisSpacing: 10,
       ),
@@ -208,7 +227,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
         physics: const BouncingScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisExtent: 340,
+          mainAxisExtent: 356,
           crossAxisSpacing: 8,
           mainAxisSpacing: 10,
         ),
@@ -216,6 +235,13 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
         itemBuilder: (context, index) {
           final ProdukModel p = listProduk[index];
           return ProdukCard(
+            isOwner: true,
+            isDiskon: p.isDiskon,
+            hargaAsli: p.hargaAsli,
+            persentaseDiskon: p.persentaseDiskon,
+            badgeLabel: p.isDiskon && p.persentaseDiskon > 0
+                ? "Diskon ${p.persentaseDiskon}%"
+                : "Milik Anda",
             images: p.images,
             namaProduk: p.namaProduk,
             harga: p.harga.toString(),
@@ -229,10 +255,9 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
               if (res['success'] == true) {
                 p.isLiked = res['is_liked'] ?? false;
                 p.totalLikes = res['total_likes'] ?? 0;
-                apiProduk.listProduk.refresh();
+                apiProduk.listUserProduk.refresh();
               }
             },
-            badgeLabel: "Milik Anda", // Disable sewa button and show badge
             namaToko: p.namaToko,
             fotoToko: p.fotoToko,
             ratingToko: p.ratingToko,

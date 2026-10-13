@@ -20,6 +20,13 @@ class DetailProdukModel {
   double ratingToko;
   int totalLikes;
   bool isLiked;
+  int hargaAsli;
+  bool isDiskon;
+  int persentaseDiskon;
+  int potonganHarga;
+  String? namaPromo;
+  String? tanggalMulai;
+  String? tanggalSelesai;
 
   DetailProdukModel({
     required this.idProduk,
@@ -40,6 +47,13 @@ class DetailProdukModel {
     this.ratingToko = 0.0,
     this.totalLikes = 0,
     this.isLiked = false,
+    this.hargaAsli = 0,
+    this.isDiskon = false,
+    this.persentaseDiskon = 0,
+    this.potonganHarga = 0,
+    this.namaPromo,
+    this.tanggalMulai,
+    this.tanggalSelesai,
   });
 
   factory DetailProdukModel.fromJson(Map<String, dynamic> json) {
@@ -151,6 +165,50 @@ class DetailProdukModel {
       isLiked: json['is_liked'] == true ||
           json['is_liked'] == 1 ||
           json['is_liked'] == '1',
+      hargaAsli: () {
+        final int rawHarga = json['harga_sewa'] is int
+            ? json['harga_sewa']
+            : int.tryParse(json['harga_sewa']?.toString() ?? '0') ?? 0;
+        int rawHargaAsli = json['harga_asli'] is int
+            ? json['harga_asli']
+            : (num.tryParse(json['harga_asli']?.toString() ?? '0')?.toInt() ?? 0);
+        final bool isD = json['is_diskon'] == true ||
+            json['is_diskon'] == 1 ||
+            json['is_diskon'] == '1' ||
+            json['is_diskon']?.toString().toLowerCase() == 'true';
+        final int persentase = json['persentase_diskon'] is int
+            ? json['persentase_diskon']
+            : (num.tryParse(json['persentase_diskon']?.toString() ?? '0')?.toInt() ?? 0);
+        final int potongan = json['potongan_harga'] is int
+            ? json['potongan_harga']
+            : (num.tryParse(json['potongan_harga']?.toString() ?? '0')?.toInt() ?? 0);
+
+        if ((isD || persentase > 0 || potongan > 0) && rawHargaAsli <= rawHarga) {
+          if (potongan > 0) {
+            rawHargaAsli = rawHarga + potongan;
+          } else if (persentase > 0 && persentase < 100) {
+            rawHargaAsli = (rawHarga / (1 - (persentase / 100))).round();
+          }
+        }
+        return rawHargaAsli;
+      }(),
+      isDiskon: json['is_diskon'] == true ||
+          json['is_diskon'] == 1 ||
+          json['is_diskon'] == '1' ||
+          json['is_diskon']?.toString().toLowerCase() == 'true' ||
+          ((json['persentase_diskon'] is num && json['persentase_diskon'] > 0) ||
+              (num.tryParse(json['persentase_diskon']?.toString() ?? '0') ?? 0) > 0) ||
+          ((json['potongan_harga'] is num && json['potongan_harga'] > 0) ||
+              (num.tryParse(json['potongan_harga']?.toString() ?? '0') ?? 0) > 0),
+      persentaseDiskon: json['persentase_diskon'] is int
+          ? json['persentase_diskon']
+          : (num.tryParse(json['persentase_diskon']?.toString() ?? '0')?.toInt() ?? 0),
+      potonganHarga: json['potongan_harga'] is int
+          ? json['potongan_harga']
+          : (num.tryParse(json['potongan_harga']?.toString() ?? '0')?.toInt() ?? 0),
+      namaPromo: json['nama_diskon']?.toString() ?? json['nama_promo']?.toString(),
+      tanggalMulai: json['tanggal_mulai']?.toString(),
+      tanggalSelesai: json['tanggal_selesai']?.toString(),
     );
   }
 }

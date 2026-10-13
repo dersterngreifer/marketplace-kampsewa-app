@@ -28,6 +28,62 @@ class ApiTransaksi extends GetxController {
   final Rx<AlamatTokoCheckoutModel?> alamatTokoCheckout =
       Rx<AlamatTokoCheckoutModel?>(null);
 
+  final RxBool isLoadingBiayaAntar = false.obs;
+  final RxBool layananAntarToko = true.obs;
+  final RxInt tarifBiayaAntarToko = 0.obs;
+  final RxString keteranganBiayaAntar = "".obs;
+  final RxInt minimalGratisAntar = 0.obs;
+
+  Future<void> getBiayaAntarToko(BuildContext context, String idToko) async {
+    isLoadingBiayaAntar.value = true;
+    try {
+      Authorization auth = Authorization();
+      String? token = await auth.getToken();
+      var header = {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+      var url =
+          "${ApiEndpoints.baseUrl}${ApiEndpoints.authendpoints.getBiayaAntarToko}";
+
+      final response = await dio.get(
+        url,
+        queryParameters: {'id_toko': idToko},
+        options: Options(
+          headers: header,
+          validateStatus: (status) {
+            return status! < 500;
+          },
+        ),
+      );
+
+      final Map<String, dynamic> data =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200 && data['data'] != null) {
+        final info = data['data'];
+        layananAntarToko.value =
+            info['layanan_antar'] == true || info['layanan_antar'] == 1;
+        tarifBiayaAntarToko.value =
+            int.tryParse(info['biaya_antar']?.toString() ?? '0') ?? 0;
+        keteranganBiayaAntar.value = info['keterangan']?.toString() ?? "";
+        minimalGratisAntar.value = int.tryParse(
+                info['minimal_transaksi_gratis_antar']?.toString() ?? '0') ??
+            0;
+      } else {
+        layananAntarToko.value = true;
+        tarifBiayaAntarToko.value = 0;
+        keteranganBiayaAntar.value = "";
+        minimalGratisAntar.value = 0;
+      }
+    } catch (e) {
+      layananAntarToko.value = true;
+      tarifBiayaAntarToko.value = 0;
+    } finally {
+      isLoadingBiayaAntar.value = false;
+    }
+  }
+
   Future<void> transaksiCheckout(
       BuildContext context,
       String tanggalMulai,
@@ -36,7 +92,11 @@ class ApiTransaksi extends GetxController {
       String totalPembayaran,
       String? bankTransfer,
       String? rekeningBank,
-      int? idToko) async {
+      int? idToko, {
+      String opsiPengiriman = "Ambil Ditempat",
+      int biayaAntar = 0,
+      String? alamatPengiriman,
+  }) async {
     //param totalPembayaran,bankTransfer,dan rekeningBank digunakan untuk mengirim argument ke LayoutPembayaran
     await getlistProdukCheckout(
         context); //mendapatkan list produk yang dicheckout
@@ -58,6 +118,10 @@ class ApiTransaksi extends GetxController {
         'tanggal_selesai': tanggalSelesai,
         'metode': metodeBayar,
         'biaya_admin': 1000,
+        'opsi_pengiriman': opsiPengiriman,
+        'biaya_antar': biayaAntar,
+        if (alamatPengiriman != null && alamatPengiriman.isNotEmpty)
+          'alamat_pengiriman': alamatPengiriman,
         if (pesanController.text.isNotEmpty) 'pesan': pesanController.text,
         'produk_details': listProdukCheckout,
       };
@@ -88,7 +152,7 @@ class ApiTransaksi extends GetxController {
             'bank': bankTransfer
           });
         } else {
-          pageController.setPageIndex(2);
+          pageController.setPageIndex(3);
           Get.to(const ScreenDashboard());
         }
         DatabaseHelper.instance.deleteKeranjangCheckout(context);
@@ -202,16 +266,16 @@ class ApiTransaksi extends GetxController {
       var url = ApiEndpoints.baseUrl +
           ApiEndpoints.authendpoints.getBankOpsiPembayaranTransfer;
 
-      Map body = {'id_user': idToko};
-
-      final response = await dio.get(url,
-          data: body,
-          options: Options(
-            headers: header,
-            validateStatus: (status) {
-              return status! < 500; // Accept status codes less than 500
-            },
-          ));
+      final response = await dio.get(
+        url,
+        queryParameters: {'id_user': idToko},
+        options: Options(
+          headers: header,
+          validateStatus: (status) {
+            return status! < 500; // Accept status codes less than 500
+          },
+        ),
+      );
 
       final Map<String, dynamic> data =
           response.data is String ? jsonDecode(response.data) : response.data;
@@ -221,9 +285,11 @@ class ApiTransaksi extends GetxController {
             data['bank'].map((e) => BankModel.fromJson(e)).toList());
         listBankMetodeBayar.assignAll(bankList);
       } else {
-        CustomSnackBar.show(context, sukses: false,
-              title: "Error",
-              teks: "Gagal Mendapatkan List Bank",);
+        if (context.mounted) {
+          CustomSnackBar.show(context, sukses: false,
+                title: "Error",
+                teks: "Gagal Mendapatkan List Bank",);
+        }
       }
     } on DioException catch (dioError) {
       if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
@@ -297,7 +363,7 @@ class ApiTransaksi extends GetxController {
               );
             },
           ).then((_) {
-            pageController.setPageIndex(2);
+            pageController.setPageIndex(3);
             Get.offAll(() => const ScreenDashboard());
           });
         }

@@ -22,7 +22,6 @@ class LayoutProduct extends StatefulWidget {
 class _LayoutProductState extends State<LayoutProduct> {
   static const Color _green = Color(0xFF2C4E40);
   static const Color _dark = Color(0xFF2F2828);
-  static const Color _grey = Color(0xFF8E8E8E);
 
   ApiProduk apiProduk = Get.put(ApiProduk());
   TeksSearchController textSearchController = Get.put(TeksSearchController());
@@ -634,7 +633,7 @@ class _LayoutProductState extends State<LayoutProduct> {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              mainAxisExtent: 340,
+              mainAxisExtent: 356,
               crossAxisSpacing: 10,
               mainAxisSpacing: 12,
             ),
@@ -736,7 +735,7 @@ class _LayoutProductState extends State<LayoutProduct> {
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisExtent: 340,
+            mainAxisExtent: 356,
             crossAxisSpacing: 10,
             mainAxisSpacing: 12,
           ),
@@ -747,7 +746,10 @@ class _LayoutProductState extends State<LayoutProduct> {
               final isOwner =
                   (currentUserId != null && p.idUser == currentUserId);
               return ProdukCard(
-                badgeLabel: isOwner ? "Milik Anda" : p.kategori,
+                isOwner: isOwner,
+                badgeLabel: p.isDiskon && p.persentaseDiskon > 0
+                    ? "Diskon ${p.persentaseDiskon}%"
+                    : (isOwner ? "Milik Anda" : p.kategori),
                 images: p.images,
                 namaProduk: p.namaProduk,
                 namaToko: p.namaToko,
@@ -759,6 +761,9 @@ class _LayoutProductState extends State<LayoutProduct> {
                 jumlahReview: p.jumlahReview,
                 isLiked: p.isLiked,
                 totalLikes: p.totalLikes,
+                isDiskon: p.isDiskon,
+                hargaAsli: p.hargaAsli,
+                persentaseDiskon: p.persentaseDiskon,
                 aksiFavorite: () async {
                   final res = await apiProduk.toggleLike(p.idProduk.toString());
                   if (res['success'] == true) {

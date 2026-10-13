@@ -107,6 +107,22 @@ String getFotoTokoUrl(String? filename) {
   return resolveFullUrl(trimmed, '/assets/image/customers/logo_toko/');
 }
 
+/// Membangun URL foto poster iklan dari folder `/assets/image/customers/advert/`.
+///
+/// Menangani semua format: URL absolut (http/https), path relatif (dimulai /),
+/// path parsial (assets/image/...), atau nama file mentah.
+String getFotoIklanUrl(String? filename) {
+  if (filename == null || filename.isEmpty) {
+    return '';
+  }
+  final String trimmed = filename.trim();
+  if (trimmed == 'placeholder-image.png' ||
+      trimmed.endsWith('/placeholder-image.png')) {
+    return '';
+  }
+  return resolveFullUrl(trimmed, ApiEndpoints.authendpoints.getImageIklan);
+}
+
 class AuthEndPoints {
   final String getFotoProfile = "/assets/image/customers/profile/";
   final String getImageIklan = "/assets/image/customers/advert/";
@@ -128,6 +144,8 @@ class AuthEndPoints {
   final String updateAlamatUser = "/api/user/update-alamat/";
   final String deleteAlamatUser = "/api/user/delete-alamat/";
   final String tambahBankMetodeTransfer = "/api/user/tambah-bank/";
+  final String updateBankMetodeTransfer = "/api/user/update-bank/";
+  final String deleteBankMetodeTransfer = "/api/user/delete-bank/";
   final String getIklan = "/api/iklan";
   final String getProdukRekomendasiPencarian =
       "/api/produk/rekomendasi-pencarian";
@@ -141,6 +159,7 @@ class AuthEndPoints {
   final String transaksiCheckout = "/api/transaksi/checkout/";
   final String getAlamatTokoCheckout = "/api/transaksi/lokasi-toko";
   final String getBankOpsiPembayaranTransfer = "/api/transaksi/bank-toko";
+  final String getBiayaAntarToko = "/api/transaksi/biaya-antar";
   final String transaksiPembayaran = "/api/transaksi/pembayaran";
   final String getStatistikPesanan = "/api/statistik-pesanan/";
 
@@ -151,6 +170,17 @@ class AuthEndPoints {
   /// GET /api/store/{id_user}/products — List produk toko publik (filter + search)
   /// Gunakan bersama [getStoreProfile]: "/api/store/{id_user}/products"
   final String getStoreProducts = "/api/store/";
+
+  /// GET /api/diskon/toko/{id_toko} — Daftar diskon produk aktif milik toko (public)
+  final String getDiskonToko = "/api/diskon/toko/";
+
+  // ── Mitra Diskon / Promo Endpoints ─────────────────────────────────────────
+  /// GET / POST /api/mitra/diskon — Kelola program diskon toko oleh mitra
+  final String mitraDiskon = "/api/mitra/diskon";
+
+  /// GET /api/mitra/diskon/available-products — Status kelayakan produk & lock status
+  final String mitraDiskonAvailableProducts =
+      "/api/mitra/diskon/available-products";
 
   // ── Feedback & Chat Endpoints ────────────────────────────────────────────
   /// POST /api/feedback                    — Buat feedback baru (Customer only)

@@ -25,6 +25,10 @@ class RiwayatModel {
   final String? statusDenda;
   final int? nominalDendaTersimpan;
   final String? statusPembayaran;
+  final String? jenisTransaksi;
+  final String? opsiPengiriman;
+  final int? biayaAntar;
+  final String? alamatPengiriman;
 
   const RiwayatModel({
     required this.id,
@@ -53,6 +57,10 @@ class RiwayatModel {
     this.statusDenda,
     this.nominalDendaTersimpan,
     this.statusPembayaran,
+    this.jenisTransaksi,
+    this.opsiPengiriman,
+    this.biayaAntar,
+    this.alamatPengiriman,
   });
 
   factory RiwayatModel.fromJson(Map<String, dynamic> json) {
@@ -94,6 +102,10 @@ class RiwayatModel {
       statusDenda: json['status_denda']?.toString(),
       nominalDendaTersimpan: (json['nominal_denda_tersimpan'] != null) ? int.tryParse(json['nominal_denda_tersimpan'].toString()) : null,
       statusPembayaran: json['status_pembayaran']?.toString(),
+      jenisTransaksi: json['jenis_transaksi']?.toString(),
+      opsiPengiriman: json['opsi_pengiriman']?.toString(),
+      biayaAntar: json['biaya_antar'] != null ? int.tryParse(json['biaya_antar'].toString()) : null,
+      alamatPengiriman: json['alamat_pengiriman']?.toString(),
       items: List<RiwayatItemModel>.from(
         (json['items'] as List<dynamic>? ?? []).map(
           (e) => RiwayatItemModel.fromJson(Map<String, dynamic>.from(e as Map))

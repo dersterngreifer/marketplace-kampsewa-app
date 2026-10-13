@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
+import 'package:project_camp_sewa/components/dialog/alert_dialog2.dart';
 import 'package:project_camp_sewa/components/card/rekomendasi_cari_card.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_product.dart';
 import 'package:project_camp_sewa/models/produk_model.dart';
@@ -29,9 +30,17 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
 
   bool showAllSearchHistory = false;
   final FocusNode searchFocusNode = FocusNode();
-  
+
   Timer? _debounce;
   final RxString _searchQuery = "".obs;
+
+  // ── Konstanta layout grid produk ──
+  // Dipakai untuk menghitung tinggi kartu secara dinamis agar tidak overflow.
+  static const double _gridHorizontalPadding = 20.0;
+  static const double _gridCrossSpacing = 14.0;
+  static const double _gridMainSpacing = 14.0;
+  // Tinggi area informasi di bawah foto (nama 2 baris + toko + rating + harga + padding)
+  static const double _infoSectionHeight = 150.0;
 
   @override
   void initState() {
@@ -76,7 +85,7 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
       textSearchController.searchTeks.value = value;
       apiProduk.getProduk(context, value, null);
       apiRiwayatCari.insertRiwayatCari(context, value);
-      
+
       // Jika disubmit, pindah ke halaman Produk (index 1) untuk lihat hasil lengkap
       pageController.setPageIndex(1);
       Get.back();
@@ -84,9 +93,6 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
   }
 
   void _goToDetail(ProdukModel produk) {
-    // Simpan history saat produk di klik
-    apiRiwayatCari.insertRiwayatCari(context, produk.namaProduk);
-    
     // Arahkan ke detail produk
     Get.to(() => const LayoutDetailProduct(), arguments: {
       'idToko': produk.idUser,
@@ -95,7 +101,77 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
       'fotoProduk': produk.image,
       'namaToko': produk.namaToko,
       'fotoToko': produk.fotoToko,
+      'ratingToko': produk.ratingToko,
     });
+  }
+
+  void _showDialogHapusSemua() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          contentPadding: EdgeInsets.zero,
+          content: CustomAlertDialog2(
+            title: "Hapus Semua Riwayat?",
+            teks:
+                "Apakah Anda yakin ingin menghapus seluruh riwayat pencarian? Tindakan ini tidak dapat dibatalkan.",
+            confirmLabel: "Hapus Semua",
+            cancelLabel: "Batal",
+            hapus: () async {
+              await apiRiwayatCari.deleteRiwayatCari(context, null);
+              setState(() {
+                showAllSearchHistory = false;
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDialogHapusSingle(String text) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return AlertDialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          contentPadding: EdgeInsets.zero,
+          content: CustomAlertDialog2(
+            title: "Hapus Riwayat?",
+            teks: 'Hapus "$text" dari riwayat pencarian Anda?',
+            confirmLabel: "Hapus",
+            cancelLabel: "Batal",
+            hapus: () async {
+              await apiRiwayatCari.deleteRiwayatCari(context, text);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// Grid delegate dinamis: tinggi kartu = lebar kartu (foto 1:1) + tinggi info.
+  /// Dengan cara ini tidak akan overflow baik di layar kecil maupun besar.
+  SliverGridDelegate _buildProductGridDelegate(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    const columns = 2;
+    final cardWidth = (screenWidth -
+            (_gridHorizontalPadding * 2) -
+            (_gridCrossSpacing * (columns - 1))) /
+        columns;
+    final cardHeight = cardWidth + _infoSectionHeight;
+
+    return SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: columns,
+      mainAxisExtent: cardHeight,
+      crossAxisSpacing: _gridCrossSpacing,
+      mainAxisSpacing: _gridMainSpacing,
+    );
   }
 
   @override
@@ -115,7 +191,7 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
                 if (_searchQuery.value.isNotEmpty) {
                   return _buildRealtimeResults();
                 }
-                
+
                 // Jika kosong, tampilkan riwayat & rekomendasi
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -137,7 +213,7 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
 
   Widget _buildAppBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -170,12 +246,13 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
           Text(
             "Pencarian",
             style: AppColors.fontStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mainColor,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF2F2828),
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(width: 40), // Balance the back button
+          const SizedBox(width: 42), // Balance the back button
         ],
       ),
     );
@@ -291,49 +368,55 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
       ),
     );
   }
-  
+
   Widget _buildRealtimeResults() {
     return Obx(() {
       final results = apiProduk.listProduk;
-      
+
       if (results.isEmpty) {
         return Padding(
           padding: const EdgeInsets.only(top: 40),
           child: Center(
             child: Column(
               children: [
-                Icon(Icons.search_off_rounded, size: 60, color: Colors.grey.shade300),
+                Icon(Icons.search_off_rounded,
+                    size: 60, color: Colors.grey.shade300),
                 const SizedBox(height: 16),
                 Text(
                   "Sedang mencari atau tidak ditemukan",
-                  style: AppColors.fontStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                  style: AppColors.fontStyle(
+                      color: Colors.grey.shade500, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
         );
       }
-      
+
       return GridView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        physics: const BouncingScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.70,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
+        padding: const EdgeInsets.fromLTRB(
+          _gridHorizontalPadding,
+          8,
+          _gridHorizontalPadding,
+          24,
         ),
+        physics: const BouncingScrollPhysics(),
+        gridDelegate: _buildProductGridDelegate(context),
         itemCount: results.length,
         itemBuilder: (context, index) {
           final p = results[index];
           return RekomendasiCariCard(
-            image: p.image,
+            images: p.images.isNotEmpty
+                ? p.images
+                : (p.image.isNotEmpty ? [p.image] : const []),
             namaProduk: p.namaProduk,
+            namaToko: p.namaToko,
+            fotoToko: p.fotoToko,
+            ratingToko: p.ratingToko,
             rating: p.rating,
             harga: p.harga.toString(),
             stok: p.stok,
             jumlahReview: p.jumlahReview,
-            isFavorite: p.isFavorite,
             aksi: () => _goToDetail(p),
           );
         },
@@ -366,26 +449,61 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
                     color: const Color(0xFF2F2828),
                   ),
                 ),
-                if (history.length > 4)
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        showAllSearchHistory = !showAllSearchHistory;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Text(
-                        showAllSearchHistory ? "Tutup" : "Lihat Semua",
-                        style: AppColors.fontStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.mainColor,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (history.length > 4) ...[
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            showAllSearchHistory = !showAllSearchHistory;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 4),
+                          child: Text(
+                            showAllSearchHistory ? "Tutup" : "Lihat Semua",
+                            style: AppColors.fontStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.mainColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    InkWell(
+                      onTap: _showDialogHapusSemua,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 16,
+                              color: Color(0xFFEE2737),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "Hapus Semua",
+                              style: AppColors.fontStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFEE2737),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -399,53 +517,60 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
                     searchController.text = text;
                     _performSearch(text);
                   },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: Colors.grey.withValues(alpha: 0.15),
-                      ),
+                  borderRadius: BorderRadius.circular(12),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width - 40,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.access_time_rounded,
-                          size: 16,
-                          color: AppColors.mainColor,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          text,
-                          style: AppColors.fontStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF2F2828),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
+                        ],
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.15),
                         ),
-                        const SizedBox(width: 10),
-                        InkWell(
-                          onTap: () async {
-                            await apiRiwayatCari.deleteRiwayatCari(context, text);
-                          },
-                          child: const Icon(
-                            Icons.close_rounded,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.access_time_rounded,
                             size: 16,
-                            color: Color(0xFF9E9E9E),
+                            color: AppColors.mainColor,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppColors.fontStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF2F2828),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          InkWell(
+                            onTap: () => _showDialogHapusSingle(text),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: Color(0xFF9E9E9E),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -456,24 +581,20 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Center(
                   child: TextButton.icon(
-                    onPressed: () async {
-                      await apiRiwayatCari.deleteRiwayatCari(context, null);
-                      setState(() {
-                        showAllSearchHistory = false;
-                      });
-                    },
+                    onPressed: _showDialogHapusSemua,
                     icon: const Icon(Icons.delete_outline_rounded,
-                        size: 18, color: Colors.red),
+                        size: 18, color: Color(0xFFEE2737)),
                     label: Text(
                       "Hapus Semua Riwayat",
                       style: AppColors.fontStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.red,
+                        color: const Color(0xFFEE2737),
                       ),
                     ),
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.red.withValues(alpha: 0.05),
+                      backgroundColor:
+                          const Color(0xFFEE2737).withValues(alpha: 0.06),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -521,11 +642,14 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(Icons.inbox_rounded, size: 48, color: Colors.grey.shade300),
+                      Icon(Icons.inbox_rounded,
+                          size: 48, color: Colors.grey.shade300),
                       const SizedBox(height: 12),
                       Text(
                         "Belum ada rekomendasi",
-                        style: AppColors.fontStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                        style: AppColors.fontStyle(
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -533,25 +657,24 @@ class _LayoutSearchScreenState extends State<LayoutSearchScreen> {
               );
             }
             return GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.70,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-              ),
+              gridDelegate: _buildProductGridDelegate(context),
               physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
               itemCount: listProduk.length,
               itemBuilder: (context, index) {
                 ProdukModel list = listProduk[index];
                 return RekomendasiCariCard(
-                  image: list.image,
+                  images: list.images.isNotEmpty
+                      ? list.images
+                      : (list.image.isNotEmpty ? [list.image] : const []),
                   namaProduk: list.namaProduk,
+                  namaToko: list.namaToko,
+                  fotoToko: list.fotoToko,
+                  ratingToko: list.ratingToko,
                   rating: list.rating,
                   harga: list.harga.toString(),
                   stok: list.stok,
                   jumlahReview: list.jumlahReview,
-                  isFavorite: list.isFavorite,
                   aksi: () => _goToDetail(list),
                 );
               },

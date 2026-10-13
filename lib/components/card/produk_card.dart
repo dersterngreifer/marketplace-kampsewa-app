@@ -20,6 +20,10 @@ class ProdukCard extends StatefulWidget {
   final Function() aksiKeranjang;
   final Function()? aksiFavorite;
   final String? badgeLabel;
+  final bool isDiskon;
+  final int? hargaAsli;
+  final num? persentaseDiskon;
+  final bool isOwner;
 
   const ProdukCard({
     super.key,
@@ -39,6 +43,10 @@ class ProdukCard extends StatefulWidget {
     required this.aksiKeranjang,
     this.aksiFavorite,
     this.badgeLabel,
+    this.isDiskon = false,
+    this.hargaAsli,
+    this.persentaseDiskon,
+    this.isOwner = false,
   });
 
   @override
@@ -187,18 +195,20 @@ class _ProdukCardState extends State<ProdukCard>
           ),
 
         // ── Badge Kiri Atas (diperbesar) ──
-        if (!habis && (widget.badgeLabel != null || widget.stok <= 5))
+        if (!habis && (widget.isDiskon || widget.badgeLabel != null || widget.isOwner || widget.stok <= 5))
           Positioned(
             top: 10,
             left: 10,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: widget.badgeLabel == 'Milik Anda'
-                    ? const Color(0xFF407BFF)
-                    : widget.badgeLabel != null
-                        ? _green
-                        : const Color(0xFFED6723),
+                color: widget.isDiskon
+                    ? const Color(0xFFE53935)
+                    : (widget.badgeLabel == 'Milik Anda' || widget.isOwner
+                        ? const Color(0xFF407BFF)
+                        : (widget.badgeLabel != null
+                            ? _green
+                            : const Color(0xFFED6723))),
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: const [
                   BoxShadow(
@@ -209,7 +219,12 @@ class _ProdukCardState extends State<ProdukCard>
                 ],
               ),
               child: Text(
-                widget.badgeLabel ?? 'Sisa ${widget.stok}',
+                widget.isDiskon
+                    ? (widget.persentaseDiskon != null && widget.persentaseDiskon! > 0
+                        ? 'Diskon ${widget.persentaseDiskon!.toInt()}%'
+                        : 'Promo')
+                    : (widget.badgeLabel ??
+                        (widget.isOwner ? 'Milik Anda' : 'Sisa ${widget.stok}')),
                 style: AppColors.fontStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -344,9 +359,9 @@ class _ProdukCardState extends State<ProdukCard>
   //   selalu menempel rapi di bagian bawah card, tidak menyisakan celah kosong
   //   di bawah tombol saat tinggi card lebih besar dari konten.
   Widget _buildInfoSection() {
-    final bisaDitambah = widget.stok > 0 && widget.badgeLabel != 'Milik Anda';
+    final bisaDitambah = widget.stok > 0 && widget.badgeLabel != 'Milik Anda' && !widget.isOwner;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(9, 9, 9, 8),
+      padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -356,13 +371,13 @@ class _ProdukCardState extends State<ProdukCard>
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppColors.fontStyle(
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w700,
               color: _dark,
               height: 1.15,
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
 
           // Rating chip + jumlah ulasan
           Row(
@@ -383,7 +398,7 @@ class _ProdukCardState extends State<ProdukCard>
               ),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
 
           // Nama Toko
           if (widget.namaToko != null)
@@ -435,6 +450,43 @@ class _ProdukCardState extends State<ProdukCard>
           // Spacer fleksibel: mendorong blok harga + tombol ke bawah card
           const Expanded(child: SizedBox()),
 
+                    // Harga asli dicoret jika diskon
+          if (widget.isDiskon && widget.hargaAsli != null && widget.hargaAsli! > 0) ...[
+            Row(
+              children: [
+                Text(
+                  'Rp ${formatCurrency(widget.hargaAsli.toString())}',
+                  style: AppColors.fontStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade500,
+                  ).copyWith(
+                    decoration: TextDecoration.lineThrough,
+                    decorationColor: Colors.grey.shade500,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                if (widget.persentaseDiskon != null && widget.persentaseDiskon! > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFECEB),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '-${widget.persentaseDiskon!.toInt()}%',
+                      style: AppColors.fontStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFE53935),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+          ],
+
           // Harga
           RichText(
             maxLines: 1,
@@ -442,7 +494,7 @@ class _ProdukCardState extends State<ProdukCard>
             text: TextSpan(
               text: 'Rp ${formatCurrency(widget.harga)}',
               style: AppColors.fontStyle(
-                fontSize: 16,
+                fontSize: 15.5,
                 fontWeight: FontWeight.w900,
                 color: _dark,
               ),
@@ -458,7 +510,7 @@ class _ProdukCardState extends State<ProdukCard>
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
 
           // Tombol Sewa
           SizedBox(
@@ -470,21 +522,25 @@ class _ProdukCardState extends State<ProdukCard>
                 borderRadius: BorderRadius.circular(8),
                 onTap: bisaDitambah ? widget.aksiKeranjang : null,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 7),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Sewa',
+                        (widget.isOwner || widget.badgeLabel == 'Milik Anda')
+                            ? 'Milik Anda'
+                            : 'Sewa',
                         style: AppColors.fontStyle(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: bisaDitambah ? Colors.white : Colors.grey,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Icon(
-                        Icons.add_shopping_cart_rounded,
+                        (widget.isOwner || widget.badgeLabel == 'Milik Anda')
+                            ? Icons.store_rounded
+                            : Icons.add_shopping_cart_rounded,
                         size: 14,
                         color: bisaDitambah ? Colors.white : Colors.grey,
                       ),

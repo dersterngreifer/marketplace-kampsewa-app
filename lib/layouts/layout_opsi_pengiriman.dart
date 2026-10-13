@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/models/alamat_model.dart';
@@ -33,7 +36,12 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
   Future<void> getAlamatTokoOpsiPengiriman() async {
     final arguments = await Get.arguments as Map<String, dynamic>;
     idToko = arguments['idToko'];
-    await apiTransaksi.getAlamatToko(context, idToko!);
+    if (idToko != null) {
+      await Future.wait([
+        apiTransaksi.getAlamatToko(context, idToko!),
+        apiTransaksi.getBiayaAntarToko(context, idToko!),
+      ]);
+    }
     final alamat = apiTransaksi.alamatTokoCheckout.value;
     if (alamat != null) {
       double longitudeToko = double.parse(alamat.longitude);
@@ -74,6 +82,10 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
     }
   }
 
+  String formatCurrency(int amount) {
+    return NumberFormat.decimalPattern('id').format(amount);
+  }
+
   Widget _buildOptionCard({
     required String title,
     required String subtitle,
@@ -82,73 +94,134 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
     required bool isSelected,
     required VoidCallback onTap,
     required Widget addressWidget,
+    bool isEnabled = true,
+    String? note,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withOpacity(0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.grey.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: isSelected ? Colors.blue[700] : Colors.grey[600], size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: AppColors.fontStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        price,
-                        style: AppColors.fontStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.green[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isSelected)
-                  Icon(Icons.check_circle_rounded, color: Colors.blue[700], size: 24)
-                else
-                  Icon(Icons.radio_button_unchecked, color: Colors.grey[400], size: 24),
-              ],
+    return Opacity(
+      opacity: isEnabled ? 1.0 : 0.6,
+      child: InkWell(
+        onTap: isEnabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.blue.withValues(alpha: 0.05)
+                : (isEnabled ? Colors.white : Colors.grey.shade100),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.blue
+                  : (isEnabled ? Colors.grey.shade300 : Colors.grey.shade200),
+              width: isSelected ? 2 : 1,
             ),
-            if (isSelected) ...[
-              const SizedBox(height: 16),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
-              addressWidget,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.blue.withValues(alpha: 0.1)
+                          : Colors.grey.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon,
+                        color: isSelected
+                            ? Colors.blue[700]
+                            : (isEnabled ? Colors.grey[600] : Colors.grey[400]),
+                        size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              title,
+                              style: AppColors.fontStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: isEnabled ? Colors.black87 : Colors.grey[600],
+                              ),
+                            ),
+                            if (!isEnabled) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  "Tidak Tersedia",
+                                  style: AppColors.fontStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.red.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          price,
+                          style: AppColors.fontStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isEnabled ? Colors.green[700] : Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isSelected)
+                    Icon(Icons.check_circle_rounded,
+                        color: Colors.blue[700], size: 24)
+                  else
+                    Icon(Icons.radio_button_unchecked,
+                        color: Colors.grey[400], size: 24),
+                ],
+              ),
+              if (note != null && note.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        note,
+                        style: AppColors.fontStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (isSelected) ...[
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                addressWidget,
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -230,38 +303,55 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
                     ),
                   ),
 
-                  _buildOptionCard(
-                    title: "Antar Ke Alamatmu",
-                    subtitle: "Dikirim oleh kurir",
-                    price: "Mulai dari Rp 5.000",
-                    icon: MdiIcons.truckDeliveryOutline,
-                    isSelected: selectedOption == "antar",
-                    onTap: () => setState(() => selectedOption = "antar"),
-                    addressWidget: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(MdiIcons.mapMarkerOutline, color: Colors.grey[600], size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Alamat Pengiriman", style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
-                              const SizedBox(height: 4),
-                              Obx(() => Text(
-                                alamatUser.value,
-                                style: AppColors.fontStyle(fontSize: 13, color: Colors.black54),
-                              )),
-                            ],
+                  Obx(() {
+                    final bool layananAktif = apiTransaksi.layananAntarToko.value;
+                    final int tarif = apiTransaksi.tarifBiayaAntarToko.value;
+                    final String keterangan = apiTransaksi.keteranganBiayaAntar.value;
+
+                    String priceText;
+                    if (!layananAktif) {
+                      priceText = "Toko tidak melayani pengantaran";
+                    } else if (tarif > 0) {
+                      priceText = "Rp ${formatCurrency(tarif)}";
+                    } else {
+                      priceText = "Gratis (Rp 0)";
+                    }
+
+                    return _buildOptionCard(
+                      title: "Antar Ke Alamatmu",
+                      subtitle: "Dikirim oleh kurir",
+                      price: priceText,
+                      icon: MdiIcons.truckDeliveryOutline,
+                      isSelected: selectedOption == "antar",
+                      isEnabled: layananAktif,
+                      note: layananAktif && keterangan.isNotEmpty ? keterangan : null,
+                      onTap: () {
+                        if (layananAktif) {
+                          setState(() => selectedOption = "antar");
+                        }
+                      },
+                      addressWidget: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(MdiIcons.mapMarkerOutline, color: Colors.grey[600], size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Alamat Pengiriman", style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                const SizedBox(height: 4),
+                                Obx(() => Text(
+                                  alamatUser.value,
+                                  style: AppColors.fontStyle(fontSize: 13, color: Colors.black54),
+                                )),
+                              ],
+                            ),
                           ),
-                        ),
-                        // IconButton(
-                        //   icon: Icon(Icons.edit_outlined, color: Colors.blue[700], size: 20),
-                        //   onPressed: () {},
-                        // ),
-                      ],
-                    ),
-                  ),
+                        ],
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),
@@ -272,7 +362,7 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     offset: const Offset(0, -4),
                     blurRadius: 10,
                   ),
@@ -281,13 +371,35 @@ class _LayoutOpsiPengirimanState extends State<LayoutOpsiPengiriman> {
               child: ElevatedButton(
                 onPressed: () {
                   if (selectedOption == "antar") {
-                    CustomSnackBar.show(context, sukses: false, title: "Fitur Segera Tersedia", teks: "Maaf Fitur Pengantaran Belum Tersedia");
+                    if (!apiTransaksi.layananAntarToko.value) {
+                      CustomSnackBar.show(
+                        context,
+                        sukses: false,
+                        title: "Layanan Tidak Tersedia",
+                        teks: "Maaf, toko ini sedang menonaktifkan layanan pengantaran.",
+                      );
+                      return;
+                    }
+                    if (apiDataUser.listAlamatUser.isEmpty) {
+                      CustomSnackBar.show(
+                        context,
+                        sukses: false,
+                        title: "Alamat Belum Diatur",
+                        teks: "Silakan tambahkan alamat pengiriman terlebih dahulu di profil Anda.",
+                      );
+                      return;
+                    }
+                    Get.back(result: {
+                      'selectedOption': "Antar Ke Alamatmu",
+                      'alamat': alamatUser.value,
+                      'biayaAntar': apiTransaksi.tarifBiayaAntarToko.value,
+                    });
                   } else {
-                    Get.back(
-                      result: selectedOption == "antar"
-                        ? {'selectedOption': "Antar Ke Alamatmu", 'alamat': alamatUser.value}
-                        : {'selectedOption': "Ambil Ditempat", 'alamat': alamatToko.value}
-                    );
+                    Get.back(result: {
+                      'selectedOption': "Ambil Ditempat",
+                      'alamat': alamatToko.value,
+                      'biayaAntar': 0,
+                    });
                   }
                 },
                 style: ElevatedButton.styleFrom(

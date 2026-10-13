@@ -26,6 +26,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
   ApiTransaksi apiTransaksi = Get.put(ApiTransaksi());
   String? metodeBayar;
   String opsiPengiriman = "Ambil Ditempat";
+  int biayaAntar = 0;
   String? jenisBank;
   DateTime? tanggalAwal;
   DateTime? tanggalAkhir;
@@ -411,6 +412,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                           if (pilihanPengiriman != null) {
                             opsiPengiriman = pilihanPengiriman['selectedOption'];
                             alamatPengiriman.value = pilihanPengiriman['alamat'];
+                            biayaAntar = pilihanPengiriman['biayaAntar'] ?? 0;
                           }
                         });
                       },
@@ -433,7 +435,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
+                                    color: Colors.green.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(MdiIcons.truckDeliveryOutline, color: Colors.green[700], size: 24),
@@ -467,7 +469,9 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  "Rp 0",
+                                  biayaAntar > 0
+                                      ? "Rp ${formatCurrency(biayaAntar.toString())}"
+                                      : "Gratis",
                                   style: AppColors.fontStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -654,6 +658,21 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                               }),
                             ],
                           ),
+                          if (biayaAntar > 0 || opsiPengiriman == "Antar Ke Alamatmu") ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text("Biaya Pengantaran", style: AppColors.fontStyle(fontSize: 13, color: Colors.black54)),
+                                Text(
+                                  biayaAntar > 0
+                                      ? "Rp ${formatCurrency(biayaAntar.toString())}"
+                                      : "Gratis",
+                                  style: AppColors.fontStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -662,7 +681,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
+                                  color: Colors.green.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text("Free", style: AppColors.fontStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.green[700])),
@@ -680,10 +699,9 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                               Obx(() {
                                 int subTotal = keranjangController.totalHargaKeranjang.value;
                                 int durasi = durasiSewa.duration.inDays == 0 ? 1 : durasiSewa.duration.inDays;
-                                int grandTotal = subTotal * durasi;
-                                int total = grandTotal;
+                                int grandTotal = (subTotal * durasi) + biayaAntar;
                                 return Text(
-                                  "Rp ${formatCurrency(total.toString())}",
+                                  "Rp ${formatCurrency(grandTotal.toString())}",
                                   style: AppColors.fontStyle(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFFEE2737)),
                                 );
                               }),
@@ -704,7 +722,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     offset: const Offset(0, -4),
                     blurRadius: 10,
                   ),
@@ -724,7 +742,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                         Obx(() {
                           int subTotal = keranjangController.totalHargaKeranjang.value;
                           int durasi = durasiSewa.duration.inDays == 0 ? 1 : durasiSewa.duration.inDays;
-                          int total = (subTotal * durasi);
+                          int total = (subTotal * durasi) + biayaAntar;
                           return Text(
                             "Rp ${formatCurrency(total.toString())}",
                             style: AppColors.fontStyle(
@@ -763,7 +781,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                       String metode = metodeBayar == "Bayar Ditempat" ? "COD" : "Transfer";
                       int subTotal = keranjangController.totalHargaKeranjang.value;
                       int durasi = durasiSewa.duration.inDays == 0 ? 1 : durasiSewa.duration.inDays;
-                      int finalTotal = (subTotal * durasi);
+                      int finalTotal = (subTotal * durasi) + biayaAntar;
                       apiTransaksi.transaksiCheckout(
                           context,
                           formatedTanggalAwal!,
@@ -772,7 +790,10 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                           finalTotal.toString(),
                           jenisBank,
                           rekeningBank ?? '',
-                          idToko);
+                          idToko,
+                          opsiPengiriman: opsiPengiriman,
+                          biayaAntar: biayaAntar,
+                          alamatPengiriman: alamatPengiriman.value);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2C4E40),

@@ -59,13 +59,19 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   void initState() {
     super.initState();
     final arguments = Get.arguments as Map<String, dynamic>? ?? {};
-    idToko = arguments['idToko'];
-    idProduk = arguments['idProduk'];
-    namaProduk = arguments['namaProduk'];
-    fotoProduk = arguments['fotoProduk'];
-    namaToko = arguments['namaToko'];
-    fotoToko = arguments['fotoToko'];
-    ratingToko = arguments['ratingToko'];
+    idToko = arguments['idToko'] is int
+        ? arguments['idToko']
+        : int.tryParse(arguments['idToko']?.toString() ?? '');
+    idProduk = arguments['idProduk'] is int
+        ? arguments['idProduk']
+        : int.tryParse(arguments['idProduk']?.toString() ?? '');
+    namaProduk = arguments['namaProduk']?.toString();
+    fotoProduk = arguments['fotoProduk']?.toString();
+    namaToko = arguments['namaToko']?.toString();
+    fotoToko = arguments['fotoToko']?.toString();
+    ratingToko = arguments['ratingToko'] is double
+        ? arguments['ratingToko']
+        : double.tryParse(arguments['ratingToko']?.toString() ?? '');
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (idProduk != null) {
@@ -634,6 +640,73 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF2F2828),
                     height: 1.3,
+                  ),
+                );
+              }),
+              Obx(() {
+                final list = apiProduk.detailProduk.value;
+                if (list == null || !list.isDiskon) {
+                  return const SizedBox.shrink();
+                }
+                final periodePromo = _formatPeriodePromo(
+                  list.tanggalMulai,
+                  list.tanggalSelesai,
+                );
+                return Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFECEB),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFFCDD2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_offer_rounded,
+                              size: 14, color: Color(0xFFE53935)),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              list.namaPromo?.isNotEmpty == true
+                                  ? '${list.namaPromo!} (${list.persentaseDiskon}% OFF)'
+                                  : 'Promo Diskon ${list.persentaseDiskon}% OFF',
+                              style: AppColors.fontStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFE53935),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (periodePromo.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.schedule_rounded,
+                                size: 12, color: Colors.grey.shade700),
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                'Periode: $periodePromo',
+                                style: AppColors.fontStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
                 );
               }),
@@ -1663,6 +1736,50 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                     ),
                   ),
                   const SizedBox(height: 2),
+                  Obx(() {
+                    final list = apiProduk.detailProduk.value;
+                    if (list == null ||
+                        !list.isDiskon ||
+                        list.hargaAsli <= 0) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Row(
+                        children: [
+                          Text(
+                            "Rp${formatCurrency((list.hargaAsli * quantity).toString())}",
+                            style: AppColors.fontStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade500,
+                            ).copyWith(
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: Colors.grey.shade500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          if (list.persentaseDiskon > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFECEB),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                "-${list.persentaseDiskon}%",
+                                style: AppColors.fontStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFFE53935),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -1775,3 +1892,43 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
     );
   }
 }
+
+/// Mengubah "2026-09-01 00:00:00" atau "2026-09-01" menjadi "1 Sep 2026".
+String _formatTanggalIndonesia(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return '';
+  try {
+    final dt = DateTime.parse(raw.trim().replaceFirst(' ', 'T'));
+    const namaBulan = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${dt.day} ${namaBulan[dt.month - 1]} ${dt.year}';
+  } catch (_) {
+    return raw;
+  }
+}
+
+/// Mengembalikan rentang periode diskon yang ramah dibaca pengguna.
+/// Contoh: "1 Sep 2026 - 20 Sep 2026" atau "Hingga 20 Sep 2026".
+String _formatPeriodePromo(String? mulai, String? selesai) {
+  final hasMulai = mulai != null && mulai.trim().isNotEmpty;
+  final hasSelesai = selesai != null && selesai.trim().isNotEmpty;
+
+  if (hasMulai && hasSelesai) {
+    final strMulai = _formatTanggalIndonesia(mulai);
+    final strSelesai = _formatTanggalIndonesia(selesai);
+    if (strMulai.isNotEmpty && strSelesai.isNotEmpty) {
+      return '$strMulai - $strSelesai';
+    }
+  }
+  if (hasSelesai) {
+    final strSelesai = _formatTanggalIndonesia(selesai);
+    if (strSelesai.isNotEmpty) return 'Hingga $strSelesai';
+  }
+  if (hasMulai) {
+    final strMulai = _formatTanggalIndonesia(mulai);
+    if (strMulai.isNotEmpty) return 'Mulai $strMulai';
+  }
+  return '';
+}
+

@@ -23,6 +23,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
 import 'package:project_camp_sewa/layouts/layout_feedback_list.dart';
+import 'package:project_camp_sewa/layouts/layout_kelola_diskon.dart';
 import 'package:project_camp_sewa/layouts/layout_follow_list.dart';
 
 class LayoutProfile extends StatefulWidget {
@@ -74,7 +75,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics()),
+                  parent: ClampingScrollPhysics()),
               child: Stack(
                 children: [
                   // Hero Background
@@ -669,7 +670,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
                             offset: const Offset(0, 10),
                           ),
                           BoxShadow(
-                            color: const Color(0xFF2C4E40).withValues(alpha: 0.06),
+                            color:
+                                const Color(0xFF2C4E40).withValues(alpha: 0.06),
                             blurRadius: 8,
                             spreadRadius: 0,
                             offset: const Offset(0, 4),
@@ -681,7 +683,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                              color: const Color(0xFF3B82F6)
+                                  .withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -753,7 +756,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
                             offset: const Offset(0, 10),
                           ),
                           BoxShadow(
-                            color: const Color(0xFF2C4E40).withValues(alpha: 0.06),
+                            color:
+                                const Color(0xFF2C4E40).withValues(alpha: 0.06),
                             blurRadius: 8,
                             spreadRadius: 0,
                             offset: const Offset(0, 4),
@@ -765,7 +769,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                              color: const Color(0xFF10B981)
+                                  .withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -945,7 +950,8 @@ class _LayoutProfileState extends State<LayoutProfile> {
                         child: Text(
                           apiDataUser.totalUnreadFeedback.value > 99
                               ? '99+'
-                              : apiDataUser.totalUnreadFeedback.value.toString(),
+                              : apiDataUser.totalUnreadFeedback.value
+                                  .toString(),
                           style: AppColors.fontStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -1049,6 +1055,14 @@ class _LayoutProfileState extends State<LayoutProfile> {
               iconColor: const Color(0xFF009688),
               iconBgColor: const Color(0xFFE0F2F1),
               onTap: () => Get.to(() => const LayoutInformasiToko()),
+            ),
+            _buildMenuItem(
+              icon: MdiIcons.tagOutline,
+              title: 'Diskon & Promo Toko',
+              subtitle: 'Atur diskon harga produk toko Anda',
+              iconColor: const Color(0xFFE65100),
+              iconBgColor: const Color(0xFFFFF3E0),
+              onTap: () => Get.to(() => const LayoutKelolaDiskon()),
             ),
           ] else
             _buildMenuItem(
@@ -1397,11 +1411,14 @@ class _LayoutProfileState extends State<LayoutProfile> {
                     ],
                   ),
                 ),
-                trailing ?? Icon(
-                  MdiIcons.chevronRight,
-                  color: isHighlighted ? Colors.white : const Color(0xFFBDBDBD),
-                  size: 24,
-                ),
+                trailing ??
+                    Icon(
+                      MdiIcons.chevronRight,
+                      color: isHighlighted
+                          ? Colors.white
+                          : const Color(0xFFBDBDBD),
+                      size: 24,
+                    ),
               ],
             ),
           ),

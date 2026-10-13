@@ -299,123 +299,116 @@ class _OnboardLayoutState extends State<OnboardLayout>
             ? MediaQuery.of(context).padding.bottom + 10
             : 20,
       ),
-      child: isLastPage
-          ? getStarted()
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: () =>
-                      pageController.jumpToPage(controller.items.length - 1),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    backgroundColor: Colors.grey.shade100,
-                  ),
-                  child: Text(
-                    'Skip',
-                    style: AppColors.fontStyle(
-                      color: Colors.black54,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+      child: AnimatedCrossFade(
+        duration: const Duration(milliseconds: 300),
+        crossFadeState:
+            isLastPage ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+        firstChild: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              onPressed: () =>
+                  pageController.jumpToPage(controller.items.length - 1),
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
                 ),
-                //Indicator
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
-                  child: SmoothPageIndicator(
-                    controller: pageController,
-                    count: controller.items.length,
-                    onDotClicked: (index) => pageController.animateToPage(index,
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeIn),
-                    effect: const ExpandingDotsEffect(
-                      dotHeight: 8,
-                      dotWidth: 8,
-                      activeDotColor: AppColors.mainColor,
-                      dotColor: Colors.black12,
-                      expansionFactor: 3,
-                      spacing: 6,
-                    ),
-                  ),
+                backgroundColor: Colors.grey.shade100,
+              ),
+              child: Text(
+                'Skip',
+                style: AppColors.fontStyle(
+                  color: Colors.black54,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
-                ElevatedButton(
-                  onPressed: () => pageController.nextPage(
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.easeIn),
-                  style: ElevatedButton.styleFrom(
-                    elevation: 4,
-                    shadowColor: Colors.black.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    backgroundColor: Colors.black,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Text(
-                        'Next',
-                        style: AppColors.fontStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.navigate_next_rounded,
-                        size: 22,
-                        color: Colors.white,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
+            //Indicator
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
+              child: SmoothPageIndicator(
+                controller: pageController,
+                count: controller.items.length,
+                onDotClicked: (index) => pageController.animateToPage(index,
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeIn),
+                effect: const ExpandingDotsEffect(
+                  dotHeight: 8,
+                  dotWidth: 8,
+                  activeDotColor: AppColors.mainColor,
+                  dotColor: Colors.black12,
+                  expansionFactor: 3,
+                  spacing: 6,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => pageController.nextPage(
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeIn),
+              style: ElevatedButton.styleFrom(
+                elevation: 4,
+                shadowColor: Colors.black.withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                backgroundColor: Colors.black,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'Next',
+                    style: AppColors.fontStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.navigate_next_rounded,
+                    size: 22,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        secondChild: getStarted(),
+      ),
     );
   }
 
   Widget getStarted() {
     return Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          color: Colors.black,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        width: MediaQuery.of(context).size.width * .9,
-        height: 60,
-        child: ButtonSwipeRight(
-          title: "Mulai Sekarang!",
-          bgColor: Colors.black,
-          fungsi: () async {
-            final pres = await SharedPreferences.getInstance();
-            pres.setBool("onboarding", true);
+      width: MediaQuery.of(context).size.width,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ButtonSwipeRight(
+        title: "Mulai Sekarang!",
+        bgColor: const Color(0xFF1E1E1E),
+        iconColor: Colors.black,
+        roundedBgColor: Colors.white,
+        fungsi: () async {
+          final pres = await SharedPreferences.getInstance();
+          await pres.setBool("onboarding", true);
 
-            //After we press get started button this onboarding value become true
-            // same key
-            if (!mounted) return;
-            // Navigator.pushReplacement(
-            //     context,
-            //     PageTransition(
-            //         type: PageTransitionType.fade, child: const LoginScreen()));
-            Get.off(const LoginScreen(),
-                transition: Transition.fade,
-                duration: const Duration(milliseconds: 500));
-          },
-        ));
+          if (!mounted) return;
+          Get.offAll(
+            () => const LoginScreen(),
+            transition: Transition.rightToLeftWithFade,
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeInOutCubic,
+          );
+        },
+      ),
+    );
   }
 }
 

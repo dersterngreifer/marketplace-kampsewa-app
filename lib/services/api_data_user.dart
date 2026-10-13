@@ -239,7 +239,7 @@ class ApiDataUser extends GetxController {
         phoneNumberController.clear();
         tanggalLahirController.clear();
         if (context.mounted) {
-          pageController.setPageIndex(3);
+          pageController.setPageIndex(4);
           getDataUser(context);
           Get.back();
         }
@@ -697,6 +697,7 @@ class ApiDataUser extends GetxController {
 
   Future<bool> verifyKTP(BuildContext context, String filePath) async {
     try {
+      loading.showLoadingDialog();
       Authorization auth = Authorization();
       String? token = await auth.getToken();
       var header = {
@@ -727,20 +728,27 @@ class ApiDataUser extends GetxController {
       final Map<String, dynamic> json =
           response.data is String ? jsonDecode(response.data) : response.data;
 
+      loading.hideLoadingDialog();
+
       if (response.statusCode == 200) {
         return true;
       } else {
-        CustomSnackBar.show(context,
-            sukses: false, teks: json['message'] ?? 'KTP ditolak oleh sistem');
+        if (context.mounted) {
+          CustomSnackBar.show(context,
+              sukses: false, teks: json['message'] ?? 'KTP ditolak oleh sistem');
+        }
         return false;
       }
     } catch (e) {
+      loading.hideLoadingDialog();
       if (NetworkErrorDialog.isNetworkOrServerError(e)) return false;
       if (context.mounted) {
         CustomSnackBar.show(context,
             sukses: false, teks: 'Terjadi kesalahan saat verifikasi KTP');
       }
       return false;
+    } finally {
+      loading.hideLoadingDialog();
     }
   }
 
@@ -795,16 +803,18 @@ class ApiDataUser extends GetxController {
 
         if (context.mounted) {
           await getDataUser(context);
-          pageController.setPageIndex(3);
+          pageController.setPageIndex(4);
           Get.back();
         }
       } else {
         String errorMessage = json['message'] ?? 'Terjadi kesalahan';
-        CustomSnackBar.show(
-          context,
-          sukses: false,
-          teks: errorMessage,
-        );
+        if (context.mounted) {
+          CustomSnackBar.show(
+            context,
+            sukses: false,
+            teks: errorMessage,
+          );
+        }
       }
     } on DioException catch (dioError) {
       loading.hideLoadingDialog();
@@ -822,6 +832,17 @@ class ApiDataUser extends GetxController {
               );
             });
       }
+    } catch (e) {
+      loading.hideLoadingDialog();
+      if (context.mounted) {
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: 'Terjadi kesalahan saat memproses data',
+        );
+      }
+    } finally {
+      loading.hideLoadingDialog();
     }
   }
 
@@ -829,14 +850,17 @@ class ApiDataUser extends GetxController {
       BuildContext context, String bankId) async {
     try {
       Authorization auth = Authorization();
+      String? token = await auth.getToken();
       int? id = await auth.getId();
       String idStr = id.toString();
       var header = {
         'Accept': 'application/json',
-        'Authorization': 'Bearer ',
+        'Authorization': 'Bearer $token',
       };
 
-      var url = "/api/user/update-bank/";
+      var url = ApiEndpoints.baseUrl +
+          ApiEndpoints.authendpoints.updateBankMetodeTransfer +
+          bankId;
 
       Map body = {
         'rekening': noRekController.text,
@@ -880,14 +904,17 @@ class ApiDataUser extends GetxController {
       BuildContext context, String bankId) async {
     try {
       Authorization auth = Authorization();
+      String? token = await auth.getToken();
       int? id = await auth.getId();
       String idStr = id.toString();
       var header = {
         'Accept': 'application/json',
-        'Authorization': 'Bearer ',
+        'Authorization': 'Bearer $token',
       };
 
-      var url = "/api/user/delete-bank/";
+      var url = ApiEndpoints.baseUrl +
+          ApiEndpoints.authendpoints.deleteBankMetodeTransfer +
+          bankId;
 
       final response = await dio.get(url,
           options: Options(

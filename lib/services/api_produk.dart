@@ -1,9 +1,9 @@
 import 'package:project_camp_sewa/services/api_client.dart';
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, avoid_print
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
@@ -65,10 +65,11 @@ class ApiProduk extends GetxController {
     } catch (error) {
       if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
-      if (error is DioException)
+      if (error is DioException) {
         msg = error.message ?? msg;
-      else
+      } else {
         msg = error.toString();
+      }
       if (context.mounted) {
         showDialog(
             context: context,
@@ -122,10 +123,11 @@ class ApiProduk extends GetxController {
     } catch (error) {
       if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
-      if (error is DioException)
+      if (error is DioException) {
         msg = error.message ?? msg;
-      else
+      } else {
         msg = error.toString();
+      }
       if (context.mounted) {
         showDialog(
             context: context,
@@ -194,10 +196,11 @@ class ApiProduk extends GetxController {
     } catch (error) {
       if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
-      if (error is DioException)
+      if (error is DioException) {
         msg = error.message ?? msg;
-      else
+      } else {
         msg = error.toString();
+      }
       if (context.mounted) {
         showDialog(
             context: context,
@@ -259,10 +262,11 @@ class ApiProduk extends GetxController {
     } catch (error) {
       if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
       String msg = "Gagal memuat produk";
-      if (error is DioException)
+      if (error is DioException) {
         msg = error.message ?? msg;
-      else
+      } else {
         msg = error.toString();
+      }
       if (context.mounted) {
         showDialog(
             context: context,
@@ -318,11 +322,15 @@ class ApiProduk extends GetxController {
       final Map<String, dynamic> data =
           response.data is String ? jsonDecode(response.data) : response.data;
 
-      if (response.statusCode == 200) {
-        List<VariantProductModel> variants = (data['all_variants'] as List)
-            .map((variantJson) => VariantProductModel.fromJson(
-                variantJson as Map<String, dynamic>))
-            .toList();
+      if (response.statusCode == 200 && data['all_variants'] != null && data['all_variants'] is List) {
+        List<VariantProductModel> variants = [];
+        for (var variantJson in data['all_variants']) {
+          if (variantJson is Map<String, dynamic>) {
+            variants.add(VariantProductModel.fromJson(variantJson));
+          } else if (variantJson is Map) {
+            variants.add(VariantProductModel.fromJson(Map<String, dynamic>.from(variantJson)));
+          }
+        }
 
         groupedByColor.clear();
 
@@ -340,32 +348,15 @@ class ApiProduk extends GetxController {
         updateAllUniqueSizes();
         updateColors();
       } else {
-        CustomSnackBar.show(
-          context,
-          sukses: false,
-          teks: "Data Produk Gagal Dimuat",
-        );
+        // Produk tidak memiliki varian tambahan, bukan error fatal
+        groupedByColor.clear();
+        uniqueSizes.clear();
+        colors.clear();
       }
     } catch (error) {
-      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
-      String msg = "Gagal memuat produk";
-      if (error is DioException)
-        msg = error.message ?? msg;
-      else
-        msg = error.toString();
-      if (context.mounted) {
-        showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                backgroundColor: Colors.transparent,
-                content: CustomAlertDialog(
-                  sukses: false,
-                  teks: msg,
-                ),
-              );
-            });
-      }
+      groupedByColor.clear();
+      uniqueSizes.clear();
+      colors.clear();
     }
   }
 
@@ -427,13 +418,15 @@ class ApiProduk extends GetxController {
       final Map<String, dynamic> data =
           response.data is String ? jsonDecode(response.data) : response.data;
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && data['detail_produk'] != null) {
         var detailData = data['detail_produk'];
-        if (detailData is List && detailData.isNotEmpty)
+        if (detailData is List && detailData.isNotEmpty) {
           detailData = detailData[0];
-        detailProduk.value = DetailProdukModel.fromJson(detailData);
+        }
+        if (detailData is Map) {
+          detailProduk.value =
+              DetailProdukModel.fromJson(Map<String, dynamic>.from(detailData));
 
-        if (data['detail_produk'] != null) {
           List<String> rawImages = [];
           if (detailProduk.value!.fotoDepan.isNotEmpty) {
             rawImages.add(detailProduk.value!.fotoDepan);
@@ -464,31 +457,26 @@ class ApiProduk extends GetxController {
           imageDetailProduk.clear();
         }
       } else {
-        CustomSnackBar.show(
-          context,
-          sukses: false,
-          teks: "Data Produk Gagal Dimuat",
-        );
+        if (detailProduk.value == null && context.mounted) {
+          CustomSnackBar.show(
+            context,
+            sukses: false,
+            teks: "Data Produk Gagal Dimuat",
+          );
+        }
       }
     } catch (error) {
       if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
-      String msg = "Gagal memuat produk";
-      if (error is DioException)
-        msg = error.message ?? msg;
-      else
-        msg = error.toString();
-      if (context.mounted) {
-        showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                backgroundColor: Colors.transparent,
-                content: CustomAlertDialog(
-                  sukses: false,
-                  teks: msg,
-                ),
-              );
-            });
+      if (detailProduk.value == null && context.mounted) {
+        String msg = "Gagal memuat produk";
+        if (error is DioException) {
+          msg = error.message ?? msg;
+        }
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          teks: msg,
+        );
       }
     }
   }
@@ -686,7 +674,7 @@ class ApiProduk extends GetxController {
         ),
       );
 
-      var data;
+      dynamic data;
       if (response.data is String) {
         try {
           data = jsonDecode(response.data);

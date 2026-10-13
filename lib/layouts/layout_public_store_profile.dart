@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:project_camp_sewa/layouts/layout_chat_room.dart' as project_camp_sewa_chat;
+import 'package:project_camp_sewa/layouts/layout_chat_room.dart'
+    as project_camp_sewa_chat;
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/models/produk_model.dart';
@@ -71,8 +72,16 @@ class PublicStoreController extends GetxController {
 
   // ── Products + filter ─────────────────────────────────────────────────────
   var products = <ProdukModel>[].obs;
-  var categories = <String>['Semua'].obs;
-  var selectedCategory = 'Semua'.obs;
+  var categories = <String>[].obs;
+  var selectedCategory = ''.obs;
+  /// Diskon produk aktif milik toko (dari GET /api/diskon/toko/{id}).
+  var diskonList = <DiskonTokoModel>[].obs;
+  var selectedSort = 'latest'.obs;
+  var isPromoFilterOnly = false.obs;
+
+  /// Controller & index untuk PageView carousel kartu diskon toko
+  final PageController promoPageController = PageController();
+  var promoCarouselIndex = 0.obs;
 
   // Gunakan rawSearchQuery untuk trigger Debounce
   var rawSearchQuery = ''.obs;
@@ -105,6 +114,7 @@ class PublicStoreController extends GetxController {
   void onClose() {
     _ownerWorker?.dispose();
     searchController.dispose();
+    promoPageController.dispose();
     super.onClose();
   }
 
@@ -142,10 +152,14 @@ class PublicStoreController extends GetxController {
       isToko.value = store.isToko;
 
       if (isToko.value) {
-        await fetchStoreProducts();
+        await Future.wait([
+          fetchStoreProducts(),
+          fetchDiskonToko(),
+        ]);
       } else {
         // Jika bukan toko, tidak usah fetch produk. Kosongkan list.
         products.clear();
+        diskonList.clear();
         isLoadingProducts.value = false;
       }
     } else {
@@ -155,22 +169,33 @@ class PublicStoreController extends GetxController {
     isLoading.value = false;
   }
 
+  Future<void> fetchDiskonToko() async {
+    diskonList.assignAll(await _apiStore.getDiskonToko(idUser));
+  }
+
   Future<void> fetchStoreProducts() async {
     isLoadingProducts.value = true;
 
     final result = await _apiStore.getStoreProducts(
       idUser,
       kategori:
-          selectedCategory.value == 'Semua' ? null : selectedCategory.value,
+          selectedCategory.value.isEmpty || selectedCategory.value == 'Semua'
+              ? null
+              : selectedCategory.value,
       search: searchQuery.value.isEmpty ? null : searchQuery.value,
+      sort: selectedSort.value,
+      isPromo: isPromoFilterOnly.value ? true : null,
     );
 
     products.assignAll(result.products);
 
-    if (selectedCategory.value == 'Semua' && searchQuery.value.isEmpty) {
-      final Set<String> cats = {'Semua'};
+    if ((selectedCategory.value.isEmpty || selectedCategory.value == 'Semua') &&
+        searchQuery.value.isEmpty) {
+      final Set<String> cats = {};
       for (final p in result.products) {
-        if (p.kategori.isNotEmpty) cats.add(p.kategori);
+        if (p.kategori.isNotEmpty && p.kategori.toLowerCase() != 'semua') {
+          cats.add(p.kategori);
+        }
       }
       categories.assignAll(cats.toList());
     }
@@ -179,8 +204,12 @@ class PublicStoreController extends GetxController {
   }
 
   void filterByCategory(String cat) {
-    if (selectedCategory.value == cat) return;
-    selectedCategory.value = cat;
+    if (selectedCategory.value == cat) {
+      // Klik lagi untuk membatalkan filter kategori (kembali menampilkan semua produk)
+      selectedCategory.value = '';
+    } else {
+      selectedCategory.value = cat;
+    }
     fetchStoreProducts();
   }
 
@@ -192,6 +221,17 @@ class PublicStoreController extends GetxController {
   void clearSearch() {
     searchController.clear();
     rawSearchQuery.value = '';
+  }
+
+  void setSort(String sort) {
+    if (selectedSort.value == sort) return;
+    selectedSort.value = sort;
+    fetchStoreProducts();
+  }
+
+  void togglePromoFilter() {
+    isPromoFilterOnly.value = !isPromoFilterOnly.value;
+    fetchStoreProducts();
   }
 
   void retry() => fetchStoreProfile();
@@ -312,7 +352,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
             slivers: [
               _buildSliverAppBar(controller),
               SliverToBoxAdapter(
-                child: _buildStoreProfileInfo(controller),
+                child: _buildStoreProfileInfo(controller, context),
               ),
               // Search & Filter Category dibuat STICKY
               if (controller.isToko.value)
@@ -320,9 +360,10 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                   pinned: true,
                   delegate: _StickyFilterDelegate(
                     controller: controller,
-                    // Search bar lebih tinggi & lega + jarak ke kategori lebih proporsional
-                    maxExtentHeight: 132,
-                    minExtentHeight: 132,
+                    // Tinggi turun drastis: cuma search row + kategori pills
+                    maxExtentHeight: 116,
+                    minExtentHeight: 116,
+                    onOpenFilter: _showFilterBottomSheet,
                   ),
                 ),
               if (controller.isToko.value)
@@ -330,11 +371,13 @@ class LayoutPublicStoreProfile extends StatelessWidget {
               else
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 32, bottom: 80, left: 20, right: 20),
+                    padding: const EdgeInsets.only(
+                        top: 32, bottom: 80, left: 20, right: 20),
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.person_search_rounded, size: 64, color: Colors.grey.shade300),
+                          Icon(Icons.person_search_rounded,
+                              size: 64, color: Colors.grey.shade300),
                           const SizedBox(height: 16),
                           Text(
                             "Belum ada produk yang disewakan.",
@@ -428,7 +471,8 @@ class LayoutPublicStoreProfile extends StatelessWidget {
   }
 
   // ── 2. Informasi Toko ─────────────────────────────────────────────────────
-  Widget _buildStoreProfileInfo(PublicStoreController controller) {
+  Widget _buildStoreProfileInfo(
+      PublicStoreController controller, BuildContext context) {
     final String logoUrl = getFotoTokoUrl(controller.storeLogo.value);
 
     return Container(
@@ -562,8 +606,8 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.mainColor,
                                 foregroundColor: Colors.white,
-                                disabledBackgroundColor: AppColors.mainColor
-                                    .withOpacity(0.6),
+                                disabledBackgroundColor:
+                                    AppColors.mainColor.withOpacity(0.6),
                                 disabledForegroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
@@ -576,8 +620,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                                       width: 14,
                                       height: 14,
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white),
+                                          strokeWidth: 2, color: Colors.white),
                                     )
                                   : const Icon(
                                       Icons.person_add_alt_1_rounded,
@@ -596,13 +639,13 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       Get.to(() => project_camp_sewa_chat.LayoutChatRoom(
-                        targetUserId: controller.idUser,
-                        chatData: {
-                          'name': controller.storeName.value,
-                          'avatar': controller.storeLogo.value,
-                          'isToko': true,
-                        },
-                      ));
+                            targetUserId: controller.idUser,
+                            chatData: {
+                              'name': controller.storeName.value,
+                              'avatar': controller.storeLogo.value,
+                              'isToko': true,
+                            },
+                          ));
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.mainColor,
@@ -612,8 +655,8 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       minimumSize: const Size(0, 42),
                     ),
-                    icon: const Icon(Icons.chat_bubble_outline_rounded,
-                        size: 15),
+                    icon:
+                        const Icon(Icons.chat_bubble_outline_rounded, size: 15),
                     label: const Text('Pesan',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13)),
@@ -676,8 +719,11 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildStatItem(controller.rating.value.toStringAsFixed(1),
-                          "Rating", Icons.star_rounded, const Color(0xFFFFC107)),
+                      _buildStatItem(
+                          controller.rating.value.toStringAsFixed(1),
+                          "Rating",
+                          Icons.star_rounded,
+                          const Color(0xFFFFC107)),
                       Container(
                           height: 24, width: 1, color: Colors.grey.shade300),
                       _buildStatItem(
@@ -696,7 +742,6 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                   ),
                 )
               : const SizedBox()),
-
 
           const SizedBox(height: 12),
           // Statistik Followers & Following (clickable)
@@ -729,7 +774,8 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                  color: const Color(0xFF3B82F6)
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
@@ -744,7 +790,8 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      controller.totalFollowers.value.toString(),
+                                      controller.totalFollowers.value
+                                          .toString(),
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
@@ -801,7 +848,8 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                  color: const Color(0xFF10B981)
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
@@ -816,7 +864,8 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      controller.totalFollowing.value.toString(),
+                                      controller.totalFollowing.value
+                                          .toString(),
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
@@ -847,8 +896,562 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                   ),
                 ],
               )),
+          _buildActivePromoBanner(controller, context),
         ],
       ),
+    );
+  }
+
+  Widget _buildActivePromoBanner(
+      PublicStoreController controller, BuildContext context) {
+    return Obx(() {
+      if (controller.diskonList.isEmpty) return const SizedBox.shrink();
+
+      final int totalPromo = controller.diskonList.length;
+
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Bar: "PROMO TOKO (N)" + Tombol "Lihat Semua Diskon"
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2C4E40).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.local_offer_rounded,
+                          size: 13, color: Color(0xFF2C4E40)),
+                      const SizedBox(width: 5),
+                      Text(
+                        'PROMO TOKO ($totalPromo)',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2C4E40),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  onTap: () => _showSemuaDiskonBottomSheet(context, controller),
+                  borderRadius: BorderRadius.circular(6),
+                  child: const Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Lihat Semua Diskon',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2C4E40),
+                          ),
+                        ),
+                        SizedBox(width: 2),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 16, color: Color(0xFF2C4E40)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Card Promo: Single Card atau Swipe Carousel jika lebih dari 1
+            if (totalPromo == 1)
+              _buildSinglePromoCard(
+                controller.diskonList.first,
+                controller,
+              )
+            else ...[
+              SizedBox(
+                height: 136,
+                child: PageView.builder(
+                  controller: controller.promoPageController,
+                  itemCount: totalPromo,
+                  onPageChanged: (index) {
+                    controller.promoCarouselIndex.value = index;
+                  },
+                  itemBuilder: (_, index) {
+                    final promo = controller.diskonList[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _buildSinglePromoCard(
+                        promo,
+                        controller,
+                        pageIndex: index,
+                        totalPages: totalPromo,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Dot Indicator Active Carousel
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(totalPromo, (index) {
+                  final isActive =
+                      controller.promoCarouselIndex.value == index;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: isActive ? 16 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? const Color(0xFF2C4E40)
+                          : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildSinglePromoCard(
+    DiskonTokoModel promo,
+    PublicStoreController controller, {
+    int? pageIndex,
+    int? totalPages,
+  }) {
+    final discountLabel = promo.labelDiskon;
+    final cakupanLabel =
+        promo.isSemuaProduk ? 'Semua Produk Toko' : 'Produk Tertentu';
+    final headline = promo.namaDiskon.isNotEmpty
+        ? 'Toko ini sedang mengadakan promo ${promo.namaDiskon}!'
+        : 'Toko ini sedang mengadakan promo diskon $discountLabel!';
+    final periodeStr = _formatPeriodePromo(
+      promo.tanggalMulai,
+      promo.tanggalSelesai,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2C4E40), Color(0xFF1E352B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2C4E40).withValues(alpha: 0.22),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Header Row
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFC107),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_offer_rounded,
+                        size: 11, color: Color(0xFF2F2828)),
+                    SizedBox(width: 4),
+                    Text(
+                      'PROMO TOKO',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF2F2828),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Diskon $discountLabel • $cakupanLabel',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (pageIndex != null && totalPages != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${pageIndex + 1}/$totalPages',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Headline Promo
+          Text(
+            headline,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              height: 1.25,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          // Footer: Periode & Action Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule_rounded,
+                        size: 13,
+                        color: Colors.white.withValues(alpha: 0.8)),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        periodeStr,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () {
+                  controller.isPromoFilterOnly.value = true;
+                  controller.selectedSort.value = 'discount_desc';
+                  controller.fetchStoreProducts();
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFC107),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Lihat Produk',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2F2828),
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded,
+                          size: 12, color: Color(0xFF2F2828)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSemuaDiskonBottomSheet(
+      BuildContext context, PublicStoreController controller) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(bottomSheetContext).size.height * 0.75,
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                // Header
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2C4E40)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.local_offer_rounded,
+                          color: Color(0xFF2C4E40),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Semua Promo Diskon Toko',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E1E1E),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${controller.diskonList.length} promo diskon aktif dapat digunakan',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(bottomSheetContext),
+                        color: Colors.grey.shade600,
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                // List of discounts
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: controller.diskonList.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final promo = controller.diskonList[index];
+                      final periodeStr = _formatPeriodePromo(
+                        promo.tanggalMulai,
+                        promo.tanggalSelesai,
+                      );
+                      final cakupanLabel = promo.isSemuaProduk
+                          ? 'Semua Produk Toko'
+                          : 'Produk Tertentu';
+
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAFA),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color:
+                                const Color(0xFF2C4E40).withValues(alpha: 0.15),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFC107),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    promo.labelDiskon,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF2F2828),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2C4E40)
+                                        .withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    cakupanLabel,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF2C4E40),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              promo.namaDiskon.isNotEmpty
+                                  ? promo.namaDiskon
+                                  : 'Promo Diskon ${promo.labelDiskon}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E1E1E),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.schedule_rounded,
+                                        size: 13,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          periodeStr,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(bottomSheetContext);
+                                    controller.isPromoFilterOnly.value = true;
+                                    controller.selectedSort.value =
+                                        'discount_desc';
+                                    controller.fetchStoreProducts();
+                                    Get.snackbar(
+                                      'Promo Diterapkan',
+                                      'Menampilkan produk dengan promo "${promo.namaDiskon.isNotEmpty ? promo.namaDiskon : promo.labelDiskon}"',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                      backgroundColor:
+                                          const Color(0xFF2C4E40),
+                                      colorText: Colors.white,
+                                      duration: const Duration(seconds: 2),
+                                      margin: const EdgeInsets.all(12),
+                                      borderRadius: 8,
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        const Color(0xFF2C4E40),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  child: const Text('Lihat Produk'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -958,6 +1561,352 @@ class LayoutPublicStoreProfile extends StatelessWidget {
     );
   }
 
+  // ── Bottom Sheet: Semua Filter (Promo + Sort) ────────────────────────────
+  void _showFilterBottomSheet(
+      BuildContext context, PublicStoreController controller) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setStateModal) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Handle bar
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.mainColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.tune_rounded,
+                                size: 18,
+                                color: AppColors.mainColor,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              "Filter & Urutkan",
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E1E1E),
+                              ),
+                            ),
+                            const Spacer(),
+                            // Reset button
+                            Obx(() {
+                              final hasFilter =
+                                  controller.isPromoFilterOnly.value ||
+                                      controller.selectedSort.value != 'latest';
+                              if (!hasFilter) return const SizedBox.shrink();
+                              return TextButton(
+                                onPressed: () {
+                                  controller.isPromoFilterOnly.value = false;
+                                  controller.selectedSort.value = 'latest';
+                                  controller.fetchStoreProducts();
+                                  setStateModal(() {});
+                                },
+                                style: TextButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: const Text(
+                                  "Reset",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFE53935),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Promo Toggle
+                        Obx(() {
+                          final isPromo = controller.isPromoFilterOnly.value;
+                          return GestureDetector(
+                            onTap: () {
+                              controller.togglePromoFilter();
+                              setStateModal(() {});
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isPromo
+                                    ? const Color(0xFFE53935)
+                                        .withValues(alpha: 0.08)
+                                    : Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isPromo
+                                      ? const Color(0xFFE53935)
+                                      : Colors.grey.shade200,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.local_offer_rounded,
+                                    size: 20,
+                                    color: isPromo
+                                        ? const Color(0xFFE53935)
+                                        : Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Hanya Produk Promo",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: isPromo
+                                                ? const Color(0xFFE53935)
+                                                : const Color(0xFF1E1E1E),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          "Tampilkan produk yang sedang diskon",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Switch.adaptive(
+                                    value: isPromo,
+                                    activeColor: const Color(0xFFE53935),
+                                    onChanged: (_) {
+                                      controller.togglePromoFilter();
+                                      setStateModal(() {});
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+
+                        const SizedBox(height: 20),
+
+                        // Sort Label
+                        const Text(
+                          "Urutkan Berdasarkan",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1E1E1E),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Sort Options
+                        Obx(() {
+                          final currentSort = controller.selectedSort.value;
+                          final sortOptions = [
+                            {
+                              'id': 'latest',
+                              'label': 'Terbaru',
+                              'subtitle': 'Produk terbaru ditambahkan',
+                              'icon': Icons.access_time_rounded
+                            },
+                            {
+                              'id': 'discount_desc',
+                              'label': 'Diskon Terbesar',
+                              'subtitle': 'Diskon tertinggi lebih dulu',
+                              'icon': Icons.trending_down_rounded
+                            },
+                            {
+                              'id': 'discount_asc',
+                              'label': 'Diskon Terkecil',
+                              'subtitle': 'Diskon terendah lebih dulu',
+                              'icon': Icons.trending_up_rounded
+                            },
+                            {
+                              'id': 'price_asc',
+                              'label': 'Harga Termurah',
+                              'subtitle': 'Harga terendah lebih dulu',
+                              'icon': Icons.arrow_downward_rounded
+                            },
+                            {
+                              'id': 'price_desc',
+                              'label': 'Harga Tertinggi',
+                              'subtitle': 'Harga tertinggi lebih dulu',
+                              'icon': Icons.arrow_upward_rounded
+                            },
+                          ];
+
+                          return Column(
+                            children: sortOptions.map((opt) {
+                              final isSelected = currentSort == opt['id'];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    controller.setSort(opt['id'] as String);
+                                    setStateModal(() {});
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 180),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppColors.mainColor
+                                              .withValues(alpha: 0.08)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? AppColors.mainColor
+                                            : Colors.grey.shade200,
+                                        width: isSelected ? 1.5 : 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(7),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? AppColors.mainColor
+                                                : Colors.grey.shade100,
+                                            borderRadius:
+                                                BorderRadius.circular(9),
+                                          ),
+                                          child: Icon(
+                                            opt['icon'] as IconData,
+                                            size: 15,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                opt['label'] as String,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isSelected
+                                                      ? AppColors.mainColor
+                                                      : const Color(0xFF1E1E1E),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                opt['subtitle'] as String,
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          Icon(
+                                            Icons.check_circle_rounded,
+                                            size: 22,
+                                            color: AppColors.mainColor,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        }),
+
+                        const SizedBox(height: 12),
+
+                        // Apply button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mainColor,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              "Terapkan Filter",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildLogoPlaceholder(PublicStoreController controller) {
     final name = controller.storeName.value;
     final String initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
@@ -1015,7 +1964,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisExtent: 340, // Sesuaikan tinggi dengan ukuran komponen card
+            mainAxisExtent: 356, // Sesuaikan tinggi dengan ukuran komponen card
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
@@ -1026,7 +1975,10 @@ class LayoutPublicStoreProfile extends StatelessWidget {
               final isOwner =
                   (currentUserId != null && produk.idUser == currentUserId);
               return ProdukCard(
-                badgeLabel: isOwner ? "Milik Anda" : produk.kategori,
+                isOwner: isOwner,
+                badgeLabel: produk.isDiskon && produk.persentaseDiskon > 0
+                    ? "Diskon ${produk.persentaseDiskon}%"
+                    : (isOwner ? "Milik Anda" : produk.kategori),
                 images: produk.images,
                 namaProduk: produk.namaProduk,
                 namaToko: produk.namaToko,
@@ -1038,6 +1990,9 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                 jumlahReview: produk.jumlahReview,
                 isLiked: produk.isLiked,
                 totalLikes: produk.totalLikes,
+                isDiskon: produk.isDiskon,
+                hargaAsli: produk.hargaAsli,
+                persentaseDiskon: produk.persentaseDiskon,
                 aksiFavorite: () async {
                   final apiProduk = Get.find<ApiProduk>();
                   final res =
@@ -1145,18 +2100,59 @@ class LayoutPublicStoreProfile extends StatelessWidget {
   }
 }
 
+/// Mengubah "2026-10-20 03:33:42" menjadi "20 Okt 2026".
+/// Mengembalikan teks asli jika gagal di-parse.
+String _formatTanggalPromo(String raw) {
+  try {
+    final dt = DateTime.parse(raw.trim().replaceFirst(' ', 'T'));
+    const bulan = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${dt.day} ${bulan[dt.month - 1]} ${dt.year}';
+  } catch (_) {
+    return raw;
+  }
+}
+
+/// Menghasilkan rentang tanggal diskon yang mudah dibaca pengguna.
+/// Contoh: "1 Sep 2026 - 20 Sep 2026" atau "Hingga 20 Sep 2026".
+String _formatPeriodePromo(String? mulai, String? selesai) {
+  final hasMulai = mulai != null && mulai.trim().isNotEmpty;
+  final hasSelesai = selesai != null && selesai.trim().isNotEmpty;
+
+  if (hasMulai && hasSelesai) {
+    final strMulai = _formatTanggalPromo(mulai);
+    final strSelesai = _formatTanggalPromo(selesai);
+    if (strMulai.isNotEmpty && strSelesai.isNotEmpty) {
+      return '$strMulai - $strSelesai';
+    }
+  }
+  if (hasSelesai) {
+    final strSelesai = _formatTanggalPromo(selesai);
+    if (strSelesai.isNotEmpty) return 'Hingga $strSelesai';
+  }
+  if (hasMulai) {
+    final strMulai = _formatTanggalPromo(mulai);
+    if (strMulai.isNotEmpty) return 'Mulai $strMulai';
+  }
+  return 'Periode Terbatas';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// ── KELAS DELEGATE UNTUK STICKY HEADER (Search & Kategori) ─────────────────
+// ── KELAS DELEGATE UNTUK STICKY HEADER (Search + Filter + Kategori) ────────
 // ─────────────────────────────────────────────────────────────────────────────
 class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
   final PublicStoreController controller;
   final double minExtentHeight;
   final double maxExtentHeight;
+  final void Function(BuildContext, PublicStoreController) onOpenFilter;
 
   _StickyFilterDelegate({
     required this.controller,
     required this.minExtentHeight,
     required this.maxExtentHeight,
+    required this.onOpenFilter,
   });
 
   @override
@@ -1182,104 +2178,182 @@ class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // ── Search Bar ──
-            // FIX: tinggi ditambah + prefixIcon diberi constraint & textAlignVertical
-            // supaya icon dan placeholder benar-benar center, tidak "melenceng".
+            // ── Search Bar + Filter Button ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Obx(() => TextField(
-                      controller: controller.searchController,
-                      onChanged: controller.onSearch,
-                      textAlignVertical: TextAlignVertical.center,
-                      style: const TextStyle(fontSize: 14, height: 1.2),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: "Cari di ${controller.storeName.value}...",
-                        hintStyle: TextStyle(
-                            color: Colors.grey.shade400, fontSize: 14),
-                        prefixIcon: Icon(Icons.search_rounded,
-                            size: 22, color: Colors.grey.shade400),
-                        prefixIconConstraints:
-                            const BoxConstraints(minWidth: 46, minHeight: 46),
-                        // Tampilkan tombol [X] jika ada text pencarian
-                        suffixIcon: controller.rawSearchQuery.value.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.close_rounded,
-                                    size: 18, color: Colors.grey.shade600),
-                                splashRadius: 18,
-                                onPressed: controller.clearSearch,
-                              )
-                            : null,
-                        suffixIconConstraints:
-                            const BoxConstraints(minWidth: 40, minHeight: 40),
-                        border: InputBorder.none,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Row(
+                children: [
+                  // Search box
+                  Expanded(
+                    child: Container(
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    )),
+                      child: Obx(() => TextField(
+                            controller: controller.searchController,
+                            onChanged: controller.onSearch,
+                            textAlignVertical: TextAlignVertical.center,
+                            style: const TextStyle(fontSize: 14, height: 1.2),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText:
+                                  "Cari di ${controller.storeName.value}...",
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 13.5,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                size: 20,
+                                color: Colors.grey.shade400,
+                              ),
+                              prefixIconConstraints: const BoxConstraints(
+                                  minWidth: 42, minHeight: 42),
+                              suffixIcon:
+                                  controller.rawSearchQuery.value.isNotEmpty
+                                      ? IconButton(
+                                          icon: Icon(
+                                            Icons.close_rounded,
+                                            size: 17,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          splashRadius: 18,
+                                          onPressed: controller.clearSearch,
+                                        )
+                                      : null,
+                              suffixIconConstraints: const BoxConstraints(
+                                  minWidth: 40, minHeight: 40),
+                              border: InputBorder.none,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          )),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // ── Filter Button (single button) ──
+                  Obx(() {
+                    final hasActiveFilter =
+                        controller.isPromoFilterOnly.value ||
+                            controller.selectedSort.value != 'latest';
+
+                    return GestureDetector(
+                      onTap: () => onOpenFilter(context, controller),
+                      child: Container(
+                        height: 46,
+                        width: 46,
+                        decoration: BoxDecoration(
+                          color: AppColors.mainColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.mainColor,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.mainColor.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Icon(
+                              Icons.tune_rounded,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                            // Dot indikator ada filter aktif
+                            if (hasActiveFilter)
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFC107),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
-            // ── Categories / Pills ──
-            SizedBox(
-              height: 40,
-              child: Obx(() => ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: controller.categories.length,
-                    itemBuilder: (context, index) {
-                      String cat = controller.categories[index];
-                      bool isSelected =
-                          controller.selectedCategory.value == cat;
 
-                      return GestureDetector(
-                        onTap: () => controller.filterByCategory(cat),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          margin: const EdgeInsets.only(right: 8, bottom: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color:
-                                isSelected ? AppColors.mainColor : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.mainColor
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                          child: Text(
-                            cat,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.grey.shade700,
-                            ),
+            // ── Categories / Pills (tanpa tab Semua) ──
+            Obx(() {
+              if (controller.categories.isEmpty) {
+                return const SizedBox(height: 4);
+              }
+              return SizedBox(
+                height: 38,
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: controller.categories.length,
+                  itemBuilder: (context, index) {
+                    String cat = controller.categories[index];
+                    bool isSelected =
+                        controller.selectedCategory.value == cat;
+
+                    return GestureDetector(
+                      onTap: () => controller.filterByCategory(cat),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.only(right: 8, bottom: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected ? AppColors.mainColor : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.mainColor
+                                : Colors.grey.shade300,
                           ),
                         ),
-                      );
-                    },
-                  )),
-            ),
-            const SizedBox(height: 10),
+                        child: Text(
+                          cat,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -1297,4 +2371,3 @@ class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
     return oldDelegate.controller != controller;
   }
 }
-

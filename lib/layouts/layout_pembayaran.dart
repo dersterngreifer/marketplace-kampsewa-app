@@ -66,19 +66,11 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     
     if (pickedFile != null) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF2C4E40)));
-        },
-      );
-
-      ApiDataUser apiDataUser = ApiDataUser();
+      if (!mounted) return;
+      ApiDataUser apiDataUser = Get.put(ApiDataUser());
       bool isKtpValid = await apiDataUser.verifyKTP(context, pickedFile.path);
-      
-      Navigator.pop(context); // Close loading dialog
 
+      if (!mounted) return;
       if (isKtpValid) {
         jaminanSewa = pickedFile;
       } else {

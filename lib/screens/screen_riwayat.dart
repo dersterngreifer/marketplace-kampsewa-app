@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:project_camp_sewa/layouts/layout_riwayat.dart';
-import 'package:project_camp_sewa/models/api_response.dart';
 
 class RiwayatScreen extends StatefulWidget {
   const RiwayatScreen({super.key});
@@ -14,15 +13,21 @@ class RiwayatScreen extends StatefulWidget {
 
 class _RiwayatScreenState extends State<RiwayatScreen>
     with SingleTickerProviderStateMixin {
+  static const Color _green = Color(0xFF2C4E40);
+  static const Color _dark = Color(0xFF2F2828);
+  static const Color _grey = Color(0xFF8E8E8E);
+  static const Color _bg = Color(0xFFF7F8F7);
+
   late TabController _tabController;
 
-  final List<Tab> _tabs = const [
-    Tab(text: 'Pembayaran'),
-    Tab(text: 'Pengambilan'),
-    Tab(text: 'Berlangsung'),
-    Tab(text: 'Selesai'),
-    Tab(text: 'Denda Belum Lunas'),
-    Tab(text: 'Dibatalkan'),
+  // Label + icon supaya lebih scannable
+  final List<Map<String, dynamic>> _tabsData = const [
+    {'label': 'Pembayaran', 'icon': MdiIcons.walletOutline},
+    {'label': 'Pengambilan', 'icon': MdiIcons.packageVariantClosed},
+    {'label': 'Berlangsung', 'icon': MdiIcons.truckDeliveryOutline},
+    {'label': 'Selesai', 'icon': MdiIcons.checkCircleOutline},
+    {'label': 'Denda Belum Lunas', 'icon': MdiIcons.alertCircleOutline},
+    {'label': 'Dibatalkan', 'icon': MdiIcons.closeCircleOutline},
   ];
 
   final List<Widget> _bodyTabs = const [
@@ -36,7 +41,11 @@ class _RiwayatScreenState extends State<RiwayatScreen>
 
   @override
   void initState() {
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: _tabsData.length, vsync: this);
+    _tabController.addListener(() {
+      // Rebuild chip saat tab berubah (untuk animasi active state)
+      if (mounted) setState(() {});
+    });
     super.initState();
   }
 
@@ -59,115 +68,112 @@ class _RiwayatScreenState extends State<RiwayatScreen>
         systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: _bg,
         body: Column(
           children: [
-            // Premium Header extending under system bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2C4E40).withValues(alpha: 0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+            _buildHeader(),
+            const SizedBox(height: 14),
+            _buildTabChips(),
+            const SizedBox(height: 12),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                physics: const BouncingScrollPhysics(),
+                children: _bodyTabs,
               ),
-              child: SafeArea(
-                bottom: false,
-                child: Column(
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Header ──────────────────────────────────────────────
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // App bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Riwayat",
+                  style: AppColors.fontStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: _dark,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+              ),
+            ),
+
+            // Banner info
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2C4E40), Color(0xFF1E352B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _green.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
                   children: [
-                    // App Bar Row
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 16, 16, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const SizedBox(width: 48), // Spacer to balance the search icon
-                          Text(
-                            "Riwayat",
-                            style: AppColors.fontStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF2F2828),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {},
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFFFFF),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                MdiIcons.magnify,
-                                size: 20,
-                                color: Color(0xFF2C4E40),
-                              ),
-                            ),
-                          ),
-                        ],
+                    Container(
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long_rounded,
+                        color: Colors.white,
+                        size: 24,
                       ),
                     ),
-
-                    // Banner Text/Info
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                      child: Row(
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF2C4E40), Color(0xFF2C4E40)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF2C4E40)
-                                      .withValues(alpha: 0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.receipt_long_rounded,
+                          Text(
+                            "Pesanan Anda",
+                            style: AppColors.fontStyle(
                               color: Colors.white,
-                              size: 26,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Pesanan Anda",
-                                  style: AppColors.fontStyle(
-                                    color: const Color(0xFF2F2828),
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  "Pantau status pesanan dan transaksi",
-                                  style: AppColors.fontStyle(
-                                    color: const Color(0xFFBDBDBD),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                          const SizedBox(height: 3),
+                          Text(
+                            "Pantau status pesanan & transaksi",
+                            style: AppColors.fontStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -175,55 +181,85 @@ class _RiwayatScreenState extends State<RiwayatScreen>
                     ),
                   ],
                 ),
-              ), // end SafeArea
-            ), // end Container
-
-            const SizedBox(height: 16),
-
-            // Custom TabBar - separate scrollable chips
-            TabBar(
-              controller: _tabController,
-              tabs: _tabs,
-              labelColor: Colors.white,
-              unselectedLabelColor: const Color(0xFFBDBDBD),
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicator: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2C4E40), Color(0xFF2C4E40)],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2C4E40).withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              dividerColor: Colors.transparent,
-              isScrollable: true,
-              labelPadding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              labelStyle: AppColors.fontStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-              unselectedLabelStyle: AppColors.fontStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: _bodyTabs,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Tab Chips (pill-style) ──────────────────────────────
+  Widget _buildTabChips() {
+    return SizedBox(
+      height: 52,
+      child: AnimatedBuilder(
+        animation: _tabController,
+        builder: (context, _) {
+          return ListView.separated(
+            clipBehavior: Clip.none,
+            padding: const EdgeInsets.fromLTRB(20, 3, 20, 7),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _tabsData.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final data = _tabsData[index];
+              final label = data['label'] as String;
+              final icon = data['icon'] as IconData;
+              final isActive = _tabController.index == index;
+
+              return GestureDetector(
+                onTap: () {
+                  _tabController.animateTo(index);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isActive ? _green : Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isActive ? _green : Colors.grey.shade200,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isActive
+                            ? _green.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.04),
+                        blurRadius: isActive ? 8 : 4,
+                        offset: Offset(0, isActive ? 3 : 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 15,
+                        color: isActive ? Colors.white : _grey,
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        label,
+                        style: AppColors.fontStyle(
+                          fontSize: 12.5,
+                          fontWeight:
+                              isActive ? FontWeight.w800 : FontWeight.w600,
+                          color:
+                              isActive ? Colors.white : const Color(0xFF6B6B6B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
