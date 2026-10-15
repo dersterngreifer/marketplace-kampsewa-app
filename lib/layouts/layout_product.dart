@@ -624,6 +624,29 @@ class _LayoutProductState extends State<LayoutProduct> {
 
   // â”€â”€ 5. PRODUCT GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+  static const double _productGridInfoHeight = 154.0;
+  static const double _productGridHorizontalPadding = 10.0;
+  static const double _productGridCrossSpacing = 10.0;
+
+  /// Grid delegate dinamis: tinggi kartu = lebar kartu (foto 1:1) + tinggi info.
+  /// Mencegah gap berlebih pada layar kecil dan overflow pada layar besar.
+  SliverGridDelegate _buildProductGridDelegate(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    const columns = 2;
+    final cardWidth = (screenWidth -
+            (_productGridHorizontalPadding * 2) -
+            (_productGridCrossSpacing * (columns - 1))) /
+        columns;
+    final cardHeight = cardWidth + _productGridInfoHeight;
+
+    return SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: columns,
+      mainAxisExtent: cardHeight,
+      crossAxisSpacing: _productGridCrossSpacing,
+      mainAxisSpacing: 12,
+    );
+  }
+
   Widget _buildProductGrid() {
     return Obx(() {
       // Show shimmer while loading
@@ -631,12 +654,7 @@ class _LayoutProductState extends State<LayoutProduct> {
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisExtent: 356,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 12,
-            ),
+            gridDelegate: _buildProductGridDelegate(context),
             delegate: SliverChildBuilderDelegate(
               (_, __) => _ShimmerCard(),
               childCount: 6,
@@ -733,12 +751,7 @@ class _LayoutProductState extends State<LayoutProduct> {
       return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisExtent: 356,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 12,
-          ),
+          gridDelegate: _buildProductGridDelegate(context),
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               final ProdukModel p = listProduk[index];
@@ -786,6 +799,7 @@ class _LayoutProductState extends State<LayoutProduct> {
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
                     builder: (BuildContext context) {
                       return BottomSheetProduk(
                         image: p.image,

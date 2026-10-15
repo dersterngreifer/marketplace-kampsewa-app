@@ -1922,6 +1922,29 @@ class LayoutPublicStoreProfile extends StatelessWidget {
     );
   }
 
+  static const double _productGridInfoHeight = 154.0;
+  static const double _productGridHorizontalPadding = 16.0;
+  static const double _productGridCrossSpacing = 12.0;
+
+  /// Grid delegate dinamis: tinggi kartu = lebar kartu (foto 1:1) + tinggi info.
+  /// Mencegah gap berlebih pada layar kecil dan overflow pada layar besar.
+  SliverGridDelegate _buildProductGridDelegate(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    const columns = 2;
+    final cardWidth = (screenWidth -
+            (_productGridHorizontalPadding * 2) -
+            (_productGridCrossSpacing * (columns - 1))) /
+        columns;
+    final cardHeight = cardWidth + _productGridInfoHeight;
+
+    return SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: columns,
+      mainAxisExtent: cardHeight,
+      crossAxisSpacing: _productGridCrossSpacing,
+      mainAxisSpacing: 12,
+    );
+  }
+
   // ── 3. Grid Produk ────────────────────────────────────────────────────────
   Widget _buildProductGrid(
       PublicStoreController controller, BuildContext context) {
@@ -1962,12 +1985,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
       return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisExtent: 356, // Sesuaikan tinggi dengan ukuran komponen card
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
+          gridDelegate: _buildProductGridDelegate(context),
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               ProdukModel produk = controller.products[index];
@@ -2018,6 +2036,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
                     builder: (BuildContext context) {
                       return BottomSheetProduk(
                         image: produk.image,

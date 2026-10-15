@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,6 +8,8 @@ class BeritaCard extends StatelessWidget {
   final String title;
   final String source;
   final String url;
+  final String? date;
+  final VoidCallback? onTap;
 
   const BeritaCard({
     super.key,
@@ -14,11 +17,41 @@ class BeritaCard extends StatelessWidget {
     required this.title,
     required this.source,
     required this.url,
+    this.date,
+    this.onTap,
   });
 
   Future<void> _open() async {
-    final uri = Uri.parse(url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (url.trim().isEmpty) return;
+    final uri = Uri.tryParse(url.trim());
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Widget _buildImage() {
+    Widget fallback() => Container(
+          color: const Color(0xFFF0F2F1),
+          child: const Icon(Icons.newspaper_rounded,
+              color: Color(0xFFBDBDBD), size: 30),
+        );
+
+    final resolved = getFotoBeritaUrl(image);
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+      return Image.network(
+        resolved,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback(),
+      );
+    }
+    if (image.startsWith('assets/')) {
+      return Image.asset(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback(),
+      );
+    }
+    return fallback();
   }
 
   @override
@@ -40,7 +73,7 @@ class BeritaCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: _open,
+          onTap: onTap ?? _open,
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Row(
@@ -50,15 +83,7 @@ class BeritaCard extends StatelessWidget {
                   child: SizedBox(
                     width: 92,
                     height: 92,
-                    child: Image.network(
-                      image,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFF0F2F1),
-                        child: const Icon(Icons.image_rounded,
-                            color: Color(0xFFBDBDBD)),
-                      ),
-                    ),
+                    child: _buildImage(),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -71,7 +96,7 @@ class BeritaCard extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          maxLines: 3,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: AppColors.fontStyle(
                             fontSize: 13.5,
@@ -98,9 +123,9 @@ class BeritaCard extends StatelessWidget {
                                   const SizedBox(width: 4),
                                   ConstrainedBox(
                                     constraints:
-                                        const BoxConstraints(maxWidth: 120),
+                                        const BoxConstraints(maxWidth: 100),
                                     child: Text(
-                                      source,
+                                      source.isNotEmpty ? source : 'Berita',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: AppColors.fontStyle(
@@ -113,7 +138,22 @@ class BeritaCard extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const Spacer(),
+                            if (date != null && date!.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  date!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppColors.fontStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF8E8E8E),
+                                  ),
+                                ),
+                              ),
+                            ] else
+                              const Spacer(),
                             const Icon(Icons.arrow_outward_rounded,
                                 size: 18, color: Color(0xFF8E8E8E)),
                           ],

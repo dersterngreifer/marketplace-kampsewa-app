@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -8,6 +9,7 @@ class WisataCard extends StatelessWidget {
   final String deskripsi;
   final String lokasi;
   final String url;
+  final VoidCallback? onTap;
 
   const WisataCard({
     super.key,
@@ -16,11 +18,15 @@ class WisataCard extends StatelessWidget {
     required this.deskripsi,
     required this.lokasi,
     required this.url,
+    this.onTap,
   });
 
   Future<void> _open() async {
-    final uri = Uri.parse(url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (url.trim().isEmpty) return;
+    final uri = Uri.tryParse(url.trim());
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildImage() {
@@ -32,20 +38,28 @@ class WisataCard extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
           ),
+          child: const Center(
+            child: Icon(Icons.landscape_rounded,
+                color: Colors.white24, size: 40),
+          ),
         );
 
-    if (image.startsWith('http')) {
+    final resolved = getFotoWisataUrl(image);
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
       return Image.network(
+        resolved,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback(),
+      );
+    }
+    if (image.startsWith('assets/')) {
+      return Image.asset(
         image,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => fallback(),
       );
     }
-    return Image.asset(
-      image,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => fallback(),
-    );
+    return fallback();
   }
 
   @override
@@ -107,7 +121,7 @@ class WisataCard extends StatelessWidget {
                       const SizedBox(width: 3),
                       Flexible(
                         child: Text(
-                          lokasi,
+                          lokasi.isNotEmpty ? lokasi : 'Indonesia',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppColors.fontStyle(
@@ -162,7 +176,7 @@ class WisataCard extends StatelessWidget {
             Positioned.fill(
               child: Material(
                 color: Colors.transparent,
-                child: InkWell(onTap: _open),
+                child: InkWell(onTap: onTap ?? _open),
               ),
             ),
           ],

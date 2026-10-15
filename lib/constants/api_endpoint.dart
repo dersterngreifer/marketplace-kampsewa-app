@@ -123,10 +123,54 @@ String getFotoIklanUrl(String? filename) {
   return resolveFullUrl(trimmed, ApiEndpoints.authendpoints.getImageIklan);
 }
 
+/// Membangun URL foto rekomendasi wisata.
+/// Mendukung URL penuh (http/https), path relatif (/assets/...),
+/// atau nama file mentah di folder `/assets/image/rekomendasi-wisata/`.
+String getFotoWisataUrl(String? filename) {
+  if (filename == null || filename.isEmpty) {
+    return '';
+  }
+  final String trimmed = filename.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (trimmed.contains('localhost') || trimmed.contains('127.0.0.1')) {
+      final uri = Uri.tryParse(trimmed);
+      if (uri != null) {
+        return '${ApiEndpoints.baseUrl}${uri.path}';
+      }
+    }
+    return trimmed;
+  }
+  return resolveFullUrl(trimmed, ApiEndpoints.authendpoints.getImageWisata);
+}
+
+/// Membangun URL foto berita terkini.
+/// Mendukung URL penuh (http/https), path relatif (/assets/...),
+/// atau nama file mentah di folder `/assets/image/berita-terkini/`.
+String getFotoBeritaUrl(String? filename) {
+  if (filename == null || filename.isEmpty) {
+    return '';
+  }
+  final String trimmed = filename.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (trimmed.contains('localhost') || trimmed.contains('127.0.0.1')) {
+      final uri = Uri.tryParse(trimmed);
+      if (uri != null) {
+        return '${ApiEndpoints.baseUrl}${uri.path}';
+      }
+    }
+    return trimmed;
+  }
+  return resolveFullUrl(trimmed, ApiEndpoints.authendpoints.getImageBerita);
+}
+
 class AuthEndPoints {
   final String getFotoProfile = "/assets/image/customers/profile/";
   final String getImageIklan = "/assets/image/customers/advert/";
   final String getImageProduk = "/assets/image/customers/produk/";
+  final String getImageWisata = "/assets/image/rekomendasi-wisata/";
+  final String getImageBerita = "/assets/image/berita-terkini/";
+  final String getWisata = "/api/wisata";
+  final String getBerita = "/api/berita";
   final String login = "/api/login";
   final String register = "/api/register";
   final String logout = "/api/logout";

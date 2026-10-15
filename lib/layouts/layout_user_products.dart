@@ -169,16 +169,34 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
     );
   }
 
+  static const double _productGridInfoHeight = 154.0;
+  static const double _productGridHorizontalPadding = 6.0;
+  static const double _productGridCrossSpacing = 8.0;
+
+  /// Grid delegate dinamis: tinggi kartu = lebar kartu (foto 1:1) + tinggi info.
+  /// Mencegah gap berlebih pada layar kecil dan overflow pada layar besar.
+  SliverGridDelegate _buildProductGridDelegate(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    const columns = 2;
+    final cardWidth = (screenWidth -
+            (_productGridHorizontalPadding * 2) -
+            (_productGridCrossSpacing * (columns - 1))) /
+        columns;
+    final cardHeight = cardWidth + _productGridInfoHeight;
+
+    return SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: columns,
+      mainAxisExtent: cardHeight,
+      crossAxisSpacing: _productGridCrossSpacing,
+      mainAxisSpacing: 10,
+    );
+  }
+
   Widget _buildShimmerLoading() {
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(6, 0, 6, 24),
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisExtent: 356,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 10,
-      ),
+      gridDelegate: _buildProductGridDelegate(context),
       itemCount: 4,
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
@@ -225,12 +243,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
       return GridView.builder(
         padding: const EdgeInsets.fromLTRB(6, 0, 6, 24),
         physics: const BouncingScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisExtent: 356,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 10,
-        ),
+        gridDelegate: _buildProductGridDelegate(context),
         itemCount: listProduk.length,
         itemBuilder: (context, index) {
           final ProdukModel p = listProduk[index];

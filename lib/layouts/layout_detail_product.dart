@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -48,6 +49,8 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   TextEditingController reviewController = TextEditingController();
   File? reviewImage;
   bool isSubmittingReview = false;
+  bool isPickingReviewImage = false;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void dispose() {
@@ -1132,13 +1135,141 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
     });
   }
 
-  Future<void> _pickReviewImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        reviewImage = File(image.path);
-      });
+  void _showImagePickerModal() {
+    if (isPickingReviewImage) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Text(
+                  "Pilih Sumber Foto",
+                  style: AppColors.fontStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2F2828),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.mainColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded,
+                        color: AppColors.mainColor),
+                  ),
+                  title: Text(
+                    "Kamera",
+                    style: AppColors.fontStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    "Ambil foto ulasan langsung dari kamera",
+                    style: AppColors.fontStyle(
+                        fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickReviewImage(ImageSource.camera);
+                  },
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.mainColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.photo_library_rounded,
+                        color: AppColors.mainColor),
+                  ),
+                  title: Text(
+                    "Galeri",
+                    style: AppColors.fontStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    "Pilih foto ulasan yang tersimpan di galeri",
+                    style: AppColors.fontStyle(
+                        fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickReviewImage(ImageSource.gallery);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickReviewImage(ImageSource source) async {
+    if (isPickingReviewImage) return;
+    setState(() => isPickingReviewImage = true);
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+      if (image != null && mounted) {
+        setState(() {
+          reviewImage = File(image.path);
+        });
+      }
+    } on PlatformException catch (e) {
+      debugPrint("PlatformException picking review image: $e");
+      if (e.code != 'already_active') {
+        if (mounted) {
+          CustomSnackBar.show(
+            context,
+            sukses: false,
+            title: "Gagal Mengambil Foto",
+            teks: e.message ?? "Tidak dapat mengakses media.",
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error picking review image: $e");
+      if (mounted) {
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          title: "Gagal Mengambil Foto",
+          teks: "Terjadi kesalahan saat memilih gambar.",
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isPickingReviewImage = false);
+      } else {
+        isPickingReviewImage = false;
+      }
     }
   }
 
@@ -1313,7 +1444,7 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                 children: [
                   InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: _pickReviewImage,
+                    onTap: isPickingReviewImage ? null : _showImagePickerModal,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
@@ -1324,11 +1455,21 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.add_a_photo_outlined,
-                              size: 18, color: Color(0xFF616161)),
+                          if (isPickingReviewImage)
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF616161),
+                              ),
+                            )
+                          else
+                            const Icon(Icons.add_a_photo_outlined,
+                                size: 18, color: Color(0xFF616161)),
                           const SizedBox(width: 8),
                           Text(
-                            "Foto",
+                            isPickingReviewImage ? "Memuat..." : "Foto",
                             style: AppColors.fontStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,

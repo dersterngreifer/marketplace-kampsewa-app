@@ -366,7 +366,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
   /// Chip rating ala marketplace: "★ 4.8"
   Widget _ratingChip() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2.5),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF6DE),
         borderRadius: BorderRadius.circular(6),
@@ -374,12 +374,12 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFA000)),
-          const SizedBox(width: 3),
+          const Icon(Icons.star_rounded, size: 12.5, color: Color(0xFFFFA000)),
+          const SizedBox(width: 2.5),
           Text(
             formatRating(widget.rating),
             style: AppColors.fontStyle(
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
               color: const Color(0xFF8A5A00),
             ),
@@ -391,14 +391,14 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
 
   // Catatan:
   // - Padding & spacing dirapatkan supaya konten selalu muat di dalam
-  //   Expanded walau GridView pakai mainAxisExtent tetap (mis. 340).
+  //   Expanded walau GridView pakai mainAxisExtent tetap maupun dinamis.
   // - Expanded kosong di tengah menyerap sisa ruang vertikal supaya blok
   //   harga + tombol selalu menempel rapi di bawah card, bukan menyisakan
   //   celah kosong di bawah tombol.
   Widget _buildInfoSection() {
     final bisaDitambah = widget.stok > 0 && widget.badgeLabel != 'Milik Anda' && !widget.isOwner;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
+      padding: const EdgeInsets.fromLTRB(9, 7, 9, 7),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -414,13 +414,13 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               height: 1.15,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
 
           // Rating chip + jumlah ulasan
           Row(
             children: [
               _ratingChip(),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
               Flexible(
                 child: Text(
                   '${widget.jumlahReview} ulasan',
@@ -435,15 +435,15 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
 
           // Nama Toko
           if (widget.namaToko != null)
             Row(
               children: [
                 Container(
-                  width: 16,
-                  height: 16,
+                  width: 15,
+                  height: 15,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.grey.shade200),
@@ -458,24 +458,24 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                             errorBuilder: (_, __, ___) => Container(
                               color: Colors.grey.shade100,
                               child: const Icon(Icons.store_rounded,
-                                  size: 9, color: Color(0xFF8E8E8E)),
+                                  size: 8.5, color: Color(0xFF8E8E8E)),
                             ),
                           )
                         : Container(
                             color: Colors.grey.shade100,
                             child: const Icon(Icons.store_rounded,
-                                size: 9, color: Color(0xFF8E8E8E)),
+                                size: 8.5, color: Color(0xFF8E8E8E)),
                           ),
                   ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     widget.namaToko!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppColors.fontStyle(
-                      fontSize: 11.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: _grey,
                     ),
@@ -547,7 +547,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
               ],
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
 
           // Tombol Sewa
           SizedBox(
@@ -559,7 +559,7 @@ class _ProdukTerlarisDashboardState extends State<ProdukTerlarisDashboard>
                 borderRadius: BorderRadius.circular(8),
                 onTap: bisaDitambah ? widget.aksiKeranjang : null,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  padding: const EdgeInsets.symmetric(vertical: 6.5),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

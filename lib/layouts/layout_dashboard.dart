@@ -12,10 +12,16 @@ import 'package:project_camp_sewa/layouts/layout_detail_product.dart';
 import 'package:project_camp_sewa/layouts/layout_keranjang.dart';
 import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
 import 'package:project_camp_sewa/layouts/layout_search_screen.dart';
+import 'package:project_camp_sewa/layouts/layout_detail_berita.dart';
+import 'package:project_camp_sewa/layouts/layout_detail_wisata.dart';
+import 'package:project_camp_sewa/layouts/layout_list_berita.dart';
+import 'package:project_camp_sewa/layouts/layout_list_wisata.dart';
 import 'package:project_camp_sewa/models/api_response.dart';
+import 'package:project_camp_sewa/models/article_model.dart';
 import 'package:project_camp_sewa/models/berita_model.dart';
 import 'package:project_camp_sewa/models/iklan_model.dart';
 import 'package:project_camp_sewa/models/wisata_model.dart';
+import 'package:project_camp_sewa/services/api_article.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/services/api_iklan.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
@@ -41,8 +47,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   ApiIklan apiIklan = Get.put(ApiIklan());
   ApiProduk apiProduk = Get.put(ApiProduk());
   KeranjangController keranjangController = Get.put(KeranjangController());
-
-
+  ApiArticle apiArticle = Get.put(ApiArticle());
 
   late List<WisataModel> wisataList;
   late List<BeritaModel> beritaList;
@@ -67,6 +72,9 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
       apiProduk.getFeaturedProduk(context);
       // Load keranjang agar badge icon langsung terupdate
       keranjangController.loadKeranjang(context);
+      // Ambil rekomendasi wisata dan berita terkini dinamis dari backend database
+      apiArticle.fetchWisataDashboard(limit: 6);
+      apiArticle.fetchBeritaDashboard(limit: 5);
     });
   }
 
@@ -100,6 +108,8 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             onRefresh: () async {
               apiIklan.getIklan(context);
               apiProduk.getListKategori();
+              apiArticle.fetchWisataDashboard(limit: 6);
+              apiArticle.fetchBeritaDashboard(limit: 5);
               await apiDataUser.getDataUser(context);
               if (!context.mounted) return;
               await apiProduk.getFeaturedProduk(context);
@@ -118,56 +128,185 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
                   _buildCategories(),
                   const SizedBox(height: 8),
                   _buildPromoBanner(),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 18),
                   _buildFeaturedProducts(),
                   const SizedBox(height: 28),
-                  _buildSectionHeader("Rekomendasi Wisata"),
+                  _buildSectionHeader(
+                    "Rekomendasi Wisata",
+                    actionLabel: "Lihat Semua",
+                    onAction: () => Get.to(() => const LayoutListWisata()),
+                  ),
                   const SizedBox(height: 14),
                   SizedBox(
                     height: 210,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
+                    child: Obx(() {
+                      if (apiArticle.isLoadingWisataDashboard.value &&
+                          apiArticle.listWisataDashboard.isEmpty) {
+                        return ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          scrollDirection: Axis.horizontal,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: 3,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 14),
+                          itemBuilder: (_, __) => Container(
+                            width: 270,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: const _ShimmerBox(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(22)),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final items = apiArticle.listWisataDashboard.isNotEmpty
+                          ? apiArticle.listWisataDashboard
+                          : <ArticleModel>[];
+
+                      if (items.isEmpty) {
+                        return ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          clipBehavior: Clip.none,
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemBuilder: (context, index) {
+                            WisataModel list = wisataList[index];
+                            return WisataCard(
+                              image: list.image,
+                              title: list.wisata,
+                              deskripsi: list.deskripsi,
+                              lokasi: list.lokasi,
+                              url: list.source,
+                            );
+                          },
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 14),
+                          itemCount: wisataList.length,
+                        );
+                      }
+
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                        clipBehavior: Clip.none,
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemBuilder: (context, index) {
+                          ArticleModel list = items[index];
+                          return WisataCard(
+                            image: list.gambar,
+                            title: list.judul,
+                            deskripsi: list.deskripsiSingkat,
+                            lokasi: list.lokasi ?? '',
+                            url: list.sumberUrl ?? '',
+                            onTap: () {
+                              Get.to(() =>
+                                  LayoutDetailWisata(initialArticle: list));
+                            },
+                          );
+                        },
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(width: 14),
+                        itemCount: items.length,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 28),
+                  _buildSectionHeader(
+                    "Berita Terkini",
+                    actionLabel: "Lihat Semua",
+                    onAction: () => Get.to(() => const LayoutListBerita()),
+                  ),
+                  const SizedBox(height: 14),
+                  Obx(() {
+                    if (apiArticle.isLoadingBeritaDashboard.value &&
+                        apiArticle.listBeritaDashboard.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: List.generate(
+                            3,
+                            (index) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Container(
+                                height: 92,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const _ShimmerBox(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(20)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final items = apiArticle.listBeritaDashboard.isNotEmpty
+                        ? apiArticle.listBeritaDashboard
+                        : <ArticleModel>[];
+
+                    if (items.isEmpty) {
+                      return ListView.separated(
+                        padding: const EdgeInsets.only(
+                            left: 20, right: 20, bottom: 20, top: 4),
+                        clipBehavior: Clip.none,
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemBuilder: (context, index) {
+                          BeritaModel list = beritaList[index];
+                          return BeritaCard(
+                            image: list.image,
+                            title: list.judul,
+                            source: list.source,
+                            url: list.link,
+                          );
+                        },
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemCount: beritaList.length,
+                      );
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.only(
+                          left: 20, right: 20, bottom: 20, top: 4),
                       clipBehavior: Clip.none,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
                       itemBuilder: (context, index) {
-                        WisataModel list = wisataList[index];
-                        return WisataCard(
-                          image: list.image,
-                          title: list.wisata,
-                          deskripsi: list.deskripsi,
-                          lokasi: list.lokasi,
-                          url: list.source,
+                        ArticleModel list = items[index];
+                        return BeritaCard(
+                          image: list.gambar,
+                          title: list.judul,
+                          source: (list.sumberNama != null &&
+                                  list.sumberNama!.trim().isNotEmpty)
+                              ? list.sumberNama!.trim()
+                              : 'Berita',
+                          url: list.sumberUrl ?? '',
+                          date: list.waktuLalu.isNotEmpty
+                              ? list.waktuLalu
+                              : list.tanggalUpload,
+                          onTap: () {
+                            Get.to(() =>
+                                LayoutDetailBerita(initialArticle: list));
+                          },
                         );
                       },
                       separatorBuilder: (context, index) =>
-                          const SizedBox(width: 14),
-                      itemCount: wisataList.length,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  _buildSectionHeader("Berita Terkini"),
-                  const SizedBox(height: 14),
-                  ListView.separated(
-                    padding: const EdgeInsets.only(
-                        left: 20, right: 20, bottom: 20, top: 4),
-                    clipBehavior: Clip.none,
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemBuilder: (context, index) {
-                      BeritaModel list = beritaList[index];
-                      return BeritaCard(
-                        image: list.image,
-                        title: list.judul,
-                        source: list.source,
-                        url: list.link,
-                      );
-                    },
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemCount: beritaList.length,
-                  ),
+                          const SizedBox(height: 12),
+                      itemCount: items.length,
+                    );
+                  }),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -507,8 +646,8 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
       // Lebar kartu banner dengan margin horizontal 16 di setiap sisi (total 32)
       final double bannerWidth = (screenWidth - 32).clamp(280.0, 600.0);
       final double bannerImgHeight = bannerWidth * 9 / 16;
-      // Foto 16:9 + gap 8 + info card (pad 24 + judul 40 + gap 4 + desc 34 + gap 10 + tombol 32) + buffer aman
-      final double carouselHeight = bannerImgHeight + 158;
+      // Foto 16:9 + gap 8 + info card rapat (Expanded dengan judul, sub judul, deskripsi)
+      final double carouselHeight = bannerImgHeight + 152;
 
       return Column(
         children: [
@@ -529,7 +668,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             }),
           ),
           if (bannerCount > 1) ...[
-            const SizedBox(height: 5),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(bannerCount, (i) {
@@ -843,7 +982,6 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── FOTO PROMO — container sendiri ──
@@ -918,98 +1056,119 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
           const SizedBox(height: 8),
 
           // ── INFO PROMO — container terpisah ──
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE9EDE9)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // JUDUL PROMO
-                Text(
-                  iklan.judul,
-                  style: AppColors.fontStyle(
-                    fontSize: 18.5,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black,
-                    height: 1.2,
-                    letterSpacing: -0.3,
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE9EDE9)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 5),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 1. JUDUL PROMO
+                      Text(
+                        iklan.judul,
+                        style: AppColors.fontStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black,
+                          height: 1.2,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
 
-                // SUB JUDUL (tagline) — fallback ke deskripsi jika kosong.
-                // Deskripsi lengkap tampil di popup "Selengkapnya".
-                Text(
-                  iklan.subJudul.trim().isNotEmpty
-                      ? iklan.subJudul.trim()
-                      : descText,
-                  style: AppColors.fontStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                    height: 1.35,
+                      // 2. SUB JUDUL (tagline)
+                      if (iklan.subJudul.trim().isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          iklan.subJudul.trim(),
+                          style: AppColors.fontStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: _green,
+                            height: 1.25,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+
+                      // 3. DESKRIPSI
+                      if (descText.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          descText,
+                          style: AppColors.fontStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF616161),
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
 
-                const SizedBox(height: 10),
-
-                // AKSI PROMO
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: openPromoDetail,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 4, horizontal: 2),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  "Selengkapnya",
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppColors.fontStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: _green,
+                  // AKSI PROMO
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: openPromoDetail,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 4, horizontal: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    "Selengkapnya",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppColors.fontStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: _green,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 5),
-                              const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 12,
-                                color: _green,
-                              ),
-                            ],
+                                const SizedBox(width: 5),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 12,
+                                  color: _green,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    _buildCtaButton(onTap: navigateToPromoTarget),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 10),
+                      _buildCtaButton(onTap: navigateToPromoTarget),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1166,12 +1325,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
             clipBehavior: Clip.none,
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisExtent: 356,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 10,
-            ),
+            gridDelegate: _buildProductGridDelegate(context),
             itemCount: listProduk.length,
             itemBuilder: (context, index) {
               final p = listProduk[index];
@@ -1286,6 +1440,29 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
     );
   }
 
+  static const double _productGridInfoHeight = 154.0;
+  static const double _productGridHorizontalPadding = 6.0;
+  static const double _productGridCrossSpacing = 8.0;
+
+  /// Grid delegate dinamis: tinggi kartu = lebar kartu (foto 1:1) + tinggi info.
+  /// Mencegah gap berlebih pada layar kecil dan overflow pada layar besar.
+  SliverGridDelegate _buildProductGridDelegate(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    const columns = 2;
+    final cardWidth = (screenWidth -
+            (_productGridHorizontalPadding * 2) -
+            (_productGridCrossSpacing * (columns - 1))) /
+        columns;
+    final cardHeight = cardWidth + _productGridInfoHeight;
+
+    return SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: columns,
+      mainAxisExtent: cardHeight,
+      crossAxisSpacing: _productGridCrossSpacing,
+      mainAxisSpacing: 10,
+    );
+  }
+
   /// Skeleton shimmer untuk grid produk saat loading
   Widget _buildProductShimmer() {
     return GridView.builder(
@@ -1293,12 +1470,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
       clipBehavior: Clip.none,
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisExtent: 356,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 10,
-      ),
+      gridDelegate: _buildProductGridDelegate(context),
       itemCount: 4,
       itemBuilder: (context, index) =>
           _ShimmerBox(borderRadius: BorderRadius.circular(20)),
