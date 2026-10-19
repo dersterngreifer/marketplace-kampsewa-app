@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -139,11 +140,32 @@ class _LayoutChatRoomState extends State<LayoutChatRoom> {
       } else if (receiverId != null) {
         apiChat.getChatMessagesByUser(receiverId!);
       }
+      _startPolling();
     });
+  }
+
+  Timer? _pollingTimer;
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      if (widget.chatRoom?.roomId != null) {
+        apiChat.getChatMessages(widget.chatRoom!.roomId!, isSilent: true);
+      } else if (receiverId != null) {
+        apiChat.getChatMessagesByUser(receiverId!, isSilent: true);
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
   }
 
   @override
   void dispose() {
+    _stopPolling();
     _messageController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();

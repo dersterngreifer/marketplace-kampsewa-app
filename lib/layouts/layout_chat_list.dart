@@ -82,6 +82,8 @@ class _LayoutChatListState extends State<LayoutChatList>
       {required bool onlyUnread}) {
     final q = _query.trim().toLowerCase();
     return all.where((c) {
+      // Pastikan pesan admin tidak masuk ke list chat room antar pengguna
+      if (c.user?.type == 1) return false;
       if (onlyUnread && c.unreadCount <= 0) return false;
       if (q.isEmpty) return true;
       return _displayName(c).toLowerCase().contains(q) ||
@@ -162,7 +164,7 @@ class _LayoutChatListState extends State<LayoutChatList>
                         const SizedBox(height: 2),
                         Obx(() {
                           final n = apiChat.chatRooms
-                              .where((c) => c.unreadCount > 0)
+                              .where((c) => c.user?.type != 1 && c.unreadCount > 0)
                               .length;
                           return Text(
                             n > 0
@@ -264,7 +266,7 @@ class _LayoutChatListState extends State<LayoutChatList>
               const Text('Belum dibaca'),
               Obx(() {
                 final n =
-                    apiChat.chatRooms.where((c) => c.unreadCount > 0).length;
+                    apiChat.chatRooms.where((c) => c.user?.type != 1 && c.unreadCount > 0).length;
                 if (n == 0) return const SizedBox.shrink();
                 return Container(
                   margin: const EdgeInsets.only(left: 6),

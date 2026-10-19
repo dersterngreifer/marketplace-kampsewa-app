@@ -42,12 +42,14 @@ class ChatRoomModel {
 class ChatUserModel {
   int? id;
   String? name;
+  int? type;
   String? fotoProfile; // sudah full URL, siap pakai
   String? namaToko;
 
   ChatUserModel({
     this.id,
     this.name,
+    this.type,
     this.fotoProfile,
     this.namaToko,
   });
@@ -77,6 +79,7 @@ class ChatUserModel {
     return ChatUserModel(
       id: json['id'],
       name: json['name'],
+      type: json['type'] != null ? int.tryParse(json['type'].toString()) : null,
       fotoProfile: (resolvedFoto?.isNotEmpty == true) ? resolvedFoto : null,
       namaToko: json['nama_toko'],
     );

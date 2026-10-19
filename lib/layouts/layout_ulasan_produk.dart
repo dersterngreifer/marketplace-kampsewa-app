@@ -4,6 +4,7 @@ import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
+import 'package:project_camp_sewa/components/card/review_photos_carousel.dart';
 import 'package:shimmer/shimmer.dart';
 
 class LayoutUlasanProduk extends StatefulWidget {
@@ -228,10 +229,24 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
                           final fotoUser = fotoUserRaw.isNotEmpty ? resolveFullUrl(fotoUserRaw, ApiEndpoints.authendpoints.getFotoProfile) : '';
                           final namaUser = review['nama_user']?.toString() ?? 'Pengguna';
                           final ulasanText = review['ulasan']?.toString() ?? '';
-                          final fotoUlasanRaw = review['foto_ulasan']?.toString() ?? '';
-                          final fotoUlasan = fotoUlasanRaw.isNotEmpty ? resolveFullUrl(fotoUlasanRaw, ApiEndpoints.baseUrl) : '';
                           final ratingVal = review['rating'] != null ? double.tryParse(review['rating'].toString())?.toInt() ?? 0 : 0;
                           final dateVal = review['tanggal_ulasan']?.toString() ?? '';
+
+                          final List<String> reviewPhotos = [];
+                          if (review['fotos_ulasan'] != null && review['fotos_ulasan'] is List) {
+                            for (var item in review['fotos_ulasan']) {
+                              final str = item?.toString() ?? '';
+                              if (str.isNotEmpty) {
+                                reviewPhotos.add(resolveFullUrl(str, ApiEndpoints.baseUrl));
+                              }
+                            }
+                          }
+                          if (reviewPhotos.isEmpty && review['foto_ulasan'] != null) {
+                            final str = review['foto_ulasan']?.toString() ?? '';
+                            if (str.isNotEmpty) {
+                              reviewPhotos.add(resolveFullUrl(str, ApiEndpoints.baseUrl));
+                            }
+                          }
 
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,25 +317,11 @@ class _LayoutUlasanProdukState extends State<LayoutUlasanProduk> {
                                   height: 1.5,
                                 ),
                               ),
-                              if (fotoUlasan.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    fotoUlasan,
-                                    height: 80,
-                                    width: 80,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        Container(
-                                          height: 80,
-                                          width: 80,
-                                          color: Colors.grey.shade200,
-                                          child: const Icon(Icons.broken_image, color: Colors.grey),
-                                        ),
-                                  ),
+                              if (reviewPhotos.isNotEmpty)
+                                ReviewPhotosCarousel(
+                                  photos: reviewPhotos,
+                                  reviewerName: namaUser,
                                 ),
-                              ],
                             ],
                           );
                         },

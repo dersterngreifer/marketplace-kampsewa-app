@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/services/api_transaksi.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
@@ -44,40 +43,55 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
     return formatter.format(number);
   }
 
-  checkPermissions() async {
-    Map<Permission, PermissionStatus> status = await [
-      Permission.camera,
-      Permission.storage,
-    ].request();
-    if (status[Permission.camera] != PermissionStatus.granted ||
-        status[Permission.storage] != PermissionStatus.granted) {
-      return;
+  Future<void> pickedBuktiPembayaran() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        setState(() {
+          buktiPembayaran = picked;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking bukti pembayaran: $e");
     }
   }
 
-  pickedBuktiPembayaran() async {
-    final picker = ImagePicker();
-    buktiPembayaran = await picker.pickImage(source: ImageSource.gallery);
-    setState(() {});
-  }
+  Future<void> pickedJaminanSewa() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      
+      if (pickedFile != null) {
+        if (!mounted) return;
+        ApiDataUser apiDataUser = Get.put(ApiDataUser());
+        bool isKtpValid = await apiDataUser.verifyKTP(context, pickedFile.path);
 
-  pickedJaminanSewa() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      if (!mounted) return;
-      ApiDataUser apiDataUser = Get.put(ApiDataUser());
-      bool isKtpValid = await apiDataUser.verifyKTP(context, pickedFile.path);
-
-      if (!mounted) return;
-      if (isKtpValid) {
-        jaminanSewa = pickedFile;
-      } else {
-        CustomSnackBar.show(context, sukses: false, title: "Verifikasi Ditolak", teks: "Sistem mendeteksi gambar tersebut bukan KTP. Harap unggah KTP asli.");
-        jaminanSewa = null;
+        if (!mounted) return;
+        if (isKtpValid) {
+          setState(() {
+            jaminanSewa = pickedFile;
+          });
+        } else {
+          CustomSnackBar.show(
+            context,
+            sukses: false,
+            title: "Verifikasi Ditolak",
+            teks: "Sistem mendeteksi gambar tersebut bukan KTP. Harap unggah KTP asli.",
+          );
+          setState(() {
+            jaminanSewa = null;
+          });
+        }
       }
-      setState(() {});
+    } catch (e) {
+      debugPrint("Error picking jaminan sewa: $e");
     }
   }
 
@@ -113,7 +127,7 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
                     ),
                     child: Column(
                       children: [
@@ -133,7 +147,7 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2C4E40).withOpacity(0.1),
+                                color: const Color(0xFF2C4E40).withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(MdiIcons.bank, color: Color(0xFF2C4E40), size: 24),
@@ -183,7 +197,6 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
                           title: "Bukti Transfer",
                           file: buktiPembayaran,
                           onTap: () async {
-                            await checkPermissions();
                             await pickedBuktiPembayaran();
                           },
                         ),
@@ -194,7 +207,6 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
                           title: "Foto KTP Asli",
                           file: jaminanSewa,
                           onTap: () async {
-                            await checkPermissions();
                             await pickedJaminanSewa();
                           },
                         ),
@@ -207,9 +219,9 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.05),
+                      color: Colors.blue.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,7 +251,7 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), offset: const Offset(0, -4), blurRadius: 10)],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), offset: const Offset(0, -4), blurRadius: 10)],
             ),
             child: ElevatedButton(
               onPressed: () {
@@ -311,7 +323,7 @@ class _LayoutPembayaranState extends State<LayoutPembayaran> {
                     fit: StackFit.expand,
                     children: [
                       Image.file(File(file.path), fit: BoxFit.cover),
-                      Container(color: Colors.black.withOpacity(0.3)),
+                      Container(color: Colors.black.withValues(alpha: 0.3)),
                       const Center(child: Icon(Icons.check_circle_rounded, color: Colors.white, size: 32)),
                     ],
                   )

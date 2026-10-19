@@ -39,9 +39,12 @@ class _LayoutLoginState extends State<LayoutLogin> {
       systemNavigationBarDividerColor: Colors.transparent,
     ));
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Container(
         width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height,
+        ),
         decoration: const BoxDecoration(color: Colors.white),
         child: Column(
           children: [
@@ -174,7 +177,7 @@ class _LayoutLoginState extends State<LayoutLogin> {
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 34),
               child: ButtonVersiSatu(
@@ -185,36 +188,39 @@ class _LayoutLoginState extends State<LayoutLogin> {
                   title: "Login",
                   bgTombol: AppColors.mainColor),
             ),
-            Expanded(
-                child: InkWell(
-              onTap: () {
-                Get.to(const RegisterScreen());
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Belum punya akun?",
-                    style: AppColors.fontStyle(
-                      color: Colors.black54,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 32),
+              child: InkWell(
+                onTap: () {
+                  Get.to(const RegisterScreen());
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Belum punya akun?",
+                      style: AppColors.fontStyle(
+                        color: Colors.black54,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    "Daftar Disini!",
-                    style: AppColors.fontStyle(
-                      color: AppColors.mainColor,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                      decorationColor: AppColors.mainColor,
+                    const SizedBox(width: 6),
+                    Text(
+                      "Daftar Disini!",
+                      style: AppColors.fontStyle(
+                        color: AppColors.mainColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.mainColor,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ))
+            ),
           ],
         ),
       ),

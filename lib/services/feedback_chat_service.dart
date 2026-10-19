@@ -314,13 +314,17 @@ class FeedbackChatService extends GetxController {
         // Jika kita sedang menunggu balasan (adminId null/0), cek apakah di list 
         // polling sudah muncul admin yang membalas. Jika ada, gunakan adminId tersebut!
         if (_pollingAdminId == null || _pollingAdminId == 0) {
-          try {
-            final updatedItem = feedbackList.firstWhere(
-              (item) => item.id == _pollingFeedbackId && item.adminId != null && item.adminId! > 0,
-            );
-            _pollingAdminId = updatedItem.adminId;
-          } catch (_) {
-            // Belum ada admin yang membalas
+          if (currentThread.value?.admin?.id != null && currentThread.value!.admin!.id > 0) {
+            _pollingAdminId = currentThread.value!.admin!.id;
+          } else {
+            try {
+              final updatedItem = feedbackList.firstWhere(
+                (item) => item.id == _pollingFeedbackId && item.adminId != null && item.adminId! > 0,
+              );
+              _pollingAdminId = updatedItem.adminId;
+            } catch (_) {
+              // Belum ada admin yang membalas
+            }
           }
         }
 

@@ -1721,7 +1721,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                                   ),
                                   Switch.adaptive(
                                     value: isPromo,
-                                    activeColor: const Color(0xFFE53935),
+                                    activeThumbColor: const Color(0xFFE53935),
                                     onChanged: (_) {
                                       controller.togglePromoFilter();
                                       setStateModal(() {});

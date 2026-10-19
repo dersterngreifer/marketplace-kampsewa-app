@@ -4,7 +4,13 @@ import 'package:get/get.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/screens/splash_screen.dart';
 
-void main() => runApp(const Main());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+  runApp(const Main());
+}
 
 class Main extends StatelessWidget {
   const Main({super.key});

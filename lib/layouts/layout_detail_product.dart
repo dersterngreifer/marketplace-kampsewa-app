@@ -15,6 +15,7 @@ import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/layouts/layout_ulasan_produk.dart';
 import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
+import 'package:project_camp_sewa/components/card/review_photos_carousel.dart';
 
 class LayoutDetailProduct extends StatefulWidget {
   const LayoutDetailProduct({super.key});
@@ -47,7 +48,7 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
 
   int reviewRating = 0;
   TextEditingController reviewController = TextEditingController();
-  File? reviewImage;
+  List<File> reviewImages = [];
   bool isSubmittingReview = false;
   bool isPickingReviewImage = false;
   final ImagePicker _imagePicker = ImagePicker();
@@ -1230,17 +1231,47 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
 
   Future<void> _pickReviewImage(ImageSource source) async {
     if (isPickingReviewImage) return;
+    if (reviewImages.length >= 10) {
+      CustomSnackBar.show(
+        context,
+        sukses: false,
+        title: "Batas Foto Tercapai",
+        teks: "Maksimal 10 foto ulasan yang dapat ditambahkan.",
+      );
+      return;
+    }
     setState(() => isPickingReviewImage = true);
 
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        imageQuality: 85,
-      );
-      if (image != null && mounted) {
-        setState(() {
-          reviewImage = File(image.path);
-        });
+      if (source == ImageSource.gallery) {
+        final List<XFile> images = await _imagePicker.pickMultiImage(
+          imageQuality: 85,
+        );
+        if (images.isNotEmpty && mounted) {
+          int remaining = 10 - reviewImages.length;
+          final List<XFile> toAdd = images.take(remaining).toList();
+          setState(() {
+            reviewImages.addAll(toAdd.map((img) => File(img.path)));
+          });
+          if (images.length > remaining && mounted) {
+            CustomSnackBar.show(
+              context,
+              sukses: false,
+              title: "Batas Maksimal Foto",
+              teks: "Hanya $remaining foto pertama yang ditambahkan (Maksimal 10 foto).",
+            );
+          }
+        }
+      } else {
+        final XFile? image = await _imagePicker.pickImage(
+          source: source,
+          imageQuality: 85,
+        );
+        if (image != null && mounted) {
+          setState(() {
+            reviewImages.add(File(image.path));
+          });
+        }
       }
     } on PlatformException catch (e) {
       debugPrint("PlatformException picking review image: $e");
@@ -1285,12 +1316,12 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
     
     setState(() => isSubmittingReview = true);
     
-    // Kirim review dengan foto (jika ada) menggunakan FormData
+    // Kirim review dengan foto-foto ulasan (maks 10) menggunakan FormData
     final res = await apiProduk.submitReview(
       idProduk.toString(), 
       reviewRating.toDouble(), 
       reviewController.text.trim(),
-      fotoPath: reviewImage?.path,
+      fotoPaths: reviewImages.map((f) => f.path).toList(),
     );
     
     if (mounted) {
@@ -1300,7 +1331,7 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
         setState(() {
           reviewRating = 0;
           reviewController.clear();
-          reviewImage = null;
+          reviewImages.clear();
           isLoadingReviews = true;
         });
         
@@ -1402,41 +1433,118 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                   contentPadding: const EdgeInsets.all(16),
                 ),
               ),
-              if (reviewImage != null) ...[
-                const SizedBox(height: 12),
-                Stack(
+              if (reviewImages.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                        image: DecorationImage(
-                          image: FileImage(reviewImage!),
-                          fit: BoxFit.cover,
-                        ),
+                    Text(
+                      "Foto Ulasan (${reviewImages.length}/10)",
+                      style: AppColors.fontStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
                       ),
                     ),
-                    Positioned(
-                      right: -8,
-                      top: -8,
-                      child: IconButton(
-                        icon: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
+                    if (reviewImages.length < 10)
+                      GestureDetector(
+                        onTap: isPickingReviewImage ? null : _showImagePickerModal,
+                        child: Text(
+                          "+ Tambah Foto",
+                          style: AppColors.fontStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.mainColor,
                           ),
-                          child: const Icon(Icons.cancel, color: Colors.red, size: 20),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            reviewImage = null;
-                          });
-                        },
                       ),
-                    ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 80,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: reviewImages.length + (reviewImages.length < 10 ? 1 : 0),
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, idx) {
+                      if (idx == reviewImages.length) {
+                        return GestureDetector(
+                          onTap: isPickingReviewImage ? null : _showImagePickerModal,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.add_photo_alternate_outlined,
+                                    size: 24, color: AppColors.mainColor),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "Tambah",
+                                  style: AppColors.fontStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.mainColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      final file = reviewImages[idx];
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                              image: DecorationImage(
+                                image: FileImage(file),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: -6,
+                            top: -6,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  reviewImages.removeAt(idx);
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ],
               const SizedBox(height: 16),
@@ -1444,14 +1552,22 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                 children: [
                   InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: isPickingReviewImage ? null : _showImagePickerModal,
+                    onTap: (isPickingReviewImage || reviewImages.length >= 10)
+                        ? null
+                        : _showImagePickerModal,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: reviewImages.length >= 10
+                            ? Colors.grey.shade100
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: reviewImages.length >= 10
+                              ? Colors.grey.shade300
+                              : AppColors.mainColor.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -1465,15 +1581,26 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                               ),
                             )
                           else
-                            const Icon(Icons.add_a_photo_outlined,
-                                size: 18, color: Color(0xFF616161)),
+                            Icon(
+                              Icons.add_a_photo_outlined,
+                              size: 18,
+                              color: reviewImages.length >= 10
+                                  ? Colors.grey
+                                  : AppColors.mainColor,
+                            ),
                           const SizedBox(width: 8),
                           Text(
-                            isPickingReviewImage ? "Memuat..." : "Foto",
+                            isPickingReviewImage
+                                ? "Memuat..."
+                                : (reviewImages.isEmpty
+                                    ? "Foto (Maks 10)"
+                                    : "Foto (${reviewImages.length}/10)"),
                             style: AppColors.fontStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF616161),
+                              color: reviewImages.length >= 10
+                                  ? Colors.grey
+                                  : const Color(0xFF2F2828),
                             ),
                           ),
                         ],
@@ -1664,10 +1791,24 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
             final fotoUser = fotoUserRaw.isNotEmpty ? resolveFullUrl(fotoUserRaw, ApiEndpoints.authendpoints.getFotoProfile) : '';
             final namaUser = review['nama_user']?.toString() ?? 'Pengguna';
             final ulasanText = review['ulasan']?.toString() ?? '';
-            final fotoUlasanRaw = review['foto_ulasan']?.toString() ?? '';
-            final fotoUlasan = fotoUlasanRaw.isNotEmpty ? resolveFullUrl(fotoUlasanRaw, ApiEndpoints.baseUrl) : '';
             final ratingVal = review['rating'] != null ? double.tryParse(review['rating'].toString())?.toInt() ?? 0 : 0;
             final dateVal = review['tanggal_ulasan']?.toString() ?? '';
+
+            final List<String> reviewPhotos = [];
+            if (review['fotos_ulasan'] != null && review['fotos_ulasan'] is List) {
+              for (var item in review['fotos_ulasan']) {
+                final str = item?.toString() ?? '';
+                if (str.isNotEmpty) {
+                  reviewPhotos.add(resolveFullUrl(str, ApiEndpoints.baseUrl));
+                }
+              }
+            }
+            if (reviewPhotos.isEmpty && review['foto_ulasan'] != null) {
+              final str = review['foto_ulasan']?.toString() ?? '';
+              if (str.isNotEmpty) {
+                reviewPhotos.add(resolveFullUrl(str, ApiEndpoints.baseUrl));
+              }
+            }
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1742,25 +1883,11 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                     height: 1.4,
                   ),
                 ),
-                if (fotoUlasan.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      fotoUlasan,
-                      height: 80,
-                      width: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Container(
-                            height: 80,
-                            width: 80,
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.broken_image, color: Colors.grey),
-                          ),
-                    ),
+                if (reviewPhotos.isNotEmpty)
+                  ReviewPhotosCarousel(
+                    photos: reviewPhotos,
+                    reviewerName: namaUser,
                   ),
-                ],
               ],
             );
           },

@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:image_picker/image_picker.dart';
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
+import 'package:project_camp_sewa/components/dialog/dialog_menunggu_verifikasi.dart';
+import 'package:project_camp_sewa/components/dialog/loading_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
@@ -311,6 +313,8 @@ class ApiTransaksi extends GetxController {
 
   Future<void> transaksiPembayaran(BuildContext context, String idTransaksi, String idToko, String totalBayar,
       XFile buktiPembayaran, XFile jaminanSewa) async {
+    final LoadingDialog loading = Get.put(LoadingDialog());
+    loading.showLoadingDialog();
     try {
       Authorization auth = Authorization();
       String? token = await auth.getToken();
@@ -344,6 +348,8 @@ class ApiTransaksi extends GetxController {
             },
           ));
 
+      loading.hideLoadingDialog();
+
       final Map<String, dynamic> data =
           response.data is String ? jsonDecode(response.data) : response.data;
 
@@ -352,27 +358,36 @@ class ApiTransaksi extends GetxController {
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (BuildContext context) {
-              return const AlertDialog(
-                backgroundColor: Colors.transparent,
-                content: CustomAlertDialog(
-                  sukses: true,
-                  title: "Menunggu Verifikasi",
-                  teks: "Pembayaran berhasil dikirim. Bukti transfer dan KTP Anda sedang diverifikasi oleh pihak toko. Mohon tunggu beberapa saat, pesanan Anda akan segera diproses.",
-                ),
+            builder: (BuildContext dialogContext) {
+              return DialogMenungguVerifikasi(
+                idPenyewaan: idTransaksi,
+                totalBayar: totalBayar,
+                onLihatStatus: () {
+                  pageController.setPageIndex(3);
+                  Get.offAll(() => const ScreenDashboard());
+                },
+                onKeBeranda: () {
+                  pageController.setPageIndex(0);
+                  Get.offAll(() => const ScreenDashboard());
+                },
               );
             },
-          ).then((_) {
-            pageController.setPageIndex(3);
-            Get.offAll(() => const ScreenDashboard());
-          });
+          );
         }
       } else {
-        CustomSnackBar.show(context, sukses: false,
-              title: "Error",
-              teks: "Gagal Mendapatkan List Bank",);
+        String errorMessage =
+            data['error'] ?? data['message'] ?? "Gagal memproses pembayaran";
+        if (context.mounted) {
+          CustomSnackBar.show(
+            context,
+            sukses: false,
+            title: "Gagal",
+            teks: errorMessage,
+          );
+        }
       }
     } on DioException catch (dioError) {
+      loading.hideLoadingDialog();
       if (NetworkErrorDialog.isNetworkOrServerError(dioError)) return;
       if (context.mounted) {
         showDialog(
@@ -386,6 +401,16 @@ class ApiTransaksi extends GetxController {
                 ),
               );
             });
+      }
+    } catch (e) {
+      loading.hideLoadingDialog();
+      if (context.mounted) {
+        CustomSnackBar.show(
+          context,
+          sukses: false,
+          title: "Terjadi Kesalahan",
+          teks: e.toString(),
+        );
       }
     }
   }

@@ -16,13 +16,24 @@ class FollowUserModel {
   /// True jika user ini memiliki toko (mitra).
   final bool isToko;
 
+  /// Tanggal & waktu follow terjadi (di-pivot table backend).
+  final DateTime? createdAt;
+
   FollowUserModel({
     required this.id,
     required this.name,
     required this.avatar,
     required this.isFollowedByMe,
     this.isToko = false,
+    this.createdAt,
   });
+
+  /// Mengembalikan true jika follow terjadi dalam kurun waktu 24 jam terakhir.
+  bool get isNew {
+    if (createdAt == null) return false;
+    final diff = DateTime.now().difference(createdAt!);
+    return diff.inHours < 24 && diff.inMinutes >= -60;
+  }
 
   factory FollowUserModel.fromJson(Map<String, dynamic> json) {
     // Prioritaskan nama_store jika ada dan tidak kosong, jika tidak gunakan name biasa
@@ -43,6 +54,12 @@ class FollowUserModel {
       }
     }
 
+    DateTime? parsedCreatedAt;
+    if (json['created_at'] != null && json['created_at'].toString().isNotEmpty) {
+      parsedCreatedAt =
+          DateTime.tryParse(json['created_at'].toString())?.toLocal();
+    }
+
     return FollowUserModel(
       id: json['id'] is int
           ? json['id']
@@ -51,17 +68,22 @@ class FollowUserModel {
       avatar: resolvedAvatar,
       isFollowedByMe: json['is_followed_by_me'] == true,
       isToko: isUserToko,
+      createdAt: parsedCreatedAt,
     );
   }
 
   /// Membuat salinan model dengan field yang diubah.
-  FollowUserModel copyWith({bool? isFollowedByMe}) {
+  FollowUserModel copyWith({
+    bool? isFollowedByMe,
+    DateTime? createdAt,
+  }) {
     return FollowUserModel(
       id: id,
       name: name,
       avatar: avatar,
       isFollowedByMe: isFollowedByMe ?? this.isFollowedByMe,
       isToko: isToko,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

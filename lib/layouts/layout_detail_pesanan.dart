@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,8 @@ import 'package:project_camp_sewa/models/riwayat_model.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/layouts/layout_pembayaran.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_product.dart';
+import 'package:project_camp_sewa/services/api_produk.dart';
+import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 
 class LayoutDetailPesanan extends StatelessWidget {
   final RiwayatModel data;
@@ -145,107 +148,207 @@ class LayoutDetailPesanan extends StatelessWidget {
   }
 
   void _showRatingSheet(BuildContext context, RiwayatModel data) {
+    int selectedRating = 5;
+    final TextEditingController reviewController = TextEditingController();
+    bool isSubmitting = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                "Nilai Pesanan",
-                style: AppColors.fontStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              const SizedBox(height: 8),
-              Text(
-                "Bagaimana pengalaman kamu menyewa ${data.namaProduk}?",
-                style: AppColors.fontStyle(fontSize: 13, color: Colors.grey.shade600),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Icon(Icons.star_border_rounded, size: 40, color: Colors.amber),
-                  );
-                }),
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextField(
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: "Tulis ulasan pengalaman menyewa barang ini...",
-                    hintStyle: AppColors.fontStyle(fontSize: 13, color: Colors.grey.shade400),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    const SizedBox(height: 16),
+                    Text(
+                      "Nilai Pesanan",
+                      style: AppColors.fontStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF2C4E40)),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        "Bagaimana pengalaman kamu menyewa ${data.namaProduk}?",
+                        style: AppColors.fontStyle(fontSize: 13, color: Colors.grey.shade600),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final starIndex = index + 1;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            setSheetState(() {
+                              selectedRating = starIndex;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            child: Icon(
+                              starIndex <= selectedRating
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              size: 40,
+                              color: starIndex <= selectedRating
+                                  ? const Color(0xFFFFC107)
+                                  : Colors.grey.shade400,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      selectedRating == 5
+                          ? "Sangat Bagus ⭐⭐⭐⭐⭐"
+                          : selectedRating == 4
+                              ? "Bagus ⭐⭐⭐⭐"
+                              : selectedRating == 3
+                                  ? "Cukup ⭐⭐⭐"
+                                  : selectedRating == 2
+                                      ? "Kurang ⭐⭐"
+                                      : "Sangat Kurang ⭐",
+                      style: AppColors.fontStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF2C4E40),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: TextField(
+                        controller: reviewController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: "Tulis ulasan pengalaman menyewa barang ini...",
+                          hintStyle: AppColors.fontStyle(fontSize: 13, color: Colors.grey.shade400),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFF2C4E40)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  final int targetIdProduk = data.idProduk > 0
+                                      ? data.idProduk
+                                      : (data.items.isNotEmpty ? data.items.first.idProduk : 0);
+
+                                  if (targetIdProduk <= 0) {
+                                    CustomSnackBar.show(
+                                      context,
+                                      sukses: false,
+                                      title: "Gagal",
+                                      teks: "ID produk tidak ditemukan untuk pesanan ini.",
+                                    );
+                                    return;
+                                  }
+
+                                  setSheetState(() => isSubmitting = true);
+                                  final apiProduk = Get.isRegistered<ApiProduk>()
+                                      ? Get.find<ApiProduk>()
+                                      : Get.put(ApiProduk());
+
+                                  final res = await apiProduk.submitReview(
+                                    targetIdProduk.toString(),
+                                    selectedRating.toDouble(),
+                                    reviewController.text.trim(),
+                                  );
+
+                                  setSheetState(() => isSubmitting = false);
+                                  Navigator.pop(context);
+
+                                  if (res['success'] == true) {
+                                    CustomSnackBar.show(
+                                      context,
+                                      sukses: true,
+                                      title: "Terima Kasih",
+                                      teks: res['message'] ?? "Penilaian kamu berhasil dikirimkan.",
+                                    );
+                                  } else {
+                                    CustomSnackBar.show(
+                                      context,
+                                      sukses: false,
+                                      title: "Ulasan Gagal",
+                                      teks: res['message'] ?? "Gagal mengirimkan penilaian.",
+                                    );
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2C4E40),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  "Kirim Penilaian",
+                                  style: AppColors.fontStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Get.snackbar(
-                        "Terima Kasih", 
-                        "Penilaian kamu berhasil dikirimkan.",
-                        backgroundColor: Colors.black87,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.BOTTOM,
-                        margin: const EdgeInsets.all(16),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2C4E40),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Text(
-                      "Kirim Penilaian",
-                      style: AppColors.fontStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -256,9 +359,16 @@ class LayoutDetailPesanan extends StatelessWidget {
     bool isBelumBayar = data.statusTransaksi.toLowerCase() == "belum bayar";
     bool isSelesaiBelumLunas = data.statusTransaksi.toLowerCase() == "selesai (belum lunas)";
     bool isSelesai = data.statusTransaksi.toLowerCase() == "selesai" || isSelesaiBelumLunas;
-    bool isMenungguVerifikasi = isBelumBayar && data.statusPembayaran?.toLowerCase() == 'menunggu verifikasi';
+    bool isMenungguVerifikasi = data.isMenungguVerifikasi;
     
-    String displayStatus = isMenungguVerifikasi ? "Menunggu Verifikasi" : data.statusTransaksi;
+    String displayStatus;
+    if (isMenungguVerifikasi) {
+      displayStatus = "Menunggu Verifikasi";
+    } else if (data.isCOD && (isBelumBayar || data.statusTransaksi.toLowerCase() == "pending")) {
+      displayStatus = "COD (Bayar Ditempat)";
+    } else {
+      displayStatus = data.statusTransaksi;
+    }
     
     String totalHarga = data.totalPesanan;
 
@@ -280,7 +390,15 @@ class LayoutDetailPesanan extends StatelessWidget {
             // Status Header
             Container(
               width: double.infinity,
-              color: (data.isTerlambat || isSelesaiBelumLunas) ? const Color(0xFFFFEBEE) : (isBelumBayar ? const Color(0xFFFFF4E5) : (isSelesai ? const Color(0xFFE8F5E9) : const Color(0xFFE3F2FD))),
+              color: (data.isTerlambat || isSelesaiBelumLunas)
+                  ? const Color(0xFFFFEBEE)
+                  : (isMenungguVerifikasi
+                      ? const Color(0xFFFEF3C7)
+                      : (data.isCOD
+                          ? const Color(0xFFE0F2FE)
+                          : (isBelumBayar 
+                              ? const Color(0xFFFFF4E5) 
+                              : (isSelesai ? const Color(0xFFE8F5E9) : const Color(0xFFE3F2FD))))),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,8 +406,20 @@ class LayoutDetailPesanan extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        (data.isTerlambat || isSelesaiBelumLunas) ? Icons.warning_amber_rounded : (isBelumBayar ? Icons.pending_actions : (isSelesai ? Icons.check_circle : Icons.local_shipping)),
-                        color: (data.isTerlambat || isSelesaiBelumLunas) ? Colors.red : (isBelumBayar ? const Color(0xFFFF9800) : (isSelesai ? const Color(0xFF4CAF50) : const Color(0xFF2196F3))),
+                        (data.isTerlambat || isSelesaiBelumLunas)
+                            ? Icons.warning_amber_rounded
+                            : (isMenungguVerifikasi
+                                ? Icons.hourglass_top_rounded
+                                : (data.isCOD
+                                    ? Icons.handshake_outlined
+                                    : (isBelumBayar ? Icons.pending_actions : (isSelesai ? Icons.check_circle : Icons.local_shipping)))),
+                        color: (data.isTerlambat || isSelesaiBelumLunas)
+                            ? Colors.red
+                            : (isMenungguVerifikasi
+                                ? const Color(0xFFD97706)
+                                : (data.isCOD
+                                    ? const Color(0xFF0284C7)
+                                    : (isBelumBayar ? const Color(0xFFFF9800) : (isSelesai ? const Color(0xFF4CAF50) : const Color(0xFF2196F3))))),
                         size: 24,
                       ),
                       const SizedBox(width: 8),
@@ -298,7 +428,13 @@ class LayoutDetailPesanan extends StatelessWidget {
                         style: AppColors.fontStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: (data.isTerlambat || isSelesaiBelumLunas) ? Colors.red : (isBelumBayar ? const Color(0xFFFF9800) : (isSelesai ? const Color(0xFF4CAF50) : const Color(0xFF2196F3))),
+                          color: (data.isTerlambat || isSelesaiBelumLunas)
+                              ? Colors.red
+                              : (isMenungguVerifikasi
+                                  ? const Color(0xFFD97706)
+                                  : (data.isCOD
+                                      ? const Color(0xFF0284C7)
+                                      : (isBelumBayar ? const Color(0xFFFF9800) : (isSelesai ? const Color(0xFF4CAF50) : const Color(0xFF2196F3))))),
                         ),
                       ),
                     ],
@@ -787,7 +923,7 @@ class LayoutDetailPesanan extends StatelessWidget {
           ],
         ),
       ),
-      bottomSheet: (isBelumBayar && !isMenungguVerifikasi && data.metode?.toLowerCase() != 'cod')
+      bottomSheet: data.isPerluBayarTransfer
         ? Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -819,7 +955,7 @@ class LayoutDetailPesanan extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
-                    "Bayar Sekarang",
+                    "Lakukan Pembayaran",
                     style: AppColors.fontStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),

@@ -11,6 +11,9 @@ import 'package:shimmer/shimmer.dart';
 /// Tipe daftar yang ditampilkan: Followers atau Following.
 enum FollowListType { followers, following }
 
+/// Opsi sorting daftar: Terbaru atau Terlama.
+enum FollowSortOption { terbaru, terlama }
+
 class LayoutFollowList extends StatefulWidget {
   /// ID user yang daftar followers/following-nya ingin dilihat.
   final int idUser;
@@ -31,7 +34,9 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
 
   bool _isLoading = true;
   String? _errorMessage;
+  List<FollowUserModel> _rawList = [];
   List<FollowUserModel> _list = [];
+  FollowSortOption _sortOption = FollowSortOption.terbaru;
 
   /// ID user yang sedang login, dipakai untuk fitur label "Anda".
   int? get _currentUserId =>
@@ -57,9 +62,33 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
 
     if (!mounted) return;
 
-    List<FollowUserModel> sorted = List.from(result.data);
+    setState(() {
+      _rawList = List.from(result.data);
+      _errorMessage = result.errorMessage;
+      _isLoading = false;
+      _applySorting();
+    });
+  }
 
-    // Sorting: akun "Anda" diletakkan paling atas
+  /// Menerapkan sorting berdasarkan opsi yang dipilih (_sortOption).
+  void _applySorting() {
+    List<FollowUserModel> sorted = List.from(_rawList);
+
+    sorted.sort((a, b) {
+      final DateTime dateA =
+          a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime dateB =
+          b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      if (_sortOption == FollowSortOption.terbaru) {
+        final cmp = dateB.compareTo(dateA);
+        return cmp != 0 ? cmp : b.id.compareTo(a.id);
+      } else {
+        final cmp = dateA.compareTo(dateB);
+        return cmp != 0 ? cmp : a.id.compareTo(b.id);
+      }
+    });
+
+    // Sorting: akun "Anda" diletakkan paling atas jika ada
     final currentId = _currentUserId;
     if (currentId != null) {
       final myIndex = sorted.indexWhere((u) => u.id == currentId);
@@ -69,11 +98,7 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
       }
     }
 
-    setState(() {
-      _list = sorted;
-      _errorMessage = result.errorMessage;
-      _isLoading = false;
-    });
+    _list = sorted;
   }
 
   /// Toggle follow/unfollow untuk item tertentu di dalam list.
@@ -84,6 +109,11 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
     // Optimistic UI update
     setState(() {
       _list[index] = item.copyWith(isFollowedByMe: willFollow);
+      final rawIndex = _rawList.indexWhere((u) => u.id == item.id);
+      if (rawIndex != -1) {
+        _rawList[rawIndex] =
+            _rawList[rawIndex].copyWith(isFollowedByMe: willFollow);
+      }
     });
 
     final result = willFollow
@@ -95,6 +125,11 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
       if (mounted) {
         setState(() {
           _list[index] = item.copyWith(isFollowedByMe: !willFollow);
+          final rawIndex = _rawList.indexWhere((u) => u.id == item.id);
+          if (rawIndex != -1) {
+            _rawList[rawIndex] =
+                _rawList[rawIndex].copyWith(isFollowedByMe: !willFollow);
+          }
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -104,6 +139,148 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
         );
       }
     }
+  }
+
+  String _formatFollowTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.isNegative || diff.inSeconds < 60) {
+      return 'Baru saja';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} mnt yang lalu';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours} jam yang lalu';
+    } else if (diff.inDays == 1) {
+      return 'Kemarin';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} hari yang lalu';
+    } else {
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    }
+  }
+
+  Widget _buildFilterBar(String title) {
+    final newCount = _list.where((u) => u.isNew).length;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: Color(0xFFF1F5F9),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Row(
+            children: [
+              Text(
+                '${_list.length} $title',
+                style: AppColors.fontStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF374151),
+                ),
+              ),
+              if (newCount > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$newCount baru',
+                    style: AppColors.fontStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF059669),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSortChip(FollowSortOption.terbaru, 'Terbaru'),
+                const SizedBox(width: 4),
+                _buildSortChip(FollowSortOption.terlama, 'Terlama'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortChip(FollowSortOption option, String label) {
+    final bool isSelected = _sortOption == option;
+    return GestureDetector(
+      onTap: () {
+        if (_sortOption != option) {
+          setState(() {
+            _sortOption = option;
+            _applySorting();
+          });
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              option == FollowSortOption.terbaru
+                  ? Icons.arrow_downward_rounded
+                  : Icons.arrow_upward_rounded,
+              size: 12,
+              color: isSelected ? AppColors.mainColor : const Color(0xFF9E9E9E),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppColors.fontStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                color: isSelected
+                    ? AppColors.mainColor
+                    : const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -145,18 +322,25 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
                 ? _buildError()
                 : _list.isEmpty
                     ? _buildEmpty(title)
-                    : RefreshIndicator(
-                        color: AppColors.mainColor,
-                        onRefresh: _fetchData,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          itemCount: _list.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) =>
-                              _buildUserTile(index),
-                        ),
+                    : Column(
+                        children: [
+                          _buildFilterBar(title),
+                          Expanded(
+                            child: RefreshIndicator(
+                              color: AppColors.mainColor,
+                              onRefresh: _fetchData,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                itemCount: _list.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) =>
+                                    _buildUserTile(index),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
       ),
     );
@@ -228,17 +412,78 @@ class _LayoutFollowListState extends State<LayoutFollowList> {
               ),
               const SizedBox(width: 14),
 
-              // ── Nama ────────────────────────────────────────────────────
+              // ── Nama & Status Baru ──────────────────────────────────────
               Expanded(
-                child: Text(
-                  user.name,
-                  style: AppColors.fontStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1E1E1E),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            user.name,
+                            style: AppColors.fontStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1E1E1E),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (user.isNew) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.4),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF10B981),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Baru',
+                                  style: AppColors.fontStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF059669),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (user.createdAt != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        _formatFollowTime(user.createdAt!),
+                        style: AppColors.fontStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF9E9E9E),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(width: 12),

@@ -285,41 +285,157 @@ class _LayoutListWisataState extends State<LayoutListWisata> {
                 ..._popularLokasi.map((lokasi) {
                   final isSelected = (_selectedLokasi == lokasi) ||
                       (_selectedLokasi == null && lokasi == 'Semua');
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ChoiceChip(
-                      label: Text(lokasi),
-                      selected: isSelected,
-                      selectedColor: _green,
-                      backgroundColor: const Color(0xFFF2F4F3),
-                      labelStyle: AppColors.fontStyle(
-                        fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : _dark,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(
-                          color: isSelected
-                              ? _green
-                              : Colors.transparent,
-                        ),
-                      ),
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedLokasi =
-                              (lokasi == 'Semua') ? null : lokasi;
-                        });
-                        _fetchData(reset: true);
-                      },
-                    ),
+                  return _buildFilterChipItem(
+                    label: lokasi,
+                    icon: _getLokasiIcon(lokasi),
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        _selectedLokasi =
+                            (lokasi == 'Semua') ? null : lokasi;
+                      });
+                      _fetchData(reset: true);
+                    },
                   );
                 }),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  IconData _getLokasiIcon(String lokasi) {
+    final lower = lokasi.toLowerCase().trim();
+    if (lower == 'semua') return Icons.explore_rounded;
+    if (lower.contains('bromo') ||
+        lower.contains('semeru') ||
+        lower.contains('gunung') ||
+        lower.contains('rinjani') ||
+        lower.contains('mountain') ||
+        lower.contains('peak')) {
+      return Icons.terrain_rounded;
+    }
+    if (lower.contains('pantai') ||
+        lower.contains('beach') ||
+        lower.contains('bali') ||
+        lower.contains('laut') ||
+        lower.contains('selat') ||
+        lower.contains('pulau')) {
+      return Icons.beach_access_rounded;
+    }
+    if (lower.contains('danau') ||
+        lower.contains('lake') ||
+        lower.contains('toba') ||
+        lower.contains('curug') ||
+        lower.contains('air terjun') ||
+        lower.contains('waterfall') ||
+        lower.contains('sungai') ||
+        lower.contains('river')) {
+      return Icons.water_rounded;
+    }
+    if (lower.contains('hutan') ||
+        lower.contains('forest') ||
+        lower.contains('taman') ||
+        lower.contains('park') ||
+        lower.contains('camp') ||
+        lower.contains('batu')) {
+      return Icons.park_rounded;
+    }
+    if (lower.contains('malang') ||
+        lower.contains('bandung') ||
+        lower.contains('surabaya') ||
+        lower.contains('jakarta') ||
+        lower.contains('bogor') ||
+        lower.contains('city') ||
+        lower.contains('kota')) {
+      return Icons.location_city_rounded;
+    }
+    if (lower.contains('jogja') ||
+        lower.contains('yogyakarta') ||
+        lower.contains('candi') ||
+        lower.contains('temple')) {
+      return Icons.temple_buddhist_rounded;
+    }
+    return Icons.place_rounded;
+  }
+
+  IconData _getSortIcon(String sort) {
+    switch (sort.toLowerCase()) {
+      case 'terbaru':
+        return Icons.auto_awesome_rounded;
+      case 'terpopuler':
+        return Icons.trending_up_rounded;
+      case 'terlama':
+        return Icons.history_rounded;
+      case 'a_z':
+      case 'z_a':
+        return Icons.sort_by_alpha_rounded;
+      default:
+        return Icons.sort_rounded;
+    }
+  }
+
+  IconData _getWaktuIcon(String waktu) {
+    switch (waktu.toLowerCase()) {
+      case 'semua':
+        return Icons.all_inclusive_rounded;
+      case 'hari_ini':
+        return Icons.today_rounded;
+      case 'minggu_ini':
+        return Icons.date_range_rounded;
+      case 'bulan_ini':
+        return Icons.calendar_month_rounded;
+      case 'tahun_ini':
+        return Icons.calendar_today_rounded;
+      default:
+        return Icons.schedule_rounded;
+    }
+  }
+
+  Widget _buildFilterChipItem({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? _green : const Color(0xFFF2F4F3),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? _green : Colors.grey.shade300,
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? Colors.white : const Color(0xFF555555),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: AppColors.fontStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? Colors.white : _dark,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -395,6 +511,11 @@ class _LayoutListWisataState extends State<LayoutListWisata> {
                 ..._sortOptions.map((opt) {
                   final isSelected = _selectedSort == opt['value'];
                   return ListTile(
+                    leading: Icon(
+                      _getSortIcon(opt['value']!),
+                      color: isSelected ? _green : Colors.grey.shade600,
+                      size: 20,
+                    ),
                     title: Text(
                       opt['label']!,
                       style: AppColors.fontStyle(
@@ -453,6 +574,11 @@ class _LayoutListWisataState extends State<LayoutListWisata> {
                 ..._waktuOptions.map((opt) {
                   final isSelected = _selectedFilterWaktu == opt['value'];
                   return ListTile(
+                    leading: Icon(
+                      _getWaktuIcon(opt['value']!),
+                      color: isSelected ? _green : Colors.grey.shade600,
+                      size: 20,
+                    ),
                     title: Text(
                       opt['label']!,
                       style: AppColors.fontStyle(

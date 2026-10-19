@@ -654,7 +654,11 @@ class _LayoutProfileState extends State<LayoutProfile> {
                         ? () => Get.to(() => LayoutFollowList(
                               idUser: userId,
                               type: FollowListType.followers,
-                            ))
+                            ))?.then((_) {
+                              if (mounted) {
+                                apiDataUser.getDataUser(context);
+                              }
+                            })
                         : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -678,50 +682,109 @@ class _LayoutProfileState extends State<LayoutProfile> {
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF3B82F6)
-                                  .withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.people_alt_rounded,
-                              size: 20,
-                              color: Color(0xFF3B82F6),
-                            ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF3B82F6)
+                                      .withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.people_alt_rounded,
+                                  size: 20,
+                                  color: Color(0xFF3B82F6),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          user.totalFollowers.toString(),
+                                          style: AppColors.fontStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFF2F2828),
+                                          ),
+                                        ),
+                                        if (user.totalNewFollowers > 0) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEF4444),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              '+${user.totalNewFollowers}',
+                                              style: AppColors.fontStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    Text(
+                                      'Followers',
+                                      style: AppColors.fontStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF9E9E9E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 20,
+                                color: Color(0xFFBDBDBD),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user.totalFollowers.toString(),
+                          // Badge "Baru" di sudut kanan atas Followers card jika ada pengikut baru
+                          if (user.totalNewFollowers > 0)
+                            Positioned(
+                              top: -6,
+                              right: -4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFEF4444)
+                                          .withValues(alpha: 0.4),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  'Baru',
                                   style: AppColors.fontStyle(
-                                    fontSize: 18,
+                                    fontSize: 9,
                                     fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF2F2828),
+                                    color: Colors.white,
                                   ),
                                 ),
-                                Text(
-                                  'Followers',
-                                  style: AppColors.fontStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF9E9E9E),
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: Color(0xFFBDBDBD),
-                          ),
                         ],
                       ),
                     ),
@@ -740,7 +803,11 @@ class _LayoutProfileState extends State<LayoutProfile> {
                         ? () => Get.to(() => LayoutFollowList(
                               idUser: userId,
                               type: FollowListType.following,
-                            ))
+                            ))?.then((_) {
+                              if (mounted) {
+                                apiDataUser.getDataUser(context);
+                              }
+                            })
                         : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -932,7 +999,7 @@ class _LayoutProfileState extends State<LayoutProfile> {
             iconBgColor: const Color(0xFFE8F5E9),
             onTap: () async {
               await Get.to(() => const LayoutFeedbackList());
-              if (context.mounted) {
+              if (mounted) {
                 apiDataUser.getUnreadFeedbackCount(context);
               }
             },

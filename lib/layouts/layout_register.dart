@@ -51,8 +51,7 @@ class _LayoutRegisterState extends State<LayoutRegister> {
                     height: MediaQuery.of(context).size.height / 3.2,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
-                        image: NetworkImage(
-                            "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1a/58/bc/c7/senaru-crater-rim-2-days.jpg?w=1200&h=-1&s=1"),
+                        image: AssetImage("assets/images/bg_login.jpg"),
                         fit: BoxFit.cover,
                       ),
                     ),

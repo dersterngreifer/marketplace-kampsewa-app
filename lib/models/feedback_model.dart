@@ -28,9 +28,9 @@ class FeedbackAdmin {
 
   factory FeedbackAdmin.fromJson(Map<String, dynamic> json) {
     return FeedbackAdmin(
-      id: json['id'],
-      name: json['name'] ?? 'Admin',
-      foto: json['foto'],
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? 'Admin',
+      foto: json['foto']?.toString(),
     );
   }
 }
@@ -175,22 +175,28 @@ class FeedbackItem {
     this.lastAdminFoto,
   });
 
-  bool get sudahDibalas => (adminId != null && adminId! > 0) || status == 'Dibalas';
+  bool get sudahDibalas =>
+      (adminId != null && adminId! > 0) ||
+      status == 'Dibalas' ||
+      (admin != null && admin!.id > 0);
   bool get belumDibalas => !sudahDibalas;
 
   /// Nama yang ditampilkan di kartu list
   String get displayName {
-    if (admin != null && admin!.name.isNotEmpty) return admin!.name;
-    if (lastAdminName != null && lastAdminName!.isNotEmpty) return lastAdminName!;
-    if (latestMessage?.senderType == 'admin' && latestMessage?.sender?.name != null) {
+    if (admin != null && admin!.name.trim().isNotEmpty) return admin!.name;
+    if (lastAdminName != null && lastAdminName!.trim().isNotEmpty) return lastAdminName!;
+    if (latestMessage?.senderType == 'admin' &&
+        latestMessage?.sender?.name != null &&
+        latestMessage!.sender!.name!.isNotEmpty) {
       return latestMessage!.sender!.name!;
     }
+    if (status == 'Dibalas') return 'Admin KampSewa';
     return 'Menunggu Admin Pembalas';
   }
 
   /// URL foto admin sesi ini
   String get adminFotoUrl {
-    if (admin != null) return admin!.resolvedFotoUrl;
+    if (admin != null && admin!.resolvedFotoUrl.isNotEmpty) return admin!.resolvedFotoUrl;
     if (lastAdminFoto != null && lastAdminFoto!.isNotEmpty) return buildAdminFotoUrl(lastAdminFoto);
     if (latestMessage?.senderType == 'admin') return buildAdminFotoUrl(latestMessage?.sender?.foto);
     return '';
@@ -204,6 +210,8 @@ class FeedbackItem {
       nameStr = lastAdminName!;
     } else if (latestMessage?.senderType == 'admin' && latestMessage?.sender?.name != null) {
       nameStr = latestMessage!.sender!.name!;
+    } else if (status == 'Dibalas') {
+      nameStr = 'Admin KampSewa';
     }
     
     if (nameStr.isNotEmpty) {
@@ -221,11 +229,25 @@ class FeedbackItem {
         ? (int.tryParse(json['feedback_id'].toString()) ?? 0)
         : (int.tryParse(rawId) ?? 0);
 
+    final parsedAdminId = int.tryParse(json['admin_id']?.toString() ?? '');
+
+    FeedbackAdmin? adminObj;
+    if (json['admin'] != null && json['admin'] is Map<String, dynamic>) {
+      adminObj = FeedbackAdmin.fromJson(json['admin']);
+    } else if (json['last_admin_name'] != null &&
+        json['last_admin_name'].toString().trim().isNotEmpty) {
+      adminObj = FeedbackAdmin(
+        id: parsedAdminId ?? 0,
+        name: json['last_admin_name'].toString(),
+        foto: json['last_admin_foto']?.toString(),
+      );
+    }
+
     return FeedbackItem(
       id: feedbackId,
       sessionId: int.tryParse(json['session_id']?.toString() ?? ''),
       roomId: rawId, // string unik dari backend
-      adminId: int.tryParse(json['admin_id']?.toString() ?? ''),
+      adminId: parsedAdminId ?? adminObj?.id,
       idUser: int.tryParse(json['id_user']?.toString() ?? '') ?? 0,
       deskripsi: json['deskripsi']?.toString() ?? '',
       kriteria: json['kriteria']?.toString() ?? '',
@@ -233,14 +255,14 @@ class FeedbackItem {
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
       user: json['user'] != null ? FeedbackUser.fromJson(json['user']) : null,
-      admin: json['admin'] != null ? FeedbackAdmin.fromJson(json['admin']) : null,
+      admin: adminObj,
       latestMessage: json['latest_message'] != null
           ? FeedbackLatestMessage.fromJson(json['latest_message'])
           : null,
       unreadAdminMessagesCount: int.tryParse(json['unread_admin_messages_count']?.toString() ?? '0') ?? 0,
       unreadCustomerMessagesCount: int.tryParse(json['unread_customer_messages_count']?.toString() ?? '0') ?? 0,
-      lastAdminName: json['last_admin_name']?.toString(),
-      lastAdminFoto: json['last_admin_foto']?.toString(),
+      lastAdminName: json['last_admin_name']?.toString() ?? adminObj?.name,
+      lastAdminFoto: json['last_admin_foto']?.toString() ?? adminObj?.foto,
     );
   }
 }
@@ -323,7 +345,8 @@ class FeedbackThread {
 
   /// Nama di AppBar: nama admin sesi, atau "Menunggu Admin Pembalas"
   String get appBarName {
-    if (admin != null && admin!.name.isNotEmpty) return admin!.name;
+    if (admin != null && admin!.name.trim().isNotEmpty) return admin!.name;
+    if (status == 'Dibalas') return 'Admin KampSewa';
     return 'Menunggu Admin Pembalas';
   }
 
@@ -333,18 +356,34 @@ class FeedbackThread {
   /// Inisial untuk fallback avatar AppBar
   String get appBarInitials => admin?.initials ?? 'A';
 
-  bool get isMenunggu => admin == null;
+  bool get isMenunggu {
+    if (admin != null && admin!.id > 0) return false;
+    return status != 'Dibalas';
+  }
 
   factory FeedbackThread.fromJson(Map<String, dynamic> json) {
+    final parsedAdminId = int.tryParse(json['admin_id']?.toString() ?? '');
+    FeedbackAdmin? adminObj;
+    if (json['admin'] != null && json['admin'] is Map<String, dynamic>) {
+      adminObj = FeedbackAdmin.fromJson(json['admin']);
+    } else if (json['last_admin_name'] != null &&
+        json['last_admin_name'].toString().trim().isNotEmpty) {
+      adminObj = FeedbackAdmin(
+        id: parsedAdminId ?? 0,
+        name: json['last_admin_name'].toString(),
+        foto: json['last_admin_foto']?.toString(),
+      );
+    }
+
     return FeedbackThread(
-      id: json['id'],
-      sessionId: json['session_id'],
-      idUser: json['id_user'] ?? 0,
-      customerName: json['customer_name'] ?? '',
-      kriteria: json['kriteria'] ?? '',
-      status: json['status'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      admin: json['admin'] != null ? FeedbackAdmin.fromJson(json['admin']) : null,
+      id: json['id'] is int ? json['id'] : (int.tryParse(json['id']?.toString() ?? '0') ?? 0),
+      sessionId: int.tryParse(json['session_id']?.toString() ?? ''),
+      idUser: int.tryParse(json['id_user']?.toString() ?? '') ?? 0,
+      customerName: json['customer_name']?.toString() ?? '',
+      kriteria: json['kriteria']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      admin: adminObj,
     );
   }
 }

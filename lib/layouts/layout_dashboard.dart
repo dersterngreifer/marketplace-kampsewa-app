@@ -16,11 +16,8 @@ import 'package:project_camp_sewa/layouts/layout_detail_berita.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_wisata.dart';
 import 'package:project_camp_sewa/layouts/layout_list_berita.dart';
 import 'package:project_camp_sewa/layouts/layout_list_wisata.dart';
-import 'package:project_camp_sewa/models/api_response.dart';
 import 'package:project_camp_sewa/models/article_model.dart';
-import 'package:project_camp_sewa/models/berita_model.dart';
 import 'package:project_camp_sewa/models/iklan_model.dart';
-import 'package:project_camp_sewa/models/wisata_model.dart';
 import 'package:project_camp_sewa/services/api_article.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/services/api_iklan.dart';
@@ -49,9 +46,6 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   KeranjangController keranjangController = Get.put(KeranjangController());
   ApiArticle apiArticle = Get.put(ApiArticle());
 
-  late List<WisataModel> wisataList;
-  late List<BeritaModel> beritaList;
-
   String selectedCategoryLabel = 'Semua';
 
   final CarouselSliderController carouselController =
@@ -61,8 +55,6 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   @override
   void initState() {
     super.initState();
-    wisataList = DummyProductApiResponse.getDataWisata();
-    beritaList = DummyProductApiResponse.getDataBerita();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       apiDataUser.getDataUser(context);
@@ -169,25 +161,35 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
                           : <ArticleModel>[];
 
                       if (items.isEmpty) {
-                        return ListView.separated(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
-                          clipBehavior: Clip.none,
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            WisataModel list = wisataList[index];
-                            return WisataCard(
-                              image: list.image,
-                              title: list.wisata,
-                              deskripsi: list.deskripsi,
-                              lokasi: list.lokasi,
-                              url: list.source,
-                            );
-                          },
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(width: 14),
-                          itemCount: wisataList.length,
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.terrain_rounded,
+                                      size: 38, color: Colors.grey.shade400),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Belum ada rekomendasi wisata saat ini",
+                                    style: AppColors.fontStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         );
                       }
 
@@ -256,24 +258,34 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
                         : <ArticleModel>[];
 
                     if (items.isEmpty) {
-                      return ListView.separated(
-                        padding: const EdgeInsets.only(
-                            left: 20, right: 20, bottom: 20, top: 4),
-                        clipBehavior: Clip.none,
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemBuilder: (context, index) {
-                          BeritaModel list = beritaList[index];
-                          return BeritaCard(
-                            image: list.image,
-                            title: list.judul,
-                            source: list.source,
-                            url: list.link,
-                          );
-                        },
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 12),
-                        itemCount: beritaList.length,
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 28),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.newspaper_rounded,
+                                  size: 38, color: Colors.grey.shade400),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Belum ada berita terkini saat ini",
+                                style: AppColors.fontStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       );
                     }
 

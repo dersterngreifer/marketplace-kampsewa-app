@@ -51,7 +51,10 @@ class _LayoutFeedbackChatState extends State<LayoutFeedbackChat> {
         adminId: widget.adminId,
       );
       _scrollToBottom(animated: false);
-      _service.startPolling(widget.feedbackId, adminId: widget.adminId);
+      final resolvedAdminId = (_service.currentThread.value?.admin?.id != null && _service.currentThread.value!.admin!.id > 0)
+          ? _service.currentThread.value!.admin!.id
+          : widget.adminId;
+      _service.startPolling(widget.feedbackId, adminId: resolvedAdminId);
     });
 
     _service.messages.listen((_) {
@@ -85,11 +88,14 @@ class _LayoutFeedbackChatState extends State<LayoutFeedbackChat> {
     if (text.isEmpty) return;
     _msgCtrl.clear();
     setState(() => _charCount = 0);
+    final resolvedAdminId = (_service.currentThread.value?.admin?.id != null && _service.currentThread.value!.admin!.id > 0)
+        ? _service.currentThread.value!.admin!.id
+        : widget.adminId;
     final ok = await _service.sendMessage(
       context: context,
       feedbackId: widget.feedbackId,
       message: text,
-      adminId: widget.adminId,
+      adminId: resolvedAdminId,
     );
     if (ok) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
@@ -232,10 +238,12 @@ class _LayoutFeedbackChatState extends State<LayoutFeedbackChat> {
       final isMenunggu = (thread == null || thread.isMenunggu) && adminMsg == null;
       
       String appBarName = 'Menunggu Admin Pembalas';
-      if (thread != null && !thread.isMenunggu) {
-        appBarName = thread.appBarName;
-      } else if (adminMsg != null && adminMsg.senderName.isNotEmpty) {
+      if (thread?.admin != null && thread!.admin!.name.trim().isNotEmpty) {
+        appBarName = thread.admin!.name;
+      } else if (adminMsg != null && adminMsg.senderName.trim().isNotEmpty) {
         appBarName = adminMsg.senderName;
+      } else if (thread != null && !thread.isMenunggu) {
+        appBarName = thread.appBarName;
       }
 
       final kriteria = thread?.kriteria ?? widget.initialKriteria ?? '';

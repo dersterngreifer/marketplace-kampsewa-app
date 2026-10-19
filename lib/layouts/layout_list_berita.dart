@@ -47,7 +47,7 @@ class _LayoutListBeritaState extends State<LayoutListBerita> {
   ];
 
   final List<Map<String, String>> _waktuOptions = [
-    {'value': 'semua', 'label': 'Semua Waktu'},
+    {'value': 'semua', 'label': 'Semua'},
     {'value': 'hari_ini', 'label': 'Hari Ini'},
     {'value': 'minggu_ini', 'label': 'Minggu Ini'},
     {'value': 'bulan_ini', 'label': 'Bulan Ini'},
@@ -258,38 +258,99 @@ class _LayoutListBeritaState extends State<LayoutListBerita> {
                 // Quick Chips Filter Waktu
                 ..._waktuOptions.map((opt) {
                   final isSelected = _selectedFilterWaktu == opt['value'];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ChoiceChip(
-                      label: Text(opt['label']!),
-                      selected: isSelected,
-                      selectedColor: _green,
-                      backgroundColor: const Color(0xFFF2F4F3),
-                      labelStyle: AppColors.fontStyle(
-                        fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : _dark,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(
-                          color: isSelected
-                              ? _green
-                              : Colors.transparent,
-                        ),
-                      ),
-                      onSelected: (selected) {
-                        setState(() => _selectedFilterWaktu = opt['value']!);
-                        _fetchData(reset: true);
-                      },
-                    ),
+                  return _buildFilterChipItem(
+                    label: opt['label']!,
+                    icon: _getWaktuIcon(opt['value']!),
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() => _selectedFilterWaktu = opt['value']!);
+                      _fetchData(reset: true);
+                    },
                   );
                 }),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  IconData _getWaktuIcon(String value) {
+    switch (value.toLowerCase()) {
+      case 'semua':
+        return Icons.newspaper_rounded;
+      case 'hari_ini':
+        return Icons.today_rounded;
+      case 'minggu_ini':
+        return Icons.date_range_rounded;
+      case 'bulan_ini':
+        return Icons.calendar_month_rounded;
+      case 'tahun_ini':
+        return Icons.calendar_today_rounded;
+      default:
+        return Icons.schedule_rounded;
+    }
+  }
+
+  IconData _getSortIcon(String sort) {
+    switch (sort.toLowerCase()) {
+      case 'terbaru':
+        return Icons.auto_awesome_rounded;
+      case 'terpopuler':
+        return Icons.trending_up_rounded;
+      case 'terlama':
+        return Icons.history_rounded;
+      case 'a_z':
+      case 'z_a':
+        return Icons.sort_by_alpha_rounded;
+      default:
+        return Icons.sort_rounded;
+    }
+  }
+
+  Widget _buildFilterChipItem({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? _green : const Color(0xFFF2F4F3),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? _green : Colors.grey.shade300,
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? Colors.white : const Color(0xFF555555),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: AppColors.fontStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? Colors.white : _dark,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -365,6 +426,11 @@ class _LayoutListBeritaState extends State<LayoutListBerita> {
                 ..._sortOptions.map((opt) {
                   final isSelected = _selectedSort == opt['value'];
                   return ListTile(
+                    leading: Icon(
+                      _getSortIcon(opt['value']!),
+                      color: isSelected ? _green : Colors.grey.shade600,
+                      size: 20,
+                    ),
                     title: Text(
                       opt['label']!,
                       style: AppColors.fontStyle(

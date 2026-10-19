@@ -195,17 +195,33 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
                 if (unread == 0) return const SizedBox.shrink();
                 return Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.red,
+                    color: Colors.red.shade600,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    unread > 99 ? '99+' : unread.toString(),
-                    style: AppColors.fontStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.mark_chat_unread_rounded,
+                          color: Colors.white, size: 14),
+                      const SizedBox(width: 5),
+                      Text(
+                        unread > 99 ? '99+ Baru' : '$unread Pesan Baru',
+                        style: AppColors.fontStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }),
@@ -225,7 +241,7 @@ class _LayoutFeedbackListState extends State<LayoutFeedbackList>
         tabs: _tabs.asMap().entries.map((entry) {
           int idx = entry.key;
           String t = entry.value;
-          if (idx == 0 || idx == 1) { // Semua atau Belum Dibaca
+          if (idx == 1) { // Hanya tab 'Belum Dibaca' yang menampilkan badge
             return Tab(
               child: Row(
                 mainAxisSize: MainAxisSize.min,

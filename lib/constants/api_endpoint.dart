@@ -1,5 +1,5 @@
 class ApiEndpoints {
-  static const String baseUrl = "http://192.168.1.2:8000";
+  static const String baseUrl = "http://192.168.1.3:8000";
 
   /// Domain publik KampSewa Marketplace, dipakai untuk link yang dibagikan
   /// (share/deep-link) profil toko.

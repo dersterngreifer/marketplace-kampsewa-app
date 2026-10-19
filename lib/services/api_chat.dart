@@ -45,9 +45,9 @@ class ApiChat extends GetxController {
     }
   }
 
-  Future<void> getChatMessages(int roomId) async {
+  Future<void> getChatMessages(int roomId, {bool isSilent = false}) async {
     try {
-      isLoadingMessages.value = true;
+      if (!isSilent) isLoadingMessages.value = true;
       String? token = await _getToken();
       if (token == null) return;
 
@@ -61,20 +61,24 @@ class ApiChat extends GetxController {
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         List data = response.data['data'];
-        chatMessages.value = data.map((e) => ChatMessageModel.fromJson(e)).toList();
+        final newMessages = data.map((e) => ChatMessageModel.fromJson(e)).toList();
+        if (chatMessages.length != newMessages.length ||
+            (newMessages.isNotEmpty && chatMessages.isNotEmpty && newMessages.last.id != chatMessages.last.id)) {
+          chatMessages.value = newMessages;
+        }
         // After loading messages, update unread summary as they are read
         getUnreadSummary();
       }
     } catch (e) {
       print('Error getChatMessages: $e');
     } finally {
-      isLoadingMessages.value = false;
+      if (!isSilent) isLoadingMessages.value = false;
     }
   }
 
-  Future<void> getChatMessagesByUser(int userIdLawan) async {
+  Future<void> getChatMessagesByUser(int userIdLawan, {bool isSilent = false}) async {
     try {
-      isLoadingMessages.value = true;
+      if (!isSilent) isLoadingMessages.value = true;
       String? token = await _getToken();
       if (token == null) return;
 
@@ -88,13 +92,17 @@ class ApiChat extends GetxController {
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         List data = response.data['data'];
-        chatMessages.value = data.map((e) => ChatMessageModel.fromJson(e)).toList();
+        final newMessages = data.map((e) => ChatMessageModel.fromJson(e)).toList();
+        if (chatMessages.length != newMessages.length ||
+            (newMessages.isNotEmpty && chatMessages.isNotEmpty && newMessages.last.id != chatMessages.last.id)) {
+          chatMessages.value = newMessages;
+        }
         getUnreadSummary();
       }
     } catch (e) {
       print('Error getChatMessagesByUser: $e');
     } finally {
-      isLoadingMessages.value = false;
+      if (!isSilent) isLoadingMessages.value = false;
     }
   }
 

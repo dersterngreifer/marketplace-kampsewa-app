@@ -593,7 +593,12 @@ class ApiProduk extends GetxController {
     }
   }
 
-  Future<Map<String, dynamic>> submitReview(String idProduk, double rating, String ulasan, {String? fotoPath}) async {
+  Future<Map<String, dynamic>> submitReview(
+    String idProduk, 
+    double rating, 
+    String ulasan, 
+    {String? fotoPath, List<String>? fotoPaths}
+  ) async {
     try {
       Authorization auth = Authorization();
       String? token = await auth.getToken();
@@ -616,7 +621,16 @@ class ApiProduk extends GetxController {
         "ulasan": ulasan,
       });
 
-      if (fotoPath != null && fotoPath.isNotEmpty) {
+      if (fotoPaths != null && fotoPaths.isNotEmpty) {
+        for (final path in fotoPaths) {
+          if (path.isNotEmpty) {
+            formData.files.add(MapEntry(
+              "fotos[]",
+              await MultipartFile.fromFile(path),
+            ));
+          }
+        }
+      } else if (fotoPath != null && fotoPath.isNotEmpty) {
         formData.files.add(MapEntry(
           "foto",
           await MultipartFile.fromFile(fotoPath),

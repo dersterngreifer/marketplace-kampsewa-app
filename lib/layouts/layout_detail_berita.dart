@@ -71,17 +71,61 @@ class _LayoutDetailBeritaState extends State<LayoutDetailBerita> {
       );
       return;
     }
-    final uri = Uri.tryParse(rawUrl.trim());
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+
+    String cleanUrl = rawUrl.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://$cleanUrl';
+    }
+
+    final uri = Uri.tryParse(cleanUrl);
+    if (uri == null || !uri.hasScheme) {
       if (!mounted) return;
       CustomSnackBar.show(
         context,
-        title: "Gagal Membuka Tautan",
-        teks: "Tidak dapat membuka link portal berita asli.",
+        title: "Tautan Tidak Valid",
+        teks: "Format tautan portal berita asli tidak valid.",
         sukses: false,
       );
+      return;
+    }
+
+    try {
+      bool launched = false;
+      if (await canLaunchUrl(uri)) {
+        launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      if (!launched) {
+        launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+
+      if (!launched && mounted) {
+        CustomSnackBar.show(
+          context,
+          title: "Gagal Membuka Tautan",
+          teks: "Tidak dapat membuka link portal berita asli di peramban Anda.",
+          sukses: false,
+        );
+      }
+    } catch (_) {
+      try {
+        final fallback = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (!fallback && mounted) {
+          CustomSnackBar.show(
+            context,
+            title: "Gagal Membuka Tautan",
+            teks: "Tidak dapat membuka link portal berita asli.",
+            sukses: false,
+          );
+        }
+      } catch (err) {
+        if (!mounted) return;
+        CustomSnackBar.show(
+          context,
+          title: "Gagal Membuka Tautan",
+          teks: "Terjadi kendala saat membuka browser: $err",
+          sukses: false,
+        );
+      }
     }
   }
 
