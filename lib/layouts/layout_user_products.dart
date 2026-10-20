@@ -45,6 +45,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
             children: [
               _buildHeader(),
               _buildWarningCard(),
+              _buildSuspendedAlertCard(),
               _buildCategoryChips(),
               Expanded(
                 child: _buildProductGrid(),
@@ -116,7 +117,7 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
 
   Widget _buildWarningCard() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3CD),
@@ -167,6 +168,74 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
         ],
       ),
     );
+  }
+
+  Widget _buildSuspendedAlertCard() {
+    return Obx(() {
+      final lockedProducts =
+          apiProduk.listUserProduk.where((p) => p.isLocked).toList();
+      if (lockedProducts.isEmpty) return const SizedBox.shrink();
+
+      return Container(
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0F0),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFFCDD2), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD32F2F).withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD32F2F),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.lock_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${lockedProducts.length} Produk Ditangguhkan (Suspend)",
+                    style: AppColors.fontStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFC62828),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Produk berstatus ditangguhkan disembunyikan dari calon penyewa. Revisi data/foto dan permohonan pemulihan HANYA dapat dilakukan via Dashboard Web KampSewa.",
+                    style: AppColors.fontStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF7F0000),
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   static const double _productGridInfoHeight = 154.0;
@@ -249,12 +318,17 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
           final ProdukModel p = listProduk[index];
           return ProdukCard(
             isOwner: true,
+            isLocked: p.isLocked,
+            lockedMessage: p.lockedMessage,
+            suspendInfo: p.suspendInfo,
             isDiskon: p.isDiskon,
             hargaAsli: p.hargaAsli,
             persentaseDiskon: p.persentaseDiskon,
-            badgeLabel: p.isDiskon && p.persentaseDiskon > 0
-                ? "Diskon ${p.persentaseDiskon}%"
-                : "Milik Anda",
+            badgeLabel: p.isLocked
+                ? "Ditangguhkan"
+                : (p.isDiskon && p.persentaseDiskon > 0
+                    ? "Diskon ${p.persentaseDiskon}%"
+                    : "Milik Anda"),
             images: p.images,
             namaProduk: p.namaProduk,
             harga: p.harga.toString(),
@@ -289,14 +363,26 @@ class _LayoutUserProductsState extends State<LayoutUserProducts> {
               });
             },
             aksiKeranjang: () {
-              Get.snackbar(
-                "Informasi",
-                "Ini adalah produk Anda sendiri.",
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: const Color(0xFF2C4E40),
-                colorText: Colors.white,
-                margin: const EdgeInsets.all(16),
-              );
+              if (p.isLocked) {
+                Get.snackbar(
+                  "Produk Ditangguhkan",
+                  p.lockedMessage ??
+                      "Produk ini ditangguhkan oleh Admin. Silakan periksa melalui Dashboard Web KampSewa.",
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: const Color(0xFFC62828),
+                  colorText: Colors.white,
+                  margin: const EdgeInsets.all(16),
+                );
+              } else {
+                Get.snackbar(
+                  "Informasi",
+                  "Ini adalah produk Anda sendiri.",
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: const Color(0xFF2C4E40),
+                  colorText: Colors.white,
+                  margin: const EdgeInsets.all(16),
+                );
+              }
             },
           );
         },

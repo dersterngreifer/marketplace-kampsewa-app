@@ -1,3 +1,4 @@
+// ignore_for_file: unnecessary_getters_setters
 class IklanModel {
   int? _id;
   String? _poster;

@@ -555,7 +555,7 @@ class _LayoutChatListState extends State<LayoutChatList>
       ),
     );
 
-    return Container(
+    return SizedBox(
       width: 54,
       height: 54,
       child: ClipRRect(

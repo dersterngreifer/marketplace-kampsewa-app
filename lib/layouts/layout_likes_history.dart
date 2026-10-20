@@ -169,7 +169,7 @@ class _LayoutLikesHistoryState extends State<LayoutLikesHistory>
       cleanPrice = cleanPrice.replaceAll(RegExp(r'[^0-9]'), '');
       if (cleanPrice.isNotEmpty) {
         int parsedPrice = int.parse(cleanPrice);
-        displayPrice = 'Rp ' + NumberFormat.decimalPattern('id').format(parsedPrice);
+        displayPrice = 'Rp ${NumberFormat.decimalPattern('id').format(parsedPrice)}';
       }
     } catch (e) {
       if (!displayPrice.contains('Rp')) {

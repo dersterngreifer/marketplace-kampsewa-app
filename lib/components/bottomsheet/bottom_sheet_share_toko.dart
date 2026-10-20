@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
@@ -91,13 +93,14 @@ class ShareTokoSheet extends StatelessWidget {
       mode: LaunchMode.externalApplication,
     );
 
-    if (!launched) {
+    if (!launched && context.mounted) {
       _tSnack(context, 'Gagal membuka aplikasi untuk share');
     }
   }
 
   Future<void> _copyLink(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: shareUrl));
+    if (!context.mounted) return;
     Navigator.of(context).pop();
     _tSnack(context, 'Link profil toko berhasil disalin');
   }

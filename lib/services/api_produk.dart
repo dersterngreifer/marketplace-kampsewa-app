@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile;
 import 'package:project_camp_sewa/components/dialog/alert_dialog.dart';
 import 'package:project_camp_sewa/components/dialog/network_error_dialog.dart';
-import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/models/detail_produk_model.dart';
 import 'package:project_camp_sewa/models/produk_model.dart';
@@ -24,6 +23,7 @@ class ApiProduk extends GetxController {
   final RxList<ProdukModel> listUserProduk = <ProdukModel>[].obs;
   final RxBool isLoadingUserProducts = true.obs;
   final Rx<DetailProdukModel?> detailProduk = Rx<DetailProdukModel?>(null);
+  final RxString detailProdukErrorMessage = ''.obs;
   var groupedByColor = <String, List<Map<String, dynamic>>>{}.obs;
   var uniqueSizes = <String>[].obs;
   var colors = <String>[].obs;
@@ -419,6 +419,7 @@ class ApiProduk extends GetxController {
           response.data is String ? jsonDecode(response.data) : response.data;
 
       if (response.statusCode == 200 && data['detail_produk'] != null) {
+        detailProdukErrorMessage.value = '';
         var detailData = data['detail_produk'];
         if (detailData is List && detailData.isNotEmpty) {
           detailData = detailData[0];
@@ -455,29 +456,26 @@ class ApiProduk extends GetxController {
         } else {
           detailProduk.value = null;
           imageDetailProduk.clear();
+          detailProdukErrorMessage.value = data['message']?.toString() ??
+              "Produk ini sedang tidak tersedia atau ditangguhkan oleh admin.";
         }
       } else {
-        if (detailProduk.value == null && context.mounted) {
-          CustomSnackBar.show(
-            context,
-            sukses: false,
-            teks: "Data Produk Gagal Dimuat",
-          );
-        }
+        detailProduk.value = null;
+        imageDetailProduk.clear();
+        detailProdukErrorMessage.value = data['message']?.toString() ??
+            "Produk ini sedang tidak tersedia atau ditangguhkan oleh admin.";
       }
     } catch (error) {
-      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
-      if (detailProduk.value == null && context.mounted) {
+      detailProduk.value = null;
+      imageDetailProduk.clear();
+      if (detailProdukErrorMessage.value.isEmpty) {
         String msg = "Gagal memuat produk";
         if (error is DioException) {
           msg = error.message ?? msg;
         }
-        CustomSnackBar.show(
-          context,
-          sukses: false,
-          teks: msg,
-        );
+        detailProdukErrorMessage.value = msg;
       }
+      if (NetworkErrorDialog.isNetworkOrServerError(error)) return;
     }
   }
 

@@ -6,11 +6,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:project_camp_sewa/components/card/item_variant.dart';
 import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/constants/database_helper.dart';
+import 'package:project_camp_sewa/models/detail_produk_model.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/layouts/layout_ulasan_produk.dart';
@@ -117,11 +119,118 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: _buildShimmerBody(),
+        bottomNavigationBar: _buildShimmerBottomBar(),
+      );
+    }
+
+    if (apiProduk.detailProduk.value == null) {
+      return _buildProductNotFound();
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: isLoading ? _buildShimmerBody() : _buildBody(),
-      bottomNavigationBar:
-          isLoading ? _buildShimmerBottomBar() : _buildBottomBar(),
+      body: _buildBody(),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildProductNotFound() {
+    final errMsg = apiProduk.detailProdukErrorMessage.value.isNotEmpty
+        ? apiProduk.detailProdukErrorMessage.value
+        : "Produk ini sedang tidak tersedia atau ditangguhkan oleh admin.";
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF2F2828), size: 20),
+          onPressed: () => Get.back(),
+        ),
+        title: Text(
+          "Detail Produk",
+          style: AppColors.fontStyle(
+            color: const Color(0xFF2F2828),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF0F0),
+                  shape: BoxShape.circle,
+                  border:
+                      Border.all(color: const Color(0xFFFFCDD2), width: 1.5),
+                ),
+                child: const Icon(
+                  Icons.lock_person_outlined,
+                  color: Color(0xFFD32F2F),
+                  size: 44,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "Produk Tidak Tersedia",
+                textAlign: TextAlign.center,
+                style: AppColors.fontStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF2F2828),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                errMsg,
+                textAlign: TextAlign.center,
+                style: AppColors.fontStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 28),
+              ElevatedButton.icon(
+                onPressed: () => Get.back(),
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: Text(
+                  "Kembali",
+                  style: AppColors.fontStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mainColor,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -429,6 +538,42 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                           ),
                         ),
                       ),
+                    if (apiProduk.detailProduk.value?.isLocked == true)
+                      Positioned(
+                        top: 16,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD32F2F),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x33D32F2F),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.lock_rounded,
+                                  size: 13, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Ditangguhkan',
+                                style: AppColors.fontStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -525,6 +670,12 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
             ),
           ),
 
+          // Card Peringatan Suspend (Hanya tampil untuk mitra pemilik produk saat ditangguhkan)
+          if (apiProduk.detailProduk.value?.isLocked == true) ...[
+            _buildSuspendWarningCard(apiProduk.detailProduk.value!),
+            _buildThickDivider(),
+          ],
+
           // 1. Header (Nama Produk, Harga/Rating, Tombol Like)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -581,6 +732,205 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
       height: 8,
       width: double.infinity,
       color: const Color(0xFFF4F6F8),
+    );
+  }
+
+  Widget _buildSuspendWarningCard(DetailProdukModel detail) {
+    final suspend = detail.suspendInfo;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF2F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFCDD2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD32F2F).withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD32F2F),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.lock_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Produk Ditangguhkan (Suspend)",
+                      style: AppColors.fontStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFC62828),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Status: ${suspend?.statusRevisi?.replaceAll('_', ' ').capitalizeFirst ?? 'Menunggu Perbaikan'}",
+                      style: AppColors.fontStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFE53935),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(color: Color(0xFFFFCDD2), height: 1),
+          const SizedBox(height: 12),
+
+          // Alasan Suspend
+          _buildSuspendDetailRow(
+            icon: Icons.error_outline_rounded,
+            label: "Alasan Suspend",
+            value: suspend?.alasan ?? "Pelanggaran Ketentuan",
+          ),
+          const SizedBox(height: 10),
+
+          // Catatan Admin
+          _buildSuspendDetailRow(
+            icon: Icons.speaker_notes_outlined,
+            label: "Catatan Admin",
+            value: suspend?.catatan ??
+                "Mohon periksa data produk dan lakukan perbaikan sesuai ketentuan.",
+          ),
+          const SizedBox(height: 10),
+
+          // Waktu Ditangguhkan
+          if (suspend?.createdAt != null && suspend!.createdAt!.isNotEmpty) ...[
+            _buildSuspendDetailRow(
+              icon: Icons.access_time_rounded,
+              label: "Waktu Suspend",
+              value: suspend.createdAt!,
+            ),
+            const SizedBox(height: 10),
+          ],
+
+          // Informasi Banner Kebijakan Web Only
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFFCDD2)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 18,
+                  color: Color(0xFFC62828),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Perbaikan dan pengajuan pemulihan produk hanya dapat dilakukan melalui browser di Dashboard Web KampSewa.",
+                    style: AppColors.fontStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF4A154B),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Tombol Buka Web Dashboard
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final Uri url = Uri.parse(ApiEndpoints.baseUrl);
+                if (!await launchUrl(url,
+                    mode: LaunchMode.externalApplication)) {
+                  Get.snackbar("Error", "Gagal membuka web browser");
+                }
+              },
+              icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+              label: Text(
+                "Buka Dashboard Web KampSewa",
+                style: AppColors.fontStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2C4E40),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuspendDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFFC62828)),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: AppColors.fontStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF491217),
+            ),
+          ),
+        ),
+        const Text(": ",
+            style: TextStyle(
+                color: Color(0xFFC62828), fontWeight: FontWeight.bold)),
+        Expanded(
+          child: Text(
+            value,
+            style: AppColors.fontStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF2F2828),
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -733,7 +1083,7 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
                     val.totalLikes = res['total_likes'] ?? 0;
                   }
                 });
-              } else {
+              } else if (mounted) {
                 CustomSnackBar.show(context,
                     sukses: false, title: "Gagal", teks: res['message']);
               }
@@ -1971,6 +2321,92 @@ class _LayoutDetailProductState extends State<LayoutDetailProduct> {
   Widget _buildBottomBar() {
     final currentUserId = Get.find<ApiDataUser>().dataUser.value?.id;
     final isOwner = (currentUserId != null && idToko == currentUserId);
+    final isLocked = apiProduk.detailProduk.value?.isLocked == true;
+
+    if (isLocked) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0F0),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFFCDD2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_rounded,
+                    color: Color(0xFFC62828), size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Produk Ditangguhkan",
+                        style: AppColors.fontStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFC62828),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Revisi perbaikan hanya via Dashboard Web KampSewa.",
+                        style: AppColors.fontStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF7F0000),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final Uri url = Uri.parse(ApiEndpoints.baseUrl);
+                    if (!await launchUrl(url,
+                        mode: LaunchMode.externalApplication)) {
+                      Get.snackbar("Error", "Gagal membuka web browser");
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2C4E40),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    "Buka Web",
+                    style: AppColors.fontStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

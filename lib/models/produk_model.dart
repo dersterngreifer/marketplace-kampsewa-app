@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
+import 'package:project_camp_sewa/models/suspend_info_model.dart';
 
 class ProdukModel {
   final int idProduk;
@@ -25,6 +26,11 @@ class ProdukModel {
   final bool isFavorite;
   int totalLikes;
   bool isLiked;
+  final String statusProduk;
+  final bool isLocked;
+  final String? lockedMessage;
+  final bool revisiViaWebOnly;
+  final SuspendInfoModel? suspendInfo;
 
   ProdukModel({
     required this.idProduk,
@@ -50,6 +56,11 @@ class ProdukModel {
     this.isFavorite = false,
     this.totalLikes = 0,
     this.isLiked = false,
+    this.statusProduk = 'Tersedia',
+    this.isLocked = false,
+    this.lockedMessage,
+    this.revisiViaWebOnly = true,
+    this.suspendInfo,
   });
 
   factory ProdukModel.fromJson(Map<String, dynamic> json) {
@@ -131,6 +142,23 @@ class ProdukModel {
       }
     }
     parsedImages = finalImages;
+
+    final String status = json['status_produk']?.toString() ?? 'Tersedia';
+    final bool locked = json['is_locked'] == true ||
+        json['is_locked'] == 1 ||
+        json['is_locked'] == '1' ||
+        json['is_locked']?.toString().toLowerCase() == 'true' ||
+        status.toLowerCase() == 'ditangguhkan';
+    final String? lMsg = json['locked_message']?.toString();
+    final bool revWeb = json['revisi_via_web_only'] == true ||
+        json['revisi_via_web_only'] == 1 ||
+        json['revisi_via_web_only'] == '1' ||
+        json['revisi_via_web_only']?.toString().toLowerCase() == 'true';
+    SuspendInfoModel? sInfo;
+    if (json['suspend_info'] != null && json['suspend_info'] is Map) {
+      sInfo = SuspendInfoModel.fromJson(
+          Map<String, dynamic>.from(json['suspend_info']));
+    }
 
     return ProdukModel(
       idProduk: json['id_produk'] is int
@@ -219,6 +247,11 @@ class ProdukModel {
       isLiked: json['is_liked'] == true ||
           json['is_liked'] == 1 ||
           json['is_liked'] == '1',
+      statusProduk: status,
+      isLocked: locked,
+      lockedMessage: lMsg,
+      revisiViaWebOnly: revWeb,
+      suspendInfo: sInfo,
     );
   }
 }

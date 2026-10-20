@@ -250,4 +250,14 @@ class AuthEndPoints {
 
   /// GET /api/user/{user_id}/following — List user yang difollow oleh user tersebut
   String getFollowing(int userId) => "/api/user/$userId/following";
+
+  // ── Notifikasi Endpoints ──────────────────────────────────────────────────
+  /// GET /api/notifikasi — List notifikasi in-app user (termasuk suspend / pemulihan)
+  final String notifikasi = "/api/notifikasi";
+
+  /// POST /api/notifikasi/{id}/read — Tandai notifikasi dibaca
+  String markNotifikasiRead(int id) => "/api/notifikasi/$id/read";
+
+  /// POST /api/notifikasi/mark-all-read — Tandai semua notifikasi dibaca
+  final String markAllNotifikasiRead = "/api/notifikasi/mark-all-read";
 }

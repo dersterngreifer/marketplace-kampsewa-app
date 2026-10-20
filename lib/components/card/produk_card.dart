@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
+import 'package:project_camp_sewa/models/suspend_info_model.dart';
 import 'package:project_camp_sewa/theme_colors.dart';
 
 class ProdukCard extends StatefulWidget {
@@ -24,6 +25,9 @@ class ProdukCard extends StatefulWidget {
   final int? hargaAsli;
   final num? persentaseDiskon;
   final bool isOwner;
+  final bool isLocked;
+  final String? lockedMessage;
+  final SuspendInfoModel? suspendInfo;
 
   const ProdukCard({
     super.key,
@@ -47,6 +51,9 @@ class ProdukCard extends StatefulWidget {
     this.hargaAsli,
     this.persentaseDiskon,
     this.isOwner = false,
+    this.isLocked = false,
+    this.lockedMessage,
+    this.suspendInfo,
   });
 
   @override
@@ -154,7 +161,7 @@ class _ProdukCardState extends State<ProdukCard>
     final bool hasMultiple = displayImages.length > 1;
     // Aman dari data berubah: nomor slide tidak boleh melebihi total gambar.
     final int total = displayImages.length;
-    final int slide = _currentImageIndex.clamp(0, total - 1);
+    final int slide = total > 0 ? _currentImageIndex.clamp(0, total - 1) : 0;
 
     return Stack(
       fit: StackFit.expand,
@@ -194,8 +201,91 @@ class _ProdukCardState extends State<ProdukCard>
             ),
           ),
 
+        // ── Overlay Terkunci / Ditangguhkan ──
+        if (widget.isLocked)
+          Container(
+            color: Colors.black.withValues(alpha: 0.52),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD32F2F).withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.lock_rounded,
+                    size: 26,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Terkunci di Mobile',
+                    style: AppColors.fontStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFD32F2F),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         // ── Badge Kiri Atas (diperbesar) ──
-        if (!habis && (widget.isDiskon || widget.badgeLabel != null || widget.isOwner || widget.stok <= 5))
+        if (widget.isLocked)
+          Positioned(
+            top: 10,
+            left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD32F2F),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33D32F2F),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_rounded, size: 12, color: Colors.white),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Ditangguhkan',
+                    style: AppColors.fontStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (!habis && (widget.isDiskon || widget.badgeLabel != null || widget.isOwner || widget.stok <= 5))
           Positioned(
             top: 10,
             left: 10,
@@ -236,50 +326,83 @@ class _ProdukCardState extends State<ProdukCard>
           ),
 
         // Tombol Favorit (diperbesar)
-        Positioned(
-          top: 10,
-          right: 10,
-          child: GestureDetector(
-            onTap: widget.aksiFavorite,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x26000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+        if (!widget.isLocked)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: GestureDetector(
+              onTap: widget.aksiFavorite,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x26000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.isLiked
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      size: 17,
+                      color: widget.isLiked
+                          ? const Color(0xFFEE2737)
+                          : const Color(0xFF2F2828),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${widget.totalLikes}',
+                      style: AppColors.fontStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF2F2828),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ),
+          ),
+
+        // ── Banner Ditangguhkan di atas foto ──
+        if (widget.isLocked)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              color: const Color(0xE6B71C1C),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    widget.isLiked
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    size: 17,
-                    color: widget.isLiked
-                        ? const Color(0xFFEE2737)
-                        : const Color(0xFF2F2828),
-                  ),
+                  const Icon(Icons.info_outline_rounded,
+                      size: 13, color: Colors.white),
                   const SizedBox(width: 4),
-                  Text(
-                    '${widget.totalLikes}',
-                    style: AppColors.fontStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2F2828),
+                  Expanded(
+                    child: Text(
+                      'Produk ditangguhkan oleh Admin. Silakan periksa & revisi melalui Dashboard Web KampSewa.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppColors.fontStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.15,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ),
         // ── Penanda slide aktif di pojok kanan bawah: "1/10", "2/10", dst ──
         if (hasMultiple)
           Positioned(
@@ -511,37 +634,71 @@ class _ProdukCardState extends State<ProdukCard>
           ),
           const SizedBox(height: 4),
 
-          // Tombol Sewa
+          // Tombol Sewa / Status Terkunci
           SizedBox(
             width: double.infinity,
             child: Material(
-              color: bisaDitambah ? _green : Colors.grey.shade300,
+              color: widget.isLocked
+                  ? const Color(0xFFFDE8E8)
+                  : (bisaDitambah ? _green : Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: bisaDitambah ? widget.aksiKeranjang : null,
+                onTap: widget.isLocked
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              widget.lockedMessage ??
+                                  "Produk ini ditangguhkan oleh Admin. Silakan periksa melalui Dashboard Web KampSewa.",
+                              style: AppColors.fontStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFFC62828),
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    : (bisaDitambah ? widget.aksiKeranjang : null),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6.5),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        (widget.isOwner || widget.badgeLabel == 'Milik Anda')
-                            ? 'Milik Anda'
-                            : 'Sewa',
-                        style: AppColors.fontStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: bisaDitambah ? Colors.white : Colors.grey,
+                      Flexible(
+                        child: Text(
+                          widget.isLocked
+                              ? 'Terkunci (Web)'
+                              : ((widget.isOwner || widget.badgeLabel == 'Milik Anda')
+                                  ? 'Milik Anda'
+                                  : 'Sewa'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppColors.fontStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: widget.isLocked
+                                ? const Color(0xFFC62828)
+                                : (bisaDitambah ? Colors.white : Colors.grey),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Icon(
-                        (widget.isOwner || widget.badgeLabel == 'Milik Anda')
-                            ? Icons.store_rounded
-                            : Icons.add_shopping_cart_rounded,
+                        widget.isLocked
+                            ? Icons.lock_rounded
+                            : ((widget.isOwner || widget.badgeLabel == 'Milik Anda')
+                                ? Icons.store_rounded
+                                : Icons.add_shopping_cart_rounded),
                         size: 14,
-                        color: bisaDitambah ? Colors.white : Colors.grey,
+                        color: widget.isLocked
+                            ? const Color(0xFFC62828)
+                            : (bisaDitambah ? Colors.white : Colors.grey),
                       ),
                     ],
                   ),

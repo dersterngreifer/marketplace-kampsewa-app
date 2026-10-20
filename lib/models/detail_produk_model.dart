@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
+import 'package:project_camp_sewa/models/suspend_info_model.dart';
 
 class DetailProdukModel {
   int idProduk;
@@ -27,6 +28,11 @@ class DetailProdukModel {
   String? namaPromo;
   String? tanggalMulai;
   String? tanggalSelesai;
+  String statusProduk;
+  bool isLocked;
+  String? lockedMessage;
+  bool revisiViaWebOnly;
+  SuspendInfoModel? suspendInfo;
 
   DetailProdukModel({
     required this.idProduk,
@@ -54,6 +60,11 @@ class DetailProdukModel {
     this.namaPromo,
     this.tanggalMulai,
     this.tanggalSelesai,
+    this.statusProduk = 'Tersedia',
+    this.isLocked = false,
+    this.lockedMessage,
+    this.revisiViaWebOnly = true,
+    this.suspendInfo,
   });
 
   factory DetailProdukModel.fromJson(Map<String, dynamic> json) {
@@ -69,9 +80,15 @@ class DetailProdukModel {
             strArr = strArr.substring(1, strArr.length - 1);
           }
           if (strArr.contains(',')) {
-            arr = strArr.split(',').map((e) => e.replaceAll('"', '').replaceAll("'", "").trim()).toList();
+            arr = strArr
+                .split(',')
+                .map((e) =>
+                    e.replaceAll('"', '').replaceAll("'", "").trim())
+                .toList();
           } else {
-            arr = [strArr.replaceAll('"', '').replaceAll("'", "").trim()];
+            arr = [
+              strArr.replaceAll('"', '').replaceAll("'", "").trim()
+            ];
           }
         }
       }
@@ -102,9 +119,15 @@ class DetailProdukModel {
             strArr = strArr.substring(1, strArr.length - 1);
           }
           if (strArr.contains(',')) {
-            arr = strArr.split(',').map((e) => e.replaceAll('"', '').replaceAll("'", "").trim()).toList();
+            arr = strArr
+                .split(',')
+                .map((e) =>
+                    e.replaceAll('"', '').replaceAll("'", "").trim())
+                .toList();
           } else {
-            arr = [strArr.replaceAll('"', '').replaceAll("'", "").trim()];
+            arr = [
+              strArr.replaceAll('"', '').replaceAll("'", "").trim()
+            ];
           }
         }
       }
@@ -128,6 +151,23 @@ class DetailProdukModel {
       final str = val.toString();
       if (str == 'Belum di isi') return '';
       return str;
+    }
+
+    final String status = json['status_produk']?.toString() ?? 'Tersedia';
+    final bool locked = json['is_locked'] == true ||
+        json['is_locked'] == 1 ||
+        json['is_locked'] == '1' ||
+        json['is_locked']?.toString().toLowerCase() == 'true' ||
+        status.toLowerCase() == 'ditangguhkan';
+    final String? lMsg = json['locked_message']?.toString();
+    final bool revWeb = json['revisi_via_web_only'] == true ||
+        json['revisi_via_web_only'] == 1 ||
+        json['revisi_via_web_only'] == '1' ||
+        json['revisi_via_web_only']?.toString().toLowerCase() == 'true';
+    SuspendInfoModel? sInfo;
+    if (json['suspend_info'] != null && json['suspend_info'] is Map) {
+      sInfo = SuspendInfoModel.fromJson(
+          Map<String, dynamic>.from(json['suspend_info']));
     }
 
     return DetailProdukModel(
@@ -209,6 +249,11 @@ class DetailProdukModel {
       namaPromo: json['nama_diskon']?.toString() ?? json['nama_promo']?.toString(),
       tanggalMulai: json['tanggal_mulai']?.toString(),
       tanggalSelesai: json['tanggal_selesai']?.toString(),
+      statusProduk: status,
+      isLocked: locked,
+      lockedMessage: lMsg,
+      revisiViaWebOnly: revWeb,
+      suspendInfo: sInfo,
     );
   }
 }

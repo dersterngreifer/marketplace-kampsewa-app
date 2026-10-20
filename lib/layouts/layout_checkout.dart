@@ -107,7 +107,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
         border: isError ? Border.all(color: Colors.red.shade400, width: 1.5) : null,
         boxShadow: [
           BoxShadow(
-            color: isError ? Colors.red.withOpacity(0.15) : Colors.grey.withOpacity(0.08),
+            color: isError ? Colors.red.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -154,7 +154,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2F2828).withOpacity(0.06),
+                            color: const Color(0xFF2F2828).withValues(alpha: 0.06),
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(12),
                               topRight: Radius.circular(12),
@@ -162,7 +162,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                           ),
                           child: Row(
                             children: [
-                              Icon(MdiIcons.storefrontOutline, color: const Color(0xFF2F2828), size: 22),
+                              const Icon(MdiIcons.storefrontOutline, color: Color(0xFF2F2828), size: 22),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Obx(() => Text(
@@ -270,7 +270,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     dayStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                                    weekdayStyle: TextStyle(fontWeight: FontWeight.w700, color: Colors.black54, fontSize: 13),
+                                    weekdayStyle: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black54, fontSize: 13),
                                     rangePickerBackgroundColor: Colors.white,
                                     rangePickerElevation: 0,
                                     rangePickerHeaderBackgroundColor: const Color(0xFF2C4E40),
@@ -314,7 +314,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: Colors.red.withOpacity(0.1),
+                                      color: Colors.red.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -497,7 +497,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                         children: [
                           Row(
                             children: [
-                              Icon(MdiIcons.messageTextOutline, color: Colors.black87, size: 20),
+                              const Icon(MdiIcons.messageTextOutline, color: Colors.black87, size: 20),
                               const SizedBox(width: 8),
                               Text(
                                 "Pesan untuk Toko",
@@ -559,7 +559,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.1),
+                                color: Colors.orange.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(MdiIcons.walletOutline, color: Colors.orange[700], size: 24),
@@ -579,7 +579,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
+                                  color: Colors.red.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -617,7 +617,7 @@ class _LayoutCheckoutState extends State<LayoutCheckout> {
                         children: [
                           Row(
                             children: [
-                              Icon(MdiIcons.receiptTextOutline, color: Colors.black87, size: 20),
+                              const Icon(MdiIcons.receiptTextOutline, color: Colors.black87, size: 20),
                               const SizedBox(width: 8),
                               Text(
                                 "Rincian Pembayaran",

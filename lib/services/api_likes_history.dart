@@ -26,7 +26,7 @@ class ApiLikesHistory extends GetxController {
       final token = await Authorization().getToken();
       if (token == null) return;
 
-      final url = '${ApiEndpoints.baseUrl}/api/user/likes';
+      const url = '${ApiEndpoints.baseUrl}/api/user/likes';
       final response = await dio.get(
         url,
         options: Options(
@@ -63,7 +63,7 @@ class ApiLikesHistory extends GetxController {
       final token = await Authorization().getToken();
       if (token == null) return;
 
-      final url = '${ApiEndpoints.baseUrl}/api/user/feedbacks';
+      const url = '${ApiEndpoints.baseUrl}/api/user/feedbacks';
       final response = await dio.get(
         url,
         options: Options(

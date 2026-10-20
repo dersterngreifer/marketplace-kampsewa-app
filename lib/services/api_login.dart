@@ -78,11 +78,11 @@ class ApiLogin extends GetxController {
         if (json['access_token'] != null) {
           var token = json['access_token'];
           var idUser = json['user']['id'];
-          auth.saveToken(token);
-          auth.saveId(idUser);
+          await auth.saveToken(token);
+          await auth.saveId(idUser);
 
           int userType = json['user']['type'] ?? 1;
-          auth.saveType(userType);
+          await auth.saveType(userType);
 
           emailController.clear();
           passwordController.clear();

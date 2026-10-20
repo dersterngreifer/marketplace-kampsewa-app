@@ -2,10 +2,13 @@ import 'package:project_camp_sewa/theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:project_camp_sewa/layouts/layout_riwayat.dart';
+import 'package:project_camp_sewa/services/controller_riwayat_badge.dart';
 
 class RiwayatScreen extends StatefulWidget {
-  const RiwayatScreen({super.key});
+  final int initialIndex;
+  const RiwayatScreen({super.key, this.initialIndex = 0});
 
   @override
   State<RiwayatScreen> createState() => _RiwayatScreenState();
@@ -19,6 +22,8 @@ class _RiwayatScreenState extends State<RiwayatScreen>
   static const Color _bg = Color(0xFFF7F8F7);
 
   late TabController _tabController;
+  final RiwayatBadgeController _riwayatBadge =
+      Get.put(RiwayatBadgeController(), permanent: true);
 
   // Label + icon supaya lebih scannable
   final List<Map<String, dynamic>> _tabsData = const [
@@ -41,10 +46,31 @@ class _RiwayatScreenState extends State<RiwayatScreen>
 
   @override
   void initState() {
-    _tabController = TabController(length: _tabsData.length, vsync: this);
+    final int safeInitial = (widget.initialIndex >= 0 &&
+            widget.initialIndex < _tabsData.length)
+        ? widget.initialIndex
+        : 0;
+    _tabController = TabController(
+      length: _tabsData.length,
+      vsync: this,
+      initialIndex: safeInitial,
+    );
+
+    // Langsung hilangkan dot indikator untuk tab yang pertama kali aktif dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _riwayatBadge
+            .markTabAsViewed(_tabsData[safeInitial]['label'] as String);
+      }
+    });
+
     _tabController.addListener(() {
       // Rebuild chip saat tab berubah (untuk animasi active state)
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+        _riwayatBadge.markTabAsViewed(
+            _tabsData[_tabController.index]['label'] as String);
+      }
     });
     super.initState();
   }
@@ -209,54 +235,76 @@ class _RiwayatScreenState extends State<RiwayatScreen>
               final icon = data['icon'] as IconData;
               final isActive = _tabController.index == index;
 
-              return GestureDetector(
-                onTap: () {
-                  _tabController.animateTo(index);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isActive ? _green : Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isActive ? _green : Colors.grey.shade200,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isActive
-                            ? _green.withValues(alpha: 0.25)
-                            : Colors.black.withValues(alpha: 0.04),
-                        blurRadius: isActive ? 8 : 4,
-                        offset: Offset(0, isActive ? 3 : 2),
+              return Obx(() {
+                final bool hasDot = _riwayatBadge.unreadTabs.contains(label);
+                return GestureDetector(
+                  onTap: () {
+                    _tabController.animateTo(index);
+                    _riwayatBadge.markTabAsViewed(label);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isActive ? _green : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isActive ? _green : Colors.grey.shade200,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 15,
-                        color: isActive ? Colors.white : _grey,
-                      ),
-                      const SizedBox(width: 7),
-                      Text(
-                        label,
-                        style: AppColors.fontStyle(
-                          fontSize: 12.5,
-                          fontWeight:
-                              isActive ? FontWeight.w800 : FontWeight.w600,
-                          color:
-                              isActive ? Colors.white : const Color(0xFF6B6B6B),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isActive
+                              ? _green.withValues(alpha: 0.25)
+                              : Colors.black.withValues(alpha: 0.04),
+                          blurRadius: isActive ? 8 : 4,
+                          offset: Offset(0, isActive ? 3 : 2),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          icon,
+                          size: 15,
+                          color: isActive ? Colors.white : _grey,
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          label,
+                          style: AppColors.fontStyle(
+                            fontSize: 12.5,
+                            fontWeight:
+                                isActive ? FontWeight.w800 : FontWeight.w600,
+                            color:
+                                isActive ? Colors.white : const Color(0xFF6B6B6B),
+                          ),
+                        ),
+                        if (hasDot) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: isActive ? const Color(0xFFFF5252) : const Color(0xFFEE2737),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFEE2737).withValues(alpha: 0.4),
+                                  blurRadius: 3,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-              );
+                );
+              });
             },
           );
         },

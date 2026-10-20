@@ -10,6 +10,7 @@ import 'package:project_camp_sewa/components/dialog/snackbar.dart';
 import 'package:project_camp_sewa/constants/api_endpoint.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_product.dart';
 import 'package:project_camp_sewa/layouts/layout_keranjang.dart';
+import 'package:project_camp_sewa/layouts/layout_notifikasi.dart';
 import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
 import 'package:project_camp_sewa/layouts/layout_search_screen.dart';
 import 'package:project_camp_sewa/layouts/layout_detail_berita.dart';
@@ -21,6 +22,7 @@ import 'package:project_camp_sewa/models/iklan_model.dart';
 import 'package:project_camp_sewa/services/api_article.dart';
 import 'package:project_camp_sewa/services/api_data_user.dart';
 import 'package:project_camp_sewa/services/api_iklan.dart';
+import 'package:project_camp_sewa/services/api_notifikasi.dart';
 import 'package:project_camp_sewa/services/api_produk.dart';
 import 'package:project_camp_sewa/services/controller_dashboard.dart';
 import 'package:project_camp_sewa/services/controller_keranjang.dart';
@@ -45,6 +47,7 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   ApiProduk apiProduk = Get.put(ApiProduk());
   KeranjangController keranjangController = Get.put(KeranjangController());
   ApiArticle apiArticle = Get.put(ApiArticle());
+  ApiNotifikasi apiNotifikasi = Get.put(ApiNotifikasi(), permanent: true);
 
   String selectedCategoryLabel = 'Semua';
 
@@ -56,6 +59,8 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
   void initState() {
     super.initState();
 
+    apiNotifikasi.fetchNotifikasi();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       apiDataUser.getDataUser(context);
       apiIklan.getIklan(context);
@@ -64,6 +69,8 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
       apiProduk.getFeaturedProduk(context);
       // Load keranjang agar badge icon langsung terupdate
       keranjangController.loadKeranjang(context);
+      // Load notifikasi
+      apiNotifikasi.fetchNotifikasi();
       // Ambil rekomendasi wisata dan berita terkini dinamis dari backend database
       apiArticle.fetchWisataDashboard(limit: 6);
       apiArticle.fetchBeritaDashboard(limit: 5);
@@ -102,6 +109,8 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
               apiProduk.getListKategori();
               apiArticle.fetchWisataDashboard(limit: 6);
               apiArticle.fetchBeritaDashboard(limit: 5);
+              keranjangController.loadKeranjang(context);
+              apiNotifikasi.fetchNotifikasi();
               await apiDataUser.getDataUser(context);
               if (!context.mounted) return;
               await apiProduk.getFeaturedProduk(context);
@@ -408,6 +417,69 @@ class _LayoutDashboardState extends State<LayoutDashboard> {
               ),
             ),
           ),
+          const SizedBox(width: 8),
+
+          // Ikon notifikasi + badge unread
+          Obx(() {
+            final unread = apiNotifikasi.unreadCount.value;
+            return InkWell(
+              onTap: () async {
+                await Get.to(() => const LayoutNotifikasi());
+                if (mounted) {
+                  apiNotifikasi.fetchNotifikasi();
+                }
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    const Icon(Icons.notifications_none_rounded,
+                        color: _dark, size: 24),
+                    if (unread > 0)
+                      Positioned(
+                        top: -5,
+                        right: -5,
+                        child: Container(
+                          constraints:
+                              const BoxConstraints(minWidth: 18, minHeight: 18),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEE2737),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: Text(
+                            unread > 9 ? "9+" : "$unread",
+                            style: AppColors.fontStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }),
           const SizedBox(width: 8),
 
           // Ikon keranjang + badge jumlah

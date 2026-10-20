@@ -25,6 +25,8 @@ import 'package:project_camp_sewa/layouts/layout_public_store_profile.dart';
 import 'package:project_camp_sewa/layouts/layout_feedback_list.dart';
 import 'package:project_camp_sewa/layouts/layout_kelola_diskon.dart';
 import 'package:project_camp_sewa/layouts/layout_follow_list.dart';
+import 'package:project_camp_sewa/layouts/layout_notifikasi.dart';
+import 'package:project_camp_sewa/services/api_notifikasi.dart';
 
 class LayoutProfile extends StatefulWidget {
   const LayoutProfile({super.key});
@@ -36,12 +38,14 @@ class LayoutProfile extends StatefulWidget {
 class _LayoutProfileState extends State<LayoutProfile> {
   final DashboardController pageController = Get.put(DashboardController());
   final ApiDataUser apiDataUser = Get.put(ApiDataUser());
+  final ApiNotifikasi apiNotifikasi = Get.put(ApiNotifikasi(), permanent: true);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       apiDataUser.getDataUser(context);
+      apiNotifikasi.fetchNotifikasi();
     });
   }
 
@@ -1019,6 +1023,50 @@ class _LayoutProfileState extends State<LayoutProfile> {
                               ? '99+'
                               : apiDataUser.totalUnreadFeedback.value
                                   .toString(),
+                          style: AppColors.fontStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        MdiIcons.chevronRight,
+                        color: Color(0xFFBDBDBD),
+                        size: 24,
+                      ),
+                    ],
+                  )
+                : null,
+          ),
+          _buildMenuItem(
+            icon: MdiIcons.bellOutline,
+            title: 'Notifikasi',
+            subtitle: 'Pemberitahuan produk, suspend & info toko',
+            iconColor: const Color(0xFFE65100),
+            iconBgColor: const Color(0xFFFFF3E0),
+            onTap: () async {
+              await Get.to(() => const LayoutNotifikasi());
+              if (mounted) {
+                apiNotifikasi.fetchNotifikasi();
+              }
+            },
+            trailing: apiNotifikasi.unreadCount.value > 0
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE53935),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          apiNotifikasi.unreadCount.value > 99
+                              ? '99+'
+                              : apiNotifikasi.unreadCount.value.toString(),
                           style: AppColors.fontStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

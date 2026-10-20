@@ -91,6 +91,7 @@ class _LayoutInformasiTokoState extends State<LayoutInformasiToko> {
         );
 
         if (croppedFile != null) {
+          if (!mounted) return;
           loading.showLoadingDialog();
           bool success = await apiDataUser.updateInformasiToko(
             context,
@@ -98,6 +99,7 @@ class _LayoutInformasiTokoState extends State<LayoutInformasiToko> {
             fotoTokoPath: !isBanner ? croppedFile.path : null,
           );
           loading.hideLoadingDialog();
+          if (!mounted) return;
           if (success) {
             CustomSnackBar.show(context,
                 sukses: true,
@@ -122,6 +124,7 @@ class _LayoutInformasiTokoState extends State<LayoutInformasiToko> {
   }
 
   Future<void> _saveText(String field) async {
+    if (!mounted) return;
     loading.showLoadingDialog();
     bool success = await apiDataUser.updateInformasiToko(
       context,
@@ -129,6 +132,7 @@ class _LayoutInformasiTokoState extends State<LayoutInformasiToko> {
       deskripsiToko: field == 'desc' ? descController.text : null,
     );
     loading.hideLoadingDialog();
+    if (!mounted) return;
     if (success) {
       setState(() {
         if (field == 'name') isEditingName = false;

@@ -8,7 +8,9 @@ import 'package:project_camp_sewa/layouts/layout_product.dart';
 import 'package:project_camp_sewa/layouts/layout_profile.dart';
 import 'package:project_camp_sewa/screens/screen_riwayat.dart';
 import 'package:project_camp_sewa/services/api_chat.dart';
+import 'package:project_camp_sewa/services/api_notifikasi.dart';
 import 'package:project_camp_sewa/services/controller_dashboard.dart';
+import 'package:project_camp_sewa/services/controller_riwayat_badge.dart';
 
 class ScreenDashboard extends StatefulWidget {
   const ScreenDashboard({super.key});
@@ -20,6 +22,9 @@ class ScreenDashboard extends StatefulWidget {
 class _ScreenDashboardState extends State<ScreenDashboard> {
   final DashboardController pageController = Get.put(DashboardController());
   final ApiChat apiChat = Get.put(ApiChat());
+  final ApiNotifikasi apiNotifikasi = Get.put(ApiNotifikasi(), permanent: true);
+  final RiwayatBadgeController riwayatBadge =
+      Get.put(RiwayatBadgeController(), permanent: true);
 
   final List<Widget> _pages = const [
     LayoutDashboard(),
@@ -37,6 +42,7 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       apiChat.getUnreadSummary();
+      apiNotifikasi.fetchNotifikasi();
     });
   }
 
@@ -71,8 +77,8 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(
-                  0.06), // Shadow tipis agar tidak menyatu dengan background
+              color: Colors.black.withValues(
+                  alpha: 0.06), // Shadow tipis agar tidak menyatu dengan background
               blurRadius: 10,
               offset: const Offset(0, -4),
             ),
@@ -91,8 +97,10 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
                 CupertinoIcons.chat_bubble_2_fill, selected,
                 isChat: true),
 
+            // Menu Riwayat (Index 3) dengan penanda isRiwayat = true untuk dot indikator pembaruan pesanan
             _buildNavItem(3, CupertinoIcons.doc_plaintext,
-                CupertinoIcons.doc_text_fill, selected),
+                CupertinoIcons.doc_text_fill, selected,
+                isRiwayat: true),
             _buildNavItem(
                 4, CupertinoIcons.person, CupertinoIcons.person_fill, selected),
           ],
@@ -108,12 +116,18 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
     IconData activeIcon,
     int selected, {
     bool isChat = false,
+    bool isRiwayat = false,
   }) {
     final bool isActive = selected == index;
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => pageController.setPageIndex(index),
+        onTap: () {
+          pageController.setPageIndex(index);
+          if (index == 0) {
+            apiNotifikasi.fetchNotifikasi();
+          }
+        },
         behavior: HitTestBehavior.opaque,
         child: Center(
           child: AnimatedContainer(
@@ -125,7 +139,7 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
               shape: BoxShape.circle,
               // Background lingkaran sempurna saat aktif
               color: isActive
-                  ? _activeColor.withOpacity(0.12)
+                  ? _activeColor.withValues(alpha: 0.12)
                   : Colors.transparent,
             ),
             child: Stack(
@@ -168,6 +182,34 @@ class _ScreenDashboardState extends State<ScreenDashboard> {
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
+                        ),
+                      ),
+                    );
+                  }),
+
+                // Menampilkan Titik Merah HANYA jika ini adalah menu Riwayat dan ada update status pesanan
+                if (isRiwayat)
+                  Obx(() {
+                    final bool hasDot = riwayatBadge.hasRiwayatUpdate;
+                    if (!hasDot) return const SizedBox.shrink();
+
+                    return Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEE2737),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFEE2737).withValues(alpha: 0.4),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
                       ),
                     );

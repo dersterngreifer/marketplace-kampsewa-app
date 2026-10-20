@@ -418,7 +418,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
         icon: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -432,7 +432,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               shape: BoxShape.circle,
             ),
             child:
@@ -457,9 +457,9 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.5),
+                    Colors.black.withValues(alpha: 0.5),
                     Colors.transparent,
-                    Colors.black.withOpacity(0.2),
+                    Colors.black.withValues(alpha: 0.2),
                   ],
                 ),
               ),
@@ -607,7 +607,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                                 backgroundColor: AppColors.mainColor,
                                 foregroundColor: Colors.white,
                                 disabledBackgroundColor:
-                                    AppColors.mainColor.withOpacity(0.6),
+                                    AppColors.mainColor.withValues(alpha: 0.6),
                                 disabledForegroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
@@ -690,9 +690,9 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 onTap: () =>
                     _showFullStoreDescription(controller.storeDesc.value),
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   child: Text(
                     "Selengkapnya",
                     style: TextStyle(
@@ -1608,7 +1608,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                                     AppColors.mainColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.tune_rounded,
                                 size: 18,
                                 color: AppColors.mainColor,
@@ -1856,7 +1856,7 @@ class LayoutPublicStoreProfile extends StatelessWidget {
                                           ),
                                         ),
                                         if (isSelected)
-                                          Icon(
+                                          const Icon(
                                             Icons.check_circle_rounded,
                                             size: 22,
                                             color: AppColors.mainColor,
@@ -1911,10 +1911,10 @@ class LayoutPublicStoreProfile extends StatelessWidget {
     final name = controller.storeName.value;
     final String initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return Container(
-      color: AppColors.mainColor.withOpacity(0.1),
+      color: AppColors.mainColor.withValues(alpha: 0.1),
       child: Center(
         child: Text(initial,
-            style: TextStyle(
+            style: const TextStyle(
                 color: AppColors.mainColor,
                 fontSize: 24,
                 fontWeight: FontWeight.bold)),
@@ -2188,7 +2188,7 @@ class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
           boxShadow: isPinned
               ? [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 6,
                       offset: const Offset(0, 3))
                 ]
@@ -2212,7 +2212,7 @@ class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
                         border: Border.all(color: Colors.grey.shade200),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
+                            color: Colors.black.withValues(alpha: 0.03),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),

@@ -143,7 +143,7 @@ class NetworkErrorDialog extends StatelessWidget {
                 ),
                 child: isServerError 
                   ? const Icon(Icons.dns_rounded, color: Colors.red, size: 40)
-                  : SpinKitPulse(
+                  : const SpinKitPulse(
                       color: AppColors.mainColor,
                       size: 50,
                     ),
@@ -170,12 +170,12 @@ class NetworkErrorDialog extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               if (isServerError)
-                SpinKitThreeBounce(
+                const SpinKitThreeBounce(
                   color: Colors.red,
                   size: 20,
                 )
               else
-                SpinKitThreeBounce(
+                const SpinKitThreeBounce(
                   color: AppColors.mainColor,
                   size: 20,
                 ),
